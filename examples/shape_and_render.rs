@@ -12,7 +12,7 @@ use haforu::FontLoader;
 use haforu::json_parser::ShapingOptions;
 use haforu::rasterize::CpuRasterizer;
 use haforu::shaping::TextShaper;
-use read_fonts::FontRef;
+use skrifa::FontRef;
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load font
     let mut loader = FontLoader::new();
     let font_bytes = loader.load_font_data(&font_path)?;
-    let font_ref = FontRef::new(&font_bytes)?;
+    let font_ref = FontRef::from_index(&font_bytes, 0)?;
 
     // Shape text
     let mut shaper = TextShaper::new();

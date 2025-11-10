@@ -4,6 +4,61 @@ this_file: WORK.md
 
 # WORK.md
 
+## Issue #102 Fix: read-fonts Dependency (2025-11-10 /work session)
+
+### Problem
+The build was failing with:
+- `read-fonts = "^0.35.1"` version 0.35.1 is yanked
+- Python wheels build failing via maturin
+
+### Root Cause Analysis
+1. read-fonts v0.35.1 was yanked from crates.io
+2. harfrust 0.3.2 depends on read-fonts 0.35.0
+3. Version mismatches between read-fonts (0.35.x) and skrifa (0.36.x) caused type incompatibilities
+
+### Solution Implemented
+
+#### 1. Dependency Version Alignment
+- Downgraded to stable, compatible versions:
+  - read-fonts: 0.35.1 → **0.34.0**
+  - skrifa: 0.38.0 → **0.33.2**
+  - These versions work with harfrust 0.3.2
+
+#### 2. Fixed HarfRust FontRef API Issue
+In `src/shaping.rs`, line 123:
+- Problem: HarfRust FontRef doesn't have a `head()` method
+- Solution: Created separate read_fonts::FontRef to access UPEM value
+```rust
+// Create a read-fonts FontRef to get the UPEM value
+let read_font = FontRef::from_index(font_data, 0)?;
+let upem = read_font.head().map(|h| h.units_per_em()).unwrap_or(1000) as f32;
+```
+
+#### 3. Fixed Examples and Tests
+- Changed imports from `read_fonts::FontRef` to `skrifa::FontRef`
+- Updated `FontRef::new(&font_bytes)` to `FontRef::from_index(&font_bytes, 0)`
+- Files fixed:
+  - `examples/shape_and_render.rs`
+  - `tests/e2e_shaping_rendering.rs`
+
+### Test Results
+```
+cargo test: PASS
+- 58 tests total: 45 unit + 3 CLI + 3 E2E + 7 integration
+- All tests passing
+
+./build.sh: IN PROGRESS (as of this update)
+- Rust build: SUCCESS
+- Python wheels: Compiling with maturin
+```
+
+### Remaining Warnings (non-blocking)
+- 3 dead code warnings (unused fields/functions)
+- Multiple clippy suggestions (code style improvements)
+- These don't block functionality
+
+---
+
 ## /test and /report (2025-11-10)
 
 - Ran full suite: 57 passing (44 unit, 3 CLI, 3 E2E, 7 integration).
@@ -15,7 +70,7 @@ this_file: WORK.md
 
 Risk assessment:
 - Low risk: new metrics use relaxed atomics; correctness is monotonic counters only.
-- Low risk: timing capture non-invasive; tests don’t depend on values.
+- Low risk: timing capture non-invasive; tests don't depend on values.
 - Low risk: logging init swap maintains behavior; tests ignore logs.
 
 ## Test Additions (2025-11-10)
@@ -99,7 +154,7 @@ Warnings: 3 (unused fields - can be cleaned up later)
 
 2. **rasterize.rs** (410 lines)
    - CpuRasterizer using skrifa + zeno
-   - BoundsPen for calculating glyph bounds
+   - BoundsPen for calculating glyph bounds calculation
    - ZenoPen adapter from skrifa OutlinePen to zeno paths
    - ParallelRasterizer for batch processing with Rayon
    - RenderedGlyph struct with bitmap output

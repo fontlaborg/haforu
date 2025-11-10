@@ -6,7 +6,7 @@ use haforu::rasterize::CpuRasterizer;
 use haforu::shaping::TextShaper;
 use haforu::storage::StorageManager;
 use haforu::{FontLoader, Result};
-use read_fonts::FontRef;
+use skrifa::FontRef;
 
 fn load_font_bytes(path: &str) -> Result<Vec<u8>> {
     let mut loader = FontLoader::new();
@@ -19,7 +19,7 @@ fn test_shape_and_render_archivo_hello_line() {
     // Arrange
     let font_path = "03fonts/Archivo[wdth,wght].ttf";
     let font_bytes = load_font_bytes(font_path).expect("load font bytes");
-    let font_ref = FontRef::new(&font_bytes).expect("font ref");
+    let font_ref = FontRef::from_index(&font_bytes, 0).expect("font ref");
 
     let mut shaper = TextShaper::new();
     let opts = ShapingOptions::default();
@@ -82,7 +82,7 @@ fn test_storage_roundtrip_with_render() {
     // Arrange
     let font_path = "03fonts/Archivo[wdth,wght].ttf";
     let font_bytes = load_font_bytes(font_path).expect("load font bytes");
-    let font_ref = FontRef::new(&font_bytes).expect("font ref");
+    let font_ref = FontRef::from_index(&font_bytes, 0).expect("font ref");
     let mut shaper = TextShaper::new();
     let opts = ShapingOptions::default();
     let size = 18.0;

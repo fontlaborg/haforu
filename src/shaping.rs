@@ -120,7 +120,10 @@ impl TextShaper {
         let glyph_positions = glyph_buffer.glyph_positions();
 
         // Note: HarfRust shapes at UnitsPerEm scale, so we need to scale the results
-        let upem = font.head().map(|h| h.units_per_em()).unwrap_or(1000) as f32;
+        // Create a read-fonts FontRef to get the UPEM value
+        let read_font = FontRef::from_index(font_data, 0)
+            .map_err(|e| Error::Font(format!("Failed to create read-fonts font: {:?}", e)))?;
+        let upem = read_font.head().map(|h| h.units_per_em()).unwrap_or(1000) as f32;
         let scale = size / upem;
 
         let glyphs = glyph_infos
