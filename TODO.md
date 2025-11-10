@@ -6,9 +6,15 @@ this_file: TODO.md
 
 Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed with the work! 
 
-## Fix 
+## Fix
 
-- [ ] @issues/102.md
+- [x] @issues/102.md - Fixed yanked read-fonts dependency
+
+## Quality Improvements (Small-Scale)
+
+- [ ] Fix Python bindings - export json_parser module for full API access
+- [ ] Clean up clippy warnings (unused fields, redundant closures, etc.)
+- [ ] Add error recovery tests for malformed/corrupt font files
 
 ## Build/Release Tasks
 - [ ] Configure GitHub Secrets: `CRATES_IO_TOKEN`, `PYPI_TOKEN`

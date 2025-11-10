@@ -6,6 +6,11 @@ this_file: CHANGELOG.md
 
 ## [Unreleased]
 
+### Fixed
+- Fixed yanked dependency issue: downgraded read-fonts from 0.35.1 to 0.34.0 and skrifa from 0.38.0 to 0.33.2 for compatibility with harfrust 0.3.2
+- Fixed HarfRust FontRef API incompatibility by creating separate read_fonts::FontRef for UPEM access
+- Updated examples and tests to use skrifa::FontRef instead of read_fonts::FontRef
+
 ### Added
 - Build and release tooling:
   - `build.sh` for local checks, tests, Rust build, and Python wheel/sdist via maturin.
@@ -15,6 +20,7 @@ this_file: CHANGELOG.md
 
 ### Notes
 - Tag `vX.Y.Z` sets both Rust and Python versions to `X.Y.Z` in CI and scripts.
+- Python bindings currently have incomplete exports (json_parser module not exposed)
 
 ## [0.1.0] - 2025-11-10
 
