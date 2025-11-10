@@ -7,7 +7,7 @@ build-backend = "maturin"
 name = "haforu"
 version = "0.1.0"
 description = "Python bindings for haforu: high-performance font shaping and rendering"
-readme = true
+readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT OR Apache-2.0" }
 authors = [{ name = "haforu developers" }]
@@ -30,4 +30,3 @@ bindings = "pyo3-abi3"
 features = []
 strip = true
 manifest-path = "Cargo.toml"
-

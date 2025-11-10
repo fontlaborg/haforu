@@ -1,3 +1,7 @@
+---
+this_file: WORK.md
+---
+
 # WORK.md
 
 ## /test and /report (2025-11-10)
@@ -280,3 +284,19 @@ All dependencies successfully added and compiling without errors.
 - Vello-based GPU rendering implementation
 - Performance benchmarking
 - Production deployment preparation
+## Build & Release Setup (2025-11-10)
+
+- Added `build.sh` (local checks/tests/build, Python wheels via maturin) and `publish.sh` (crates.io/PyPI).
+- Created GitHub Actions:
+  - `ci.yml` (fmt, clippy warnings, tests, maturin develop smoke import).
+  - `release.yml` (tag `vX.Y.Z` → version sync, multiplatform Rust binaries, Python wheels/sdist, GitHub Release, optional publish).
+  - `audit.yml` (weekly cargo-audit schedule).
+- Python bindings scaffolded in `bindings/python` exposing `version`, `validate_spec`, `process`.
+
+Local validation:
+- `cargo test` → PASS (all tests green).
+- `./build.sh --release --skip-python` → PASS (clippy warnings tolerated locally).
+
+Risks & mitigations:
+- CI clippy set to warnings-only to avoid blocking on style lints while code matures.
+- Version sync derives from tag; safeguards in scripts enforce `vX.Y.Z` pattern.

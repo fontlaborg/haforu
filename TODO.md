@@ -6,6 +6,10 @@ this_file: TODO.md
 
 Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed with the work! 
 
+## Fix 
+
+- [ ] @issues/102.md
+
 ## Build/Release Tasks
 - [ ] Configure GitHub Secrets: `CRATES_IO_TOKEN`, `PYPI_TOKEN`
 - [ ] Verify `./build.sh --release` runs on dev machine (cargo + maturin installed)
