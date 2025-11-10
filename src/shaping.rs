@@ -4,8 +4,8 @@
 use crate::error::{Error, Result};
 use crate::json_parser::{GlyphInfo, ShapingOptions, ShapingOutput};
 use harfrust::{
-    BufferClusterLevel, Direction, Feature, FontRef as HarfRustFontRef, Script,
-    ShaperData, ShaperInstance, Tag, UnicodeBuffer, Variation,
+    BufferClusterLevel, Direction, Feature, FontRef as HarfRustFontRef, Script, ShaperData,
+    ShaperInstance, Tag, UnicodeBuffer, Variation,
 };
 use log::{debug, info};
 use read_fonts::{FontRef, TableProvider};
@@ -39,7 +39,8 @@ impl TextShaper {
             .map_err(|e| Error::Font(format!("Failed to create HarfRust font: {:?}", e)))?;
 
         // Create or reuse ShaperData
-        let shaper_data = if let Some((ref cached_data, ref cached_shaper)) = self.cached_font_data {
+        let shaper_data = if let Some((ref cached_data, ref cached_shaper)) = self.cached_font_data
+        {
             if cached_data == font_data {
                 cached_shaper
             } else {
@@ -53,7 +54,9 @@ impl TextShaper {
 
         // Create shaper instance with variations if needed
         // Convert HashMap to Vec<String> for feature parsing
-        let features_vec: Vec<String> = options.features.iter()
+        let features_vec: Vec<String> = options
+            .features
+            .iter()
             .filter_map(|(k, v)| if *v { Some(k.clone()) } else { None })
             .collect();
         let variations = parse_variations(&features_vec)?;

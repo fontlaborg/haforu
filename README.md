@@ -1,3 +1,7 @@
+---
+this_file: README.md
+---
+
 # Haforu - High-Performance Font Shaping and Rendering System
 
 **⚠️ ARCHITECTURE NOTE**: Haforu is designed as a **SINGLE unified CLI tool** that combines the functionality of HarfBuzz's `hb-shape` and `hb-view` tools, enhanced with JSON batch processing capabilities. Unlike HarfBuzz which provides separate executables, haforu uses **subcommands** (`haforu shape`, `haforu view`, `haforu process`) within one executable. See [PLAN.md](PLAN.md) for detailed architecture specification.
@@ -12,6 +16,28 @@ Haforu is a Rust-based font processing system designed for extreme performance a
 - **High Performance**: Zero-copy parsing, parallel processing, GPU-accelerated rendering
 - **Smart Storage**: Sharded packfile system for storing ~10 million rendered images
 - **Compatible Interface**: CLI emulates `hb-shape` and `hb-view` with enhanced features
+
+## Build & Publish
+
+Quick paths for local builds and tag-driven releases.
+
+- Build Rust + Python locally:
+  - `./build.sh --release` (requires `cargo`, `maturin` for Python)
+- Publish to registries (requires tokens):
+  - `CRATES_IO_TOKEN=... PYPI_TOKEN=... ./publish.sh --sync-version-from-tag`
+- Tag-based versioning:
+  - Create tag `vX.Y.Z` and push; CI sets both Rust and Python versions to `X.Y.Z`, builds release artifacts and GitHub Release, and (optionally) publishes to crates.io and PyPI if secrets are configured.
+
+Tokens needed (configure in GitHub Actions Secrets for automated publish):
+- `CRATES_IO_TOKEN` for crates.io
+- `PYPI_TOKEN` for PyPI
+
+Python bindings are in `bindings/python` (PyO3 + maturin). Minimal API now exposes:
+- `haforu.version()` → string
+- `haforu.validate_spec(json_str)` → bool
+- `haforu.process(json_str)` → list[str] (JSONL lines)
+
+More details in PLAN.md and TODO.md.
 
 ## Architecture Overview
 

@@ -1,4 +1,20 @@
+---
+this_file: CHANGELOG.md
+---
+
 # CHANGELOG.md
+
+## [Unreleased]
+
+### Added
+- Build and release tooling:
+  - `build.sh` for local checks, tests, Rust build, and Python wheel/sdist via maturin.
+  - `publish.sh` to publish to crates.io and PyPI with tag-synced semantic versioning.
+  - Python bindings crate at `bindings/python` exposing `version()`, `validate_spec()`, `process()`.
+  - GitHub Actions: `ci.yml` (fmt, clippy, tests, Python smoke), `release.yml` (tag-driven artifacts + optional publish), `audit.yml`.
+
+### Notes
+- Tag `vX.Y.Z` sets both Rust and Python versions to `X.Y.Z` in CI and scripts.
 
 ## [0.1.0] - 2025-11-10
 

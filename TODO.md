@@ -1,6 +1,20 @@
+---
+this_file: TODO.md
+---
+
 # TODO.md
 
 Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed with the work! 
+
+## Build/Release Tasks
+- [ ] Configure GitHub Secrets: `CRATES_IO_TOKEN`, `PYPI_TOKEN`
+- [ ] Verify `./build.sh --release` runs on dev machine (cargo + maturin installed)
+- [ ] Create test tag `v0.1.1-rc1` (do not publish) and confirm CI builds artifacts
+- [ ] Create release tag `v0.1.1` and confirm:
+  - [ ] GitHub Release created with Rust binaries and wheels
+  - [ ] crates.io publish succeeds
+  - [ ] PyPI publish succeeds
+- [ ] Document outcome in `WORK.md` and `CHANGELOG.md`
 
 ## Completed Quality Improvements ✓
 

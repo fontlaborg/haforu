@@ -8,7 +8,7 @@
 //!   HAFORU_EXAMPLE_FONT=/path/to/font.ttf
 //!   HAFORU_EXAMPLE_TEXT="Your text here"
 
-use haforu::{FontLoader};
+use haforu::FontLoader;
 use haforu::json_parser::ShapingOptions;
 use haforu::rasterize::CpuRasterizer;
 use haforu::shaping::TextShaper;
@@ -22,8 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let font_path = env::var("HAFORU_EXAMPLE_FONT")
         .unwrap_or_else(|_| "03fonts/Archivo[wdth,wght].ttf".to_string());
-    let text = env::var("HAFORU_EXAMPLE_TEXT")
-        .unwrap_or_else(|_| "Hello, Haforu!".to_string());
+    let text = env::var("HAFORU_EXAMPLE_TEXT").unwrap_or_else(|_| "Hello, Haforu!".to_string());
     let size = 24.0;
 
     // Load font
@@ -59,4 +58,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Wrote {} ({}x{})", out_path, width, height);
     Ok(())
 }
-

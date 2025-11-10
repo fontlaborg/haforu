@@ -14,8 +14,8 @@ use log::{debug, info};
 use rayon::prelude::*;
 use read_fonts::FontRef;
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
 /// Statistics about job distribution
@@ -182,11 +182,13 @@ impl JobOrchestrator {
         }
 
         let unique_fonts = font_instance_texts.len();
-        let total_instances: usize = font_instance_texts.values()
+        let total_instances: usize = font_instance_texts
+            .values()
             .map(|instances| instances.len())
             .sum();
 
-        let all_text_counts: Vec<usize> = font_instance_texts.values()
+        let all_text_counts: Vec<usize> = font_instance_texts
+            .values()
             .flat_map(|instances| instances.values().map(|texts| texts.len()))
             .collect();
 
@@ -266,7 +268,8 @@ impl JobOrchestrator {
             ParallelizationStrategy::FontLevel => {
                 // Create one work unit per font (includes all instances/texts)
                 for (font_path, instances) in font_tree {
-                    let instance_works: Vec<InstanceWork> = instances.into_iter()
+                    let instance_works: Vec<InstanceWork> = instances
+                        .into_iter()
                         .map(|(var_key, texts)| InstanceWork {
                             variations: self.parse_instance_key(&var_key),
                             texts,
@@ -328,7 +331,8 @@ impl JobOrchestrator {
                         }
                     } else {
                         // Few instances → keep as single font unit
-                        let instance_works: Vec<InstanceWork> = instances.into_iter()
+                        let instance_works: Vec<InstanceWork> = instances
+                            .into_iter()
                             .map(|(var_key, texts)| InstanceWork {
                                 variations: self.parse_instance_key(&var_key),
                                 texts,
@@ -344,8 +348,11 @@ impl JobOrchestrator {
             }
         }
 
-        info!("Created {} work units with strategy {:?}",
-              work_units.len(), stats.parallelization_strategy);
+        info!(
+            "Created {} work units with strategy {:?}",
+            work_units.len(),
+            stats.parallelization_strategy
+        );
 
         work_units
     }
@@ -376,16 +383,22 @@ impl JobOrchestrator {
     /// Process a single work unit
     fn process_work_unit(&self, unit: WorkUnit) -> Result<Vec<JobResult>> {
         match unit {
-            WorkUnit::Font { font_path, instances } => {
-                self.process_font_unit(&font_path, instances)
-            }
-            WorkUnit::Instance { font_path, instance } => {
-                self.process_instance_unit(&font_path, instance)
-            }
-            WorkUnit::Text { font_path, variations, text, job_id } => {
-                self.process_text_unit(&font_path, variations, text, job_id)
-                    .map(|result| vec![result])
-            }
+            WorkUnit::Font {
+                font_path,
+                instances,
+            } => self.process_font_unit(&font_path, instances),
+            WorkUnit::Instance {
+                font_path,
+                instance,
+            } => self.process_instance_unit(&font_path, instance),
+            WorkUnit::Text {
+                font_path,
+                variations,
+                text,
+                job_id,
+            } => self
+                .process_text_unit(&font_path, variations, text, job_id)
+                .map(|result| vec![result]),
         }
     }
 
@@ -403,11 +416,8 @@ impl JobOrchestrator {
 
         for instance in instances {
             // Apply variations for this instance
-            let shaped_results = self.process_texts_for_instance(
-                &font_ref,
-                &instance.variations,
-                &instance.texts,
-            )?;
+            let shaped_results =
+                self.process_texts_for_instance(&font_ref, &instance.variations, &instance.texts)?;
 
             for ((text, job_id), shaped) in instance.texts.iter().zip(shaped_results) {
                 results.push(JobResult {
@@ -434,11 +444,8 @@ impl JobOrchestrator {
         let font_ref = FontRef::new(&font_data)
             .map_err(|e| Error::Font(format!("Failed to parse font: {}", e)))?;
 
-        let shaped_results = self.process_texts_for_instance(
-            &font_ref,
-            &instance.variations,
-            &instance.texts,
-        )?;
+        let shaped_results =
+            self.process_texts_for_instance(&font_ref, &instance.variations, &instance.texts)?;
 
         let mut results = Vec::new();
         for ((text, job_id), shaped) in instance.texts.iter().zip(shaped_results) {
@@ -507,9 +514,10 @@ impl JobOrchestrator {
     ) -> Result<Vec<String>> {
         // TODO: Implement actual shaping with HarfRust
         // For now, return placeholder
-        Ok(texts.iter().map(|(text, _)| {
-            format!("shaped:{}", text.len())
-        }).collect())
+        Ok(texts
+            .iter()
+            .map(|(text, _)| format!("shaped:{}", text.len()))
+            .collect())
     }
 
     /// Shape a single text
@@ -526,12 +534,11 @@ impl JobOrchestrator {
     /// Create instance key for grouping
     fn instance_key(&self, variations: &Option<Vec<VariationSetting>>) -> String {
         if let Some(vars) = variations {
-            let mut items: Vec<_> = vars.iter()
-                .map(|v| (&v.tag, v.value))
-                .collect();
+            let mut items: Vec<_> = vars.iter().map(|v| (&v.tag, v.value)).collect();
             items.sort_by_key(|&(k, _)| k);
 
-            items.iter()
+            items
+                .iter()
                 .map(|(k, v)| format!("{}={}", k, v))
                 .collect::<Vec<_>>()
                 .join(",")
@@ -543,9 +550,7 @@ impl JobOrchestrator {
     /// Convert variations to HashMap for internal use
     fn variations_to_map(variations: &Option<Vec<VariationSetting>>) -> HashMap<String, f32> {
         if let Some(vars) = variations {
-            vars.iter()
-                .map(|v| (v.tag.clone(), v.value))
-                .collect()
+            vars.iter().map(|v| (v.tag.clone(), v.value)).collect()
         } else {
             HashMap::new()
         }
@@ -584,9 +589,14 @@ pub struct JobResult {
 mod tests {
     use super::*;
     use crate::json_parser::Job;
-    use crate::json_parser::{FontSpec, ShapingOptions, RenderingOptions};
+    use crate::json_parser::{FontSpec, RenderingOptions, ShapingOptions};
 
-    fn create_test_job(id: &str, font_path: &str, text: &str, variations: Option<Vec<VariationSetting>>) -> Job {
+    fn create_test_job(
+        id: &str,
+        font_path: &str,
+        text: &str,
+        variations: Option<Vec<VariationSetting>>,
+    ) -> Job {
         Job {
             id: id.to_string(),
             font: FontSpec {
@@ -608,9 +618,15 @@ mod tests {
             jobs: vec![
                 create_test_job("job1", "font1.ttf", "Hello", None),
                 create_test_job("job2", "font1.ttf", "World", None),
-                create_test_job("job3", "font1.ttf", "Bold", Some(vec![
-                    VariationSetting { tag: "wght".to_string(), value: 700.0 }
-                ])),
+                create_test_job(
+                    "job3",
+                    "font1.ttf",
+                    "Bold",
+                    Some(vec![VariationSetting {
+                        tag: "wght".to_string(),
+                        value: 700.0,
+                    }]),
+                ),
                 create_test_job("job4", "font2.ttf", "Different", None),
             ],
             storage: crate::json_parser::StorageOptions::default(),
@@ -630,8 +646,14 @@ mod tests {
         let orchestrator = JobOrchestrator::new(256).unwrap();
 
         let variations = Some(vec![
-            VariationSetting { tag: "wght".to_string(), value: 700.0 },
-            VariationSetting { tag: "wdth".to_string(), value: 100.0 },
+            VariationSetting {
+                tag: "wght".to_string(),
+                value: 700.0,
+            },
+            VariationSetting {
+                tag: "wdth".to_string(),
+                value: 100.0,
+            },
         ]);
 
         let key = orchestrator.instance_key(&variations);

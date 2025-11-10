@@ -1,0 +1,33 @@
+# this_file: bindings/python/pyproject.toml
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[project]
+name = "haforu"
+version = "0.1.0"
+description = "Python bindings for haforu: high-performance font shaping and rendering"
+readme = true
+requires-python = ">=3.8"
+license = { text = "MIT OR Apache-2.0" }
+authors = [{ name = "haforu developers" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+]
+
+[project.urls]
+Homepage = "https://github.com/fontlaborg/haforu"
+Repository = "https://github.com/fontlaborg/haforu"
+
+[tool.maturin]
+module-name = "haforu"
+bindings = "pyo3-abi3"
+features = []
+strip = true
+manifest-path = "Cargo.toml"
+

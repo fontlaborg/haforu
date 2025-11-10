@@ -44,7 +44,14 @@ impl FontLoader {
     /// Enable or disable memory mapping for font loading
     pub fn set_use_mmap(&mut self, use_mmap: bool) {
         self.use_mmap = use_mmap;
-        debug!("Font loading mode: {}", if use_mmap { "memory-mapped" } else { "in-memory" });
+        debug!(
+            "Font loading mode: {}",
+            if use_mmap {
+                "memory-mapped"
+            } else {
+                "in-memory"
+            }
+        );
     }
 
     /// Load font using memory mapping (zero-copy)

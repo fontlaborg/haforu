@@ -2,7 +2,12 @@
 //! Demonstration of smart job orchestration for different workload patterns
 
 // this_file: examples/orchestrator_demo.rs
-use haforu::{JobOrchestrator, JobSpec, json_parser::{Job, VariationSetting, FontSpec, ShapingOptions, RenderingOptions, StorageOptions}};
+use haforu::{
+    JobOrchestrator, JobSpec,
+    json_parser::{
+        FontSpec, Job, RenderingOptions, ShapingOptions, StorageOptions, VariationSetting,
+    },
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -41,9 +46,10 @@ fn demo_many_fonts() {
                     id: format!("job_{}_{}_{}", font_idx, weight as u32, text_idx),
                     font: FontSpec {
                         path: format!("font_{}.ttf", font_idx),
-                        variations: Some(vec![
-                            VariationSetting { tag: "wght".to_string(), value: weight }
-                        ]),
+                        variations: Some(vec![VariationSetting {
+                            tag: "wght".to_string(),
+                            value: weight,
+                        }]),
                         named_instance: None,
                     },
                     text: format!("Text {}", text_idx),
@@ -68,7 +74,10 @@ fn demo_many_fonts() {
     println!("Analysis results:");
     println!("  - Unique fonts: {}", stats.unique_fonts);
     println!("  - Unique instances: {}", stats.unique_instances);
-    println!("  - Avg texts/instance: {:.1}", stats.avg_texts_per_instance);
+    println!(
+        "  - Avg texts/instance: {:.1}",
+        stats.avg_texts_per_instance
+    );
     println!("  - Strategy: {:?}", stats.parallelization_strategy);
 
     let work_units = orchestrator.create_work_units(&spec, &stats);
@@ -89,12 +98,21 @@ fn demo_many_instances() {
                 let width = 75.0 + (width_step as f32 * 10.0);
                 for text_idx in 0..10 {
                     jobs.push(Job {
-                        id: format!("job_{}_{}_{}_{}", font_idx, weight as u32, width as u32, text_idx),
+                        id: format!(
+                            "job_{}_{}_{}_{}",
+                            font_idx, weight as u32, width as u32, text_idx
+                        ),
                         font: FontSpec {
                             path: format!("font_{}.ttf", font_idx),
                             variations: Some(vec![
-                                VariationSetting { tag: "wght".to_string(), value: weight },
-                                VariationSetting { tag: "wdth".to_string(), value: width },
+                                VariationSetting {
+                                    tag: "wght".to_string(),
+                                    value: weight,
+                                },
+                                VariationSetting {
+                                    tag: "wdth".to_string(),
+                                    value: width,
+                                },
                             ]),
                             named_instance: None,
                         },
@@ -121,7 +139,10 @@ fn demo_many_instances() {
     println!("Analysis results:");
     println!("  - Unique fonts: {}", stats.unique_fonts);
     println!("  - Unique instances: {}", stats.unique_instances);
-    println!("  - Avg texts/instance: {:.1}", stats.avg_texts_per_instance);
+    println!(
+        "  - Avg texts/instance: {:.1}",
+        stats.avg_texts_per_instance
+    );
     println!("  - Strategy: {:?}", stats.parallelization_strategy);
 
     let work_units = orchestrator.create_work_units(&spec, &stats);
@@ -142,9 +163,10 @@ fn demo_many_texts() {
                     id: format!("job_{}_{}_{}", font_idx, weight as u32, text_idx),
                     font: FontSpec {
                         path: format!("font_{}.ttf", font_idx),
-                        variations: Some(vec![
-                            VariationSetting { tag: "wght".to_string(), value: weight },
-                        ]),
+                        variations: Some(vec![VariationSetting {
+                            tag: "wght".to_string(),
+                            value: weight,
+                        }]),
                         named_instance: None,
                     },
                     text: format!("Sample text number {} for testing", text_idx),
@@ -169,7 +191,10 @@ fn demo_many_texts() {
     println!("Analysis results:");
     println!("  - Unique fonts: {}", stats.unique_fonts);
     println!("  - Unique instances: {}", stats.unique_instances);
-    println!("  - Avg texts/instance: {:.1}", stats.avg_texts_per_instance);
+    println!(
+        "  - Avg texts/instance: {:.1}",
+        stats.avg_texts_per_instance
+    );
     println!("  - Max texts/instance: {}", stats.max_texts_per_instance);
     println!("  - Strategy: {:?}", stats.parallelization_strategy);
 
@@ -192,9 +217,10 @@ fn demo_balanced() {
                     id: format!("job_{}_{}_{}", font_idx, instance_idx, text_idx),
                     font: FontSpec {
                         path: format!("font_{}.ttf", font_idx),
-                        variations: Some(vec![
-                            VariationSetting { tag: "wght".to_string(), value: weight },
-                        ]),
+                        variations: Some(vec![VariationSetting {
+                            tag: "wght".to_string(),
+                            value: weight,
+                        }]),
                         named_instance: None,
                     },
                     text: format!("Balanced text {}", text_idx),
@@ -219,7 +245,10 @@ fn demo_balanced() {
     println!("Analysis results:");
     println!("  - Unique fonts: {}", stats.unique_fonts);
     println!("  - Unique instances: {}", stats.unique_instances);
-    println!("  - Avg texts/instance: {:.1}", stats.avg_texts_per_instance);
+    println!(
+        "  - Avg texts/instance: {:.1}",
+        stats.avg_texts_per_instance
+    );
     println!("  - Strategy: {:?}", stats.parallelization_strategy);
 
     let work_units = orchestrator.create_work_units(&spec, &stats);

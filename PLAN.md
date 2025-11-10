@@ -1,3 +1,7 @@
+---
+this_file: PLAN.md
+---
+
 # PLAN.md - Haforu CLI Tool Comprehensive Specification
 
 ## Executive Overview
@@ -39,6 +43,34 @@
 └─────────────────────────────────────────────────┘
 ```
 
+## Build, Versioning, and Publish Plan
+
+Goal: One-command local builds and tag-driven semantic releases for both Rust and Python packages.
+
+- Version source of truth: git tag `vX.Y.Z`.
+- Scripts:
+  - `build.sh` — check, lint, test, build; sync versions from tag or `--version`.
+  - `publish.sh` — publish to crates.io and PyPI, syncing version from tag or `--version`.
+- Python bindings: `bindings/python` (crate `haforu-py`, PyPI package `haforu`) using PyO3 + maturin.
+- CI (GitHub Actions):
+  - `ci.yml` — fmt, clippy, tests; Python bindings build smoke test (maturin develop).
+  - `release.yml` — on `v*` tag, set versions, build Rust binaries for Linux/macOS/Windows, build Python wheels + sdist, create GitHub Release, optionally publish to crates.io/PyPI if secrets present.
+  - `audit.yml` — scheduled cargo-audit.
+
+Secrets required for automated publish:
+- `CRATES_IO_TOKEN` — crates.io publish.
+- `PYPI_TOKEN` — PyPI publish.
+
+Python API (v0):
+- `haforu.version() -> str`
+- `haforu.validate_spec(json: str) -> bool`
+- `haforu.process(json: str) -> list[str]` (JSONL lines)
+
+Testing strategy for release pipeline:
+- CI runs `cargo fmt`, `clippy -D warnings`, `cargo test --all`.
+- Python build smoke test: `maturin develop` + import/version check.
+- Release job re-runs build with synced version to ensure artifacts correctness.
+
 ## CLI Interface Specification
 
 ### Command Structure
@@ -62,6 +94,18 @@ haforu font.ttf "Hello World" -o output.png
 
 # With variations
 haforu --variations="wght=500,wdth=125" font.ttf "Text"
+
+# Output to PBM/PGM formats
+haforu font.ttf "Hello World" -o output.pbm  # 1-bit monochrome
+haforu font.ttf "Hello World" -o output.pgm  # 8-bit grayscale
+
+# Direct stdout output (pipe-friendly)
+haforu font.ttf "Text" --output-format=pgm-ascii > output.pgm
+haforu font.ttf "Text" --output-format=pbm-binary | convert - output.jpg
+
+# Advanced rendering options
+haforu --dpi=300 --threshold=200 --dither font.ttf "Text" -o output.pbm
+haforu --antialiasing=false --bit-depth=16 font.ttf "Text" -o output.pgm
 ```
 
 #### 2. Batch Mode (JSON Jobs)
@@ -209,7 +253,14 @@ The input is a JSON object containing an array of jobs. Each job specifies:
         "foreground": "#000000",
         "background": "#FFFFFF",
         "margin": 16,
-        "dpi": 96
+        "dpi": 96,
+        "antialiasing": true,
+        "hinting": "full",
+        "subpixel": "none",
+        "threshold": 128,
+        "dither": false,
+        "bit_depth": 8,
+        "encoding": "binary"
       },
       "output": {
         "include_shaping": true,
@@ -254,12 +305,19 @@ Each line is a complete JSON object representing one job result:
 - **cluster_level** (integer): HarfBuzz cluster level (0-2)
 
 #### Rendering Configuration (`rendering`)
-- **format** (string): Output format - "png", "svg", "pdf"
-- **output_path** (string): Where to save rendered image
+- **format** (string): Output format - "png", "pbm", "pgm", "svg", "pdf"
+- **output_path** (string): Where to save rendered image (or "-" for stdout)
 - **foreground** (string): Text color as hex (#RRGGBB or #RRGGBBAA)
 - **background** (string): Background color
 - **margin** (integer): Pixels of margin around text
-- **dpi** (integer): Resolution for rasterization
+- **dpi** (integer): Resolution for rasterization (default: 96)
+- **antialiasing** (boolean): Enable antialiasing (default: true)
+- **hinting** (string): Hinting mode - "none", "slight", "medium", "full" (default: "full")
+- **subpixel** (string): Subpixel rendering - "none", "rgb", "bgr", "vrgb", "vbgr" (default: "none")
+- **threshold** (integer): Monochrome conversion threshold 0-255 (default: 128)
+- **dither** (boolean): Enable dithering for monochrome output (default: false)
+- **bit_depth** (integer): Bit depth for PGM - 8 or 16 (default: 8)
+- **encoding** (string): PBM/PGM encoding - "ascii" or "binary" (default: "binary")
 
 #### Output Control (`output`)
 - **include_shaping** (boolean): Include shaping data in output
@@ -400,7 +458,36 @@ impl TextShaper {
 
 ### 5. Rendering ([src/rasterize.rs](./src/rasterize.rs))
 
-CPU rasterization with skrifa + zeno:
+#### Output Format Specifications
+
+**Portable Bitmap (PBM) - 1-bit Monochrome**
+- **P1 (ASCII)**: Human-readable text format, larger files
+- **P4 (Binary)**: Compact binary format, efficient storage
+- **Conversion**: Apply threshold to grayscale, optional dithering
+- **Use cases**: Simple black/white output, OCR preprocessing, fax systems
+
+**Portable Graymap (PGM) - Grayscale**
+- **P2 (ASCII)**: Human-readable text format, debugging-friendly
+- **P5 (Binary)**: Compact binary format, standard for tools
+- **Bit depth**: 8-bit (0-255) or 16-bit (0-65535)
+- **Use cases**: Grayscale rendering, alpha channel export, image processing
+
+**PNG - Portable Network Graphics**
+- **Channels**: RGB, RGBA, Grayscale, Grayscale+Alpha
+- **Bit depth**: 1, 2, 4, 8, 16 bits per channel
+- **Compression**: Deflate (zlib), lossless
+- **Use cases**: Web graphics, full-color output, transparency
+
+**Vector Formats**
+- **SVG**: XML-based, scalable, web-compatible
+- **PDF**: Document format, embedded fonts, print-ready
+
+**Stdout Support**
+- Direct output to stdout for PBM/PGM formats
+- Binary or ASCII encoding based on format
+- Enables Unix pipeline integration: `haforu view font.ttf "text" | convert - output.jpg`
+
+#### CPU rasterization with skrifa + zeno:
 
 ```rust
 pub struct CpuRasterizer {

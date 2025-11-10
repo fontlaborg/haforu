@@ -1,9 +1,9 @@
 // this_file: tests/cli.rs
 //! CLI integration tests for haforu binary
 
+use assert_cmd::Command;
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
-use assert_cmd::Command;
 
 /// Helper to run the `haforu` binary
 fn bin() -> Command {
@@ -74,7 +74,19 @@ fn test_cli_process_emits_jsonl() {
 
     let output = cmd.assert().success().get_output().stdout.clone();
     let out = String::from_utf8_lossy(&output);
-    assert!(out.contains("\"id\":\"job1\""), "missing job1 in output: {}", out);
-    assert!(out.contains("\"id\":\"job2\""), "missing job2 in output: {}", out);
-    assert!(out.contains("\"processing_time_ms\":"), "processing_time_ms not present in output: {}", out);
+    assert!(
+        out.contains("\"id\":\"job1\""),
+        "missing job1 in output: {}",
+        out
+    );
+    assert!(
+        out.contains("\"id\":\"job2\""),
+        "missing job2 in output: {}",
+        out
+    );
+    assert!(
+        out.contains("\"processing_time_ms\":"),
+        "processing_time_ms not present in output: {}",
+        out
+    );
 }

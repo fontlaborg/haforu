@@ -1,11 +1,11 @@
 // this_file: tests/e2e_shaping_rendering.rs
 //! End-to-end tests: shape text with HarfRust and rasterize with skrifa+zeno
 
-use haforu::{FontLoader, Result};
 use haforu::json_parser::ShapingOptions;
 use haforu::rasterize::CpuRasterizer;
 use haforu::shaping::TextShaper;
 use haforu::storage::StorageManager;
+use haforu::{FontLoader, Result};
 use read_fonts::FontRef;
 
 fn load_font_bytes(path: &str) -> Result<Vec<u8>> {
@@ -42,7 +42,10 @@ fn test_shape_and_render_archivo_hello_line() {
         .expect("compose line");
 
     // Assert
-    assert!(width > 0 && height > 0, "image dimensions should be non-zero");
+    assert!(
+        width > 0 && height > 0,
+        "image dimensions should be non-zero"
+    );
     let sum: u64 = bitmap.iter().map(|&v| v as u64).sum();
     assert!(sum > 0, "bitmap should contain non-zero alpha values");
 }
@@ -66,7 +69,10 @@ fn test_shape_devanagari_basic() {
         .expect("shape devanagari");
 
     // Assert
-    assert!(shaped.glyphs.len() > 0, "expected glyphs for Devanagari text");
+    assert!(
+        shaped.glyphs.len() > 0,
+        "expected glyphs for Devanagari text"
+    );
 }
 
 #[test]
@@ -103,4 +109,3 @@ fn test_storage_roundtrip_with_render() {
 
     assert_eq!(roundtrip, bitmap, "stored and retrieved data must match");
 }
-

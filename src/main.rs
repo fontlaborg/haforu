@@ -53,7 +53,11 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Configure logging using project logger
-    let log_level = if cli.quiet { "error".to_string() } else { cli.log_level.clone() };
+    let log_level = if cli.quiet {
+        "error".to_string()
+    } else {
+        cli.log_level.clone()
+    };
     logging::init_logging(&log_level, cli.quiet, true);
 
     match cli.command {

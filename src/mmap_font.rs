@@ -54,7 +54,10 @@ impl FontType {
 
     /// Check if this is a collection format
     pub fn is_collection(&self) -> bool {
-        matches!(self, FontType::TrueTypeCollection | FontType::OpenTypeCollection)
+        matches!(
+            self,
+            FontType::TrueTypeCollection | FontType::OpenTypeCollection
+        )
     }
 }
 
@@ -62,16 +65,23 @@ impl FileInfo {
     /// Create FileInfo from a path with memory mapping
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
-        let canonical_path = path.canonicalize()
-            .map_err(|e| Error::Font(format!("Failed to resolve path {}: {}", path.display(), e)))?;
+        let canonical_path = path.canonicalize().map_err(|e| {
+            Error::Font(format!("Failed to resolve path {}: {}", path.display(), e))
+        })?;
 
         debug!("Memory-mapping font file: {}", canonical_path.display());
 
         // Open file for memory mapping
-        let file = File::open(&canonical_path)
-            .map_err(|e| Error::Font(format!("Failed to open font file {}: {}", canonical_path.display(), e)))?;
+        let file = File::open(&canonical_path).map_err(|e| {
+            Error::Font(format!(
+                "Failed to open font file {}: {}",
+                canonical_path.display(),
+                e
+            ))
+        })?;
 
-        let metadata = file.metadata()
+        let metadata = file
+            .metadata()
             .map_err(|e| Error::Font(format!("Failed to get file metadata: {}", e)))?;
 
         let size = metadata.len() as usize;
@@ -95,7 +105,8 @@ impl FileInfo {
             1
         };
 
-        info!("Mapped {} font file: {} ({} font(s), {} bytes)",
+        info!(
+            "Mapped {} font file: {} ({} font(s), {} bytes)",
             match font_type {
                 FontType::TrueType => "TrueType",
                 FontType::OpenType => "OpenType",
@@ -104,7 +115,10 @@ impl FileInfo {
                 FontType::WOFF => "WOFF",
                 FontType::WOFF2 => "WOFF2",
             },
-            canonical_path.display(), font_count, size);
+            canonical_path.display(),
+            font_count,
+            size
+        );
 
         Ok(FileInfo {
             path: canonical_path,
@@ -125,7 +139,10 @@ impl FileInfo {
         let num_fonts = u32::from_be_bytes([data[8], data[9], data[10], data[11]]);
 
         if num_fonts == 0 || num_fonts > 1024 {
-            return Err(Error::Font(format!("Invalid font count in collection: {}", num_fonts)));
+            return Err(Error::Font(format!(
+                "Invalid font count in collection: {}",
+                num_fonts
+            )));
         }
 
         Ok(num_fonts)
@@ -207,7 +224,8 @@ impl FileInfo {
         let font = self.get_font(index)?;
 
         // Extract basic metadata using TableProvider
-        let _name_table = font.name()
+        let _name_table = font
+            .name()
             .map_err(|e| Error::Font(format!("Failed to read name table: {}", e)))?;
 
         // Get family name from name table - use simple approach for now
@@ -249,7 +267,8 @@ impl MmapFontCache {
     /// Get or load a font file
     pub fn get_or_load<P: AsRef<Path>>(&mut self, path: P) -> Result<Arc<FileInfo>> {
         let path = path.as_ref();
-        let canonical = path.canonicalize()
+        let canonical = path
+            .canonicalize()
             .map_err(|e| Error::Font(format!("Failed to resolve path: {}", e)))?;
 
         // Check cache
@@ -303,9 +322,15 @@ mod tests {
 
     #[test]
     fn test_font_type_detection() {
-        assert_eq!(FontType::from_data(b"\x00\x01\x00\x00"), Some(FontType::TrueType));
+        assert_eq!(
+            FontType::from_data(b"\x00\x01\x00\x00"),
+            Some(FontType::TrueType)
+        );
         assert_eq!(FontType::from_data(b"OTTO"), Some(FontType::OpenType));
-        assert_eq!(FontType::from_data(b"ttcf"), Some(FontType::TrueTypeCollection));
+        assert_eq!(
+            FontType::from_data(b"ttcf"),
+            Some(FontType::TrueTypeCollection)
+        );
         assert_eq!(FontType::from_data(b"wOFF"), Some(FontType::WOFF));
         assert_eq!(FontType::from_data(b"wOF2"), Some(FontType::WOFF2));
         assert_eq!(FontType::from_data(b"INVALID"), None);

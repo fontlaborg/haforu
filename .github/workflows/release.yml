@@ -1,0 +1,148 @@
+# this_file: .github/workflows/release.yml
+name: Release on tag
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  set-version:
+    name: Derive version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.getver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: getver
+        run: |
+          REF="${GITHUB_REF_NAME}"
+          echo "Ref: $REF"
+          if [[ "$REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "version=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          else
+            echo "Tag must be vX.Y.Z" >&2; exit 1
+          fi
+
+  build-rust:
+    name: Build Rust binaries
+    needs: set-version
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            suffix: linux-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            suffix: macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Sync versions to ${{ needs.set-version.outputs.version }}
+        run: |
+          bash ./build.sh --version "${{ needs.set-version.outputs.version }}" --skip-python
+      - name: Build
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          mkdir -p dist
+          BIN=haforu
+          OUT="dist/${BIN}-${{ needs.set-version.outputs.version }}-${{ matrix.suffix }}"
+          if [[ "${{ matrix.os }}" == windows-latest ]]; then
+            cp target/${{ matrix.target }}/release/${BIN}.exe "$OUT.exe"
+          else
+            cp target/${{ matrix.target }}/release/${BIN} "$OUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-${{ matrix.suffix }}
+          path: dist/*
+
+  build-python:
+    name: Build Python wheels
+    needs: set-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install maturin
+        run: pip install --upgrade pip maturin
+      - name: Sync versions to ${{ needs.set-version.outputs.version }}
+        run: bash ./build.sh --version "${{ needs.set-version.outputs.version }}" --skip-python
+      - name: Build wheels
+        run: |
+          maturin build -m bindings/python/Cargo.toml --release -o dist
+          maturin sdist -m bindings/python/Cargo.toml -o dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-${{ matrix.os }}
+          path: dist/*
+
+  github-release:
+    name: Create GitHub release
+    needs: [build-rust, build-python, set-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Flatten artifacts
+        run: |
+          mkdir out
+          find dist -type f -maxdepth 2 -exec cp {} out/ \;
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.set-version.outputs.version }}
+          name: v${{ needs.set-version.outputs.version }}
+          files: out/*
+          generate_release_notes: true
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: [set-version]
+    runs-on: ubuntu-latest
+    if: ${{ secrets.CRATES_IO_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Publish
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: |
+          bash ./publish.sh --sync-version-from-tag --no-pypi
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [set-version]
+    runs-on: ubuntu-latest
+    if: ${{ secrets.PYPI_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install maturin
+        run: pip install --upgrade pip maturin
+      - name: Publish
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          bash ./publish.sh --sync-version-from-tag --no-crates
+

@@ -1,7 +1,12 @@
 // this_file: examples/orchestrator_simple.rs
 //! Simple demonstration of job orchestration
 
-use haforu::{JobOrchestrator, JobSpec, json_parser::{Job, VariationSetting, FontSpec, ShapingOptions, RenderingOptions, StorageOptions}};
+use haforu::{
+    JobOrchestrator, JobSpec,
+    json_parser::{
+        FontSpec, Job, RenderingOptions, ShapingOptions, StorageOptions, VariationSetting,
+    },
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -20,7 +25,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     font: FontSpec {
                         path: format!("font_{}.ttf", font_idx),
                         variations: if weight != 400.0 {
-                            Some(vec![VariationSetting { tag: "wght".to_string(), value: weight }])
+                            Some(vec![VariationSetting {
+                                tag: "wght".to_string(),
+                                value: weight,
+                            }])
                         } else {
                             None
                         },
@@ -50,7 +58,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Total jobs: {}", stats.total_jobs);
     println!("  Unique fonts: {}", stats.unique_fonts);
     println!("  Unique instances: {}", stats.unique_instances);
-    println!("  Avg texts per instance: {:.1}", stats.avg_texts_per_instance);
+    println!(
+        "  Avg texts per instance: {:.1}",
+        stats.avg_texts_per_instance
+    );
     println!("  Strategy: {:?}", stats.parallelization_strategy);
 
     // Create work units

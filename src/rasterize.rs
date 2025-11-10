@@ -67,7 +67,8 @@ impl CpuRasterizer {
         let size_obj = Size::new(size);
 
         // Get the glyph outline
-        let glyph = font.outline_glyphs()
+        let glyph = font
+            .outline_glyphs()
             .get(glyph_id)
             .ok_or_else(|| Error::Rendering(format!("Glyph {} not found", glyph_id)))?;
 
@@ -107,7 +108,8 @@ impl CpuRasterizer {
         // Extract outline using skrifa (we already got the glyph above)
         let settings = DrawSettings::unhinted(size_obj, LocationRef::default());
 
-        glyph.draw(settings, &mut pen)
+        glyph
+            .draw(settings, &mut pen)
             .map_err(|e| Error::Rendering(format!("Failed to extract outline: {:?}", e)))?;
 
         // Build the path and render with zeno
@@ -146,12 +148,12 @@ impl CpuRasterizer {
         for glyph_info in glyphs {
             let glyph_id = GlyphId::new(glyph_info.glyph_id);
             match self.render_glyph(font, glyph_id, size) {
-                    Ok(mut rg) => {
-                        // Apply shaped advances (already in pixel units)
-                        rg.advance_x = glyph_info.x_advance as f32;
-                        rg.advance_y = glyph_info.y_advance as f32;
-                        rendered.push(rg);
-                    }
+                Ok(mut rg) => {
+                    // Apply shaped advances (already in pixel units)
+                    rg.advance_x = glyph_info.x_advance as f32;
+                    rg.advance_y = glyph_info.y_advance as f32;
+                    rendered.push(rg);
+                }
                 Err(e) => {
                     log::warn!("Failed to render glyph {}: {}", glyph_info.glyph_id, e);
                     // Create placeholder for missing glyph
@@ -276,7 +278,12 @@ impl BoundsPen {
 
     fn bounds(&self) -> BoundingBox {
         if !self.has_points {
-            BoundingBox { x_min: 0.0, y_min: 0.0, x_max: 0.0, y_max: 0.0 }
+            BoundingBox {
+                x_min: 0.0,
+                y_min: 0.0,
+                x_max: 0.0,
+                y_max: 0.0,
+            }
         } else {
             BoundingBox {
                 x_min: self.min_x,
@@ -354,13 +361,18 @@ impl OutlinePen for ZenoPen {
     }
 
     fn quad_to(&mut self, cx: f32, cy: f32, x: f32, y: f32) {
-        self.commands.push(Command::QuadTo((cx, cy).into(), (x, y).into()));
+        self.commands
+            .push(Command::QuadTo((cx, cy).into(), (x, y).into()));
         self.current_x = x;
         self.current_y = y;
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.commands.push(Command::CurveTo((cx0, cy0).into(), (cx1, cy1).into(), (x, y).into()));
+        self.commands.push(Command::CurveTo(
+            (cx0, cy0).into(),
+            (cx1, cy1).into(),
+            (x, y).into(),
+        ));
         self.current_x = x;
         self.current_y = y;
     }
@@ -426,7 +438,11 @@ impl ParallelRasterizer {
             })
             .collect();
 
-        info!("Rendered {} glyphs in parallel using {} threads", rendered.len(), self.num_threads);
+        info!(
+            "Rendered {} glyphs in parallel using {} threads",
+            rendered.len(),
+            self.num_threads
+        );
         Ok(rendered)
     }
 }
