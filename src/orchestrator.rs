@@ -154,6 +154,7 @@ impl FontCache {
 pub struct JobOrchestrator {
     font_loader: Arc<Mutex<FontLoader>>,
     font_cache: Arc<FontCache>,
+    #[allow(dead_code)]
     max_parallel_fonts: usize,
 }
 
