@@ -2,6 +2,7 @@
 //! Font loading and management module
 
 use crate::error::{Error, Result};
+use crate::mmap_font::{FileInfo, MmapFontCache};
 use log::{debug, info, warn};
 use read_fonts::FontRef;
 use std::collections::HashMap;
@@ -11,12 +12,16 @@ use std::sync::Arc;
 
 /// Font loader with caching support
 pub struct FontLoader {
-    /// Cache of loaded fonts
+    /// Cache of loaded fonts (legacy Vec<u8> approach)
     cache: HashMap<PathBuf, Arc<Vec<u8>>>,
+    /// Memory-mapped font cache (new zero-copy approach)
+    mmap_cache: MmapFontCache,
     /// Maximum cache size in bytes
     max_cache_size: usize,
     /// Current cache size in bytes
     current_cache_size: usize,
+    /// Use memory mapping for font loading
+    use_mmap: bool,
 }
 
 impl FontLoader {
@@ -29,9 +34,22 @@ impl FontLoader {
     pub fn with_cache_size(max_cache_size: usize) -> Self {
         Self {
             cache: HashMap::new(),
+            mmap_cache: MmapFontCache::default(),
             max_cache_size,
             current_cache_size: 0,
+            use_mmap: true,
         }
+    }
+
+    /// Enable or disable memory mapping for font loading
+    pub fn set_use_mmap(&mut self, use_mmap: bool) {
+        self.use_mmap = use_mmap;
+        debug!("Font loading mode: {}", if use_mmap { "memory-mapped" } else { "in-memory" });
+    }
+
+    /// Load font using memory mapping (zero-copy)
+    pub fn load_font_mmap<P: AsRef<Path>>(&mut self, path: P) -> Result<Arc<FileInfo>> {
+        self.mmap_cache.get_or_load(path)
     }
 
     /// Load font data from file path

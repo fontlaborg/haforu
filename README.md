@@ -1,5 +1,7 @@
 # Haforu - High-Performance Font Shaping and Rendering System
 
+**⚠️ ARCHITECTURE NOTE**: Haforu is designed as a **SINGLE unified CLI tool** that combines the functionality of HarfBuzz's `hb-shape` and `hb-view` tools, enhanced with JSON batch processing capabilities. Unlike HarfBuzz which provides separate executables, haforu uses **subcommands** (`haforu shape`, `haforu view`, `haforu process`) within one executable. See [PLAN.md](PLAN.md) for detailed architecture specification.
+
 ## Executive Summary
 
 Haforu is a Rust-based font processing system designed for extreme performance and scalability. It provides a library, CLI tool, and Python bindings that enhance HarfBuzz-like functionality with batch processing capabilities, supporting the shaping and rendering of millions of text/font combinations efficiently.
@@ -88,7 +90,17 @@ Haforu is a Rust-based font processing system designed for extreme performance a
 - **GPU Acceleration**: wgpu compute shaders for massive parallelism
 - **Scene Complexity**: Handles complex 2D scenes interactively
 - **Trade-offs**: Higher setup cost, better throughput for batch operations
-- **Output formats**: PNG, SVG, PDF, or direct to storage
+
+#### Output Format Support
+- **Bitmap Formats**:
+  - **PBM**: Portable Bitmap (1-bit monochrome) - ASCII or binary
+  - **PGM**: Portable Graymap (8/16-bit grayscale) - ASCII or binary
+  - **PNG**: Portable Network Graphics with full alpha channel
+- **Vector Formats**:
+  - **SVG**: Scalable Vector Graphics
+  - **PDF**: Portable Document Format
+- **Stdout Support**: Direct output to stdout for PBM/PGM formats (pipe-friendly)
+- **Format Selection**: Auto-detect from file extension or explicit `--output-format`
 
 #### Rendering Pipeline
 1. **Shape text** → glyph IDs and positions (HarfRust)
@@ -167,6 +179,16 @@ Shard File Structure (2-10 GiB each):
         "render": true,
         "format": "png",
         "storage": "packfile"
+      },
+      "rendering": {
+        "dpi": 96,
+        "antialiasing": true,
+        "hinting": "full",
+        "subpixel": "none",
+        "threshold": 128,
+        "dither": false,
+        "bit_depth": 8,
+        "encoding": "binary"
       }
     }
   ]
@@ -195,46 +217,110 @@ Shard File Structure (2-10 GiB each):
 
 ## CLI Interface
 
-### haforu-shape (Enhanced hb-shape)
+**IMPORTANT: haforu is a SINGLE unified CLI tool that combines hb-shape and hb-view functionality with JSON batch processing capabilities. All operations are accessed through subcommands of the single `haforu` executable.**
+
+### Unified haforu CLI Tool
 
 ```bash
-# Basic usage
-haforu-shape font.ttf "Hello World"
-
-# With variations
-haforu-shape --variations="wght=500,wdth=125" font.ttf "Text"
-
-# JSON batch mode (new feature)
-echo '{"jobs":[...]}' | haforu-shape --batch --output-format=jsonl
-
-# With storage backend
-haforu-shape --storage-dir=/data/cache --store-results font.ttf "Text"
+# Show available commands
+haforu --help
+haforu shape --help  # hb-shape compatible
+haforu view --help   # hb-view compatible
+haforu process --help # batch JSON processing (new)
+haforu query --help  # storage query operations (new)
 ```
 
-### haforu-view (Enhanced hb-view)
+### haforu shape - Text Shaping (hb-shape compatible)
 
 ```bash
-# Basic rendering
-haforu-view font.ttf "Hello World" -o output.png
+# Basic usage matching hb-shape
+haforu shape font.ttf "Hello World"
 
-# Batch rendering with storage
-echo '{"jobs":[...]}' | haforu-view --batch --storage-backend=packfile
+# With variations and features
+haforu shape --variations="wght=500,wdth=125" --features="kern,liga" font.ttf "Text"
 
-# Retrieve from cache
-haforu-view --retrieve --storage-ref="shard_042/img_31415" -o retrieved.png
+# Output formats (text or JSON)
+haforu shape --output-format=json font.ttf "Text"
+
+# With shaping options
+haforu shape --direction=rtl --language=ar --script=Arab font.ttf "مرحبا"
 ```
 
-### haforu-query (Cache Query Tool)
+### haforu view - Text Rendering (hb-view compatible)
+
+```bash
+# Basic rendering matching hb-view
+haforu view font.ttf "Hello World" -o output.png
+
+# With rendering options
+haforu view --font-size=32 --margin=20 --background=#FFFFFF font.ttf "Text" -o image.png
+
+# Output formats
+haforu view --output-format=svg font.ttf "Text" -o output.svg
+haforu view --output-format=pdf font.ttf "Text" -o output.pdf
+haforu view --output-format=pgm font.ttf "Text" -o output.pgm  # Grayscale
+haforu view --output-format=pbm font.ttf "Text" -o output.pbm  # Monochrome
+
+# Direct stdout output (pipe-friendly)
+haforu view --output-format=pgm-ascii font.ttf "Text" > output.pgm
+haforu view --output-format=pbm-binary font.ttf "Text" | other-tool
+
+# Advanced rendering options
+haforu view --dpi=300 --subpixel=rgb --hinting=full font.ttf "Text" -o output.png
+haforu view --threshold=128 --dither font.ttf "Text" -o output.pbm
+```
+
+### haforu process - Batch Processing (NEW)
+
+```bash
+# Process JSON jobs specification from stdin, output JSONL to stdout
+echo '{"jobs":[...]}' | haforu process
+
+# With storage backend for caching
+echo '{"jobs":[...]}' | haforu process --storage-backend=packfile --storage-dir=/data/cache
+
+# Stream processing for large batches
+cat large_batch.json | haforu process --stream --parallel=16 > results.jsonl
+
+# Include both shaping and rendering in output
+echo '{"jobs":[...]}' | haforu process --shape --render --storage > results.jsonl
+```
+
+### haforu query - Storage Query Operations (NEW)
 
 ```bash
 # List stored results
-haforu-query --list --filter="font:Roboto"
+haforu query --list --filter="font:Roboto"
 
 # Verify storage integrity
-haforu-query --verify --shard=042
+haforu query --verify --shard=042
 
-# Export stored images
-haforu-query --export --refs=refs.txt --output-dir=./export/
+# Export stored images by reference
+haforu query --export --refs=refs.txt --output-dir=./export/
+
+# Get statistics about storage
+haforu query --stats
+```
+
+### Unified Features Across All Commands
+
+All haforu commands share common options:
+
+```bash
+# Common font options
+haforu [shape|view|process] --font-file=path --face-index=0
+
+# Common variation options
+haforu [shape|view|process] --variations="wght=500" --named-instance=3
+
+# Common text options
+haforu [shape|view|process] --text="Content" --text-file=input.txt
+
+# Common output options
+haforu [shape|view|process] -o output_file --output-format=json
+
+# Logging and debugging
+haforu [any-command] --verbose --log-level=debug
 ```
 
 ## Python Bindings
@@ -486,3 +572,21 @@ See CONTRIBUTING.md for guidelines
 - Fontations Project: https://github.com/googlefonts/fontations
 - Vello Renderer: https://github.com/linebender/vello
 - Storage Architecture: See 400.md for detailed packfile design
+## Examples
+
+- Shape and render a line of text to a simple PGM image:
+
+  - Build and run: `cargo run --example shape_and_render`
+  - Optional env vars:
+    - `HAFORU_EXAMPLE_FONT` to set a font path (defaults to `03fonts/Archivo[wdth,wght].ttf`)
+    - `HAFORU_EXAMPLE_TEXT` to set the text (defaults to `"Hello, Haforu!"`)
+  - Output: writes `example_output.pgm` in the project root
+
+- Orchestrator demos:
+  - `cargo run --example orchestrator_simple`
+  - `cargo run --example orchestrator_demo`
+
+## Running Tests
+
+- Unit and integration tests: `cargo test`
+- Tests exercise JSON parsing, font loading, storage packfiles, orchestrator logic, and end-to-end shaping + CPU rasterization using fonts in `03fonts/`.

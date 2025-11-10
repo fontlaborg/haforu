@@ -9,12 +9,13 @@
 
 use crate::error::{Error, Result};
 use crate::font_loader::FontLoader;
-use crate::json_parser::{Job, JobSpec, VariationSetting};
+use crate::json_parser::{JobSpec, VariationSetting};
 use log::{debug, info};
 use rayon::prelude::*;
 use read_fonts::FontRef;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 /// Statistics about job distribution
@@ -76,6 +77,9 @@ pub struct FontCache {
     access_order: Arc<Mutex<VecDeque<String>>>,
     max_size: usize,
     current_size: Arc<RwLock<usize>>,
+    // Basic metrics
+    hits: AtomicU64,
+    misses: AtomicU64,
 }
 
 impl FontCache {
@@ -85,6 +89,8 @@ impl FontCache {
             access_order: Arc::new(Mutex::new(VecDeque::new())),
             max_size: max_size_mb * 1024 * 1024,
             current_size: Arc::new(RwLock::new(0)),
+            hits: AtomicU64::new(0),
+            misses: AtomicU64::new(0),
         }
     }
 
@@ -95,8 +101,10 @@ impl FontCache {
             let mut order = self.access_order.lock().unwrap();
             order.retain(|p| p != path);
             order.push_back(path.to_string());
+            self.hits.fetch_add(1, Ordering::Relaxed);
             Some(Arc::clone(data))
         } else {
+            self.misses.fetch_add(1, Ordering::Relaxed);
             None
         }
     }
@@ -125,6 +133,14 @@ impl FontCache {
 
         let mut order = self.access_order.lock().unwrap();
         order.push_back(path);
+    }
+
+    /// Return cache hit/miss counters
+    pub fn metrics(&self) -> (u64, u64) {
+        (
+            self.hits.load(Ordering::Relaxed),
+            self.misses.load(Ordering::Relaxed),
+        )
     }
 
     pub fn clear(&self) {
@@ -205,7 +221,7 @@ impl JobOrchestrator {
         &self,
         fonts: usize,
         instances: usize,
-        avg_texts: f64,
+        _avg_texts: f64,
         max_texts: usize,
     ) -> ParallelizationStrategy {
         let cores = num_cpus::get();
@@ -567,6 +583,7 @@ pub struct JobResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::json_parser::Job;
     use crate::json_parser::{FontSpec, ShapingOptions, RenderingOptions};
 
     fn create_test_job(id: &str, font_path: &str, text: &str, variations: Option<Vec<VariationSetting>>) -> Job {
@@ -658,5 +675,27 @@ mod tests {
         // First font should be evicted
         assert!(cache.get("font1.ttf").is_none());
         assert!(cache.get("font2.ttf").is_some());
+    }
+
+    #[test]
+    fn test_font_cache_metrics_hit_miss() {
+        let cache = FontCache::new(1); // 1 MB
+        let (h0, m0) = cache.metrics();
+        assert_eq!(h0, 0);
+        assert_eq!(m0, 0);
+
+        // Miss on empty cache
+        assert!(cache.get("/nope.ttf").is_none());
+        let (h1, m1) = cache.metrics();
+        assert_eq!(h1, 0, "hits should stay 0 after miss");
+        assert_eq!(m1, 1, "one miss recorded");
+
+        // Insert and then hit
+        let path = "/font.ttf".to_string();
+        cache.insert(path.clone(), Arc::new(vec![1u8; 16]));
+        assert!(cache.get(&path).is_some());
+        let (h2, m2) = cache.metrics();
+        assert_eq!(h2, 1, "one hit recorded");
+        assert_eq!(m2, 1, "miss count unchanged");
     }
 }

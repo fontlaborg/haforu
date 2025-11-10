@@ -1,6 +1,133 @@
 # WORK.md
 
-## Latest Work Session (2025-11-10 - Update 2)
+## /test and /report (2025-11-10)
+
+- Ran full suite: 57 passing (44 unit, 3 CLI, 3 E2E, 7 integration).
+- Cleaned up TODO: pruned completed items in Phase 1 to surface remaining work.
+- Improvements implemented:
+  - FontCache hit/miss metrics with unit test.
+  - CLI `process` now sets `processing_time_ms` per job in JSONL output.
+  - Main uses `logging::init_logging` for consistent formatting and timestamps.
+
+Risk assessment:
+- Low risk: new metrics use relaxed atomics; correctness is monotonic counters only.
+- Low risk: timing capture non-invasive; tests don’t depend on values.
+- Low risk: logging init swap maintains behavior; tests ignore logs.
+
+## Test Additions (2025-11-10)
+
+- Added CLI integration tests in `tests/cli.rs` covering:
+  - `version` prints version info
+  - `validate` accepts valid JSON from stdin
+  - `process` emits JSONL containing job ids
+- Fixed `examples/orchestrator_demo.rs` to match current `Job`/`JobSpec` structures so the test build compiles.
+- Ran full test suite: 54 tests passed (44 unit + 7 existing integration + 3 new CLI).
+
+Command: `cargo test` → SUCCESS.
+
+## E2E Shaping/Rendering + Docs Update (2025-11-10)
+
+### What changed
+- Added end-to-end shaping and CPU rasterization tests with real fonts:
+  - `tests/e2e_shaping_rendering.rs` (3 tests):
+    - Shapes "Hello" with Archivo, rasterizes to bitmap, verifies dimensions and non-zero pixels.
+    - Shapes basic Devanagari text with Anek Devanagari.
+    - Stores rendered bitmap via `StorageManager` and verifies retrieval round-trip.
+- Fixed rasterizer unit bug (pixels vs 26.6):
+  - Removed erroneous `/64` scaling on shaped advances.
+  - Calculated glyph bitmap bounds directly in pixel units from skrifa outlines.
+- Added example `examples/shape_and_render.rs` writing a PGM image (`example_output.pgm`).
+- Updated README with Examples and Running Tests sections.
+
+### Test results
+```
+cargo test: PASS
+- Unit + existing integration: PASS
+- New E2E tests (3): PASS
+```
+
+### Risk/Uncertainty assessment
+- Rasterizer assumptions: using skrifa outline coordinates as pixel-space is correct per DrawSettings; tests validate non-zero outputs. Remaining risk is advance metrics accuracy; we currently rely on shaped advances.
+- Devanagari shaping: basic coverage added; further script-specific validation can deepen.
+- Storage: Round-trip verified for simple case; shard rotation/large-data scenarios covered by existing tests.
+
+
+## Latest Work Session (2025-11-10 - Phase 1: Foundation Implementation Complete!)
+
+### Completed Tasks ✅
+1. ✅ Implemented memory-mapped font loading using fontgrep patterns
+2. ✅ Created FileInfo struct with mmapped data
+3. ✅ Added support for TTC/OTC collections
+4. ✅ Integrated HarfRust for actual text shaping
+5. ✅ Added skrifa + zeno for CPU rasterization
+6. ✅ Created ZenoPen adapter for skrifa OutlinePen trait
+7. ✅ Added parallel processing with Rayon
+8. ✅ Project compiles successfully in release mode
+
+### Technical Achievements
+- **Zero-copy font loading**: Implemented memory-mapped font files with `memmap2`
+- **TTC/OTC support**: Full support for font collections with indexed access
+- **HarfRust integration**: Successfully integrated HarfRust with proper API usage
+  - Fixed Direction enum values (LeftToRight, RightToLeft, etc.)
+  - Implemented feature and variation parsing
+  - Added proper buffer configuration
+- **CPU rasterization**: Implemented complete pipeline with skrifa + zeno
+  - Created BoundsPen for glyph bounds calculation
+  - ZenoPen adapter converts skrifa outlines to zeno paths
+  - Parallel glyph rendering with Rayon
+- **API adaptations**: Successfully adapted to various crate API differences
+  - HarfRust uses different enum values than expected
+  - Zeno's Transform uses `translation` not `translate`
+  - Skrifa glyph metrics API differences handled
+
+### Build Status
+```
+cargo build --release: SUCCESS ✅
+Warnings: 3 (unused fields - can be cleaned up later)
+```
+
+### New Modules Created
+1. **mmap_font.rs** (307 lines)
+   - FileInfo struct with memory-mapped font data
+   - FontType enum for font format detection
+   - TTC/OTC collection support with per-font access
+   - MmapFontCache for efficient font reuse
+
+2. **rasterize.rs** (410 lines)
+   - CpuRasterizer using skrifa + zeno
+   - BoundsPen for calculating glyph bounds
+   - ZenoPen adapter from skrifa OutlinePen to zeno paths
+   - ParallelRasterizer for batch processing with Rayon
+   - RenderedGlyph struct with bitmap output
+
+3. **Enhanced shaping.rs** (300+ lines)
+   - Full HarfRust integration
+   - Direction/Script/Language parsing
+   - Feature and variation parsing
+   - Cached font data for performance
+
+### API Challenges Overcome
+- HarfRust API differences from expected:
+  - Direction uses `LeftToRight` not `Ltr`
+  - Script uses `from_iso15924_tag` not `new`
+  - Language API needs work (currently commented out)
+- Skrifa metrics API:
+  - No direct `glyph_metrics` method
+  - Used OutlineGlyph with custom BoundsPen
+- Zeno API:
+  - Transform uses `translation` not `translate`
+  - Mask.render() returns tuple `(data, placement)`
+
+### Next Priority Tasks
+1. Create haforu-shape CLI tool with hb-shape compatibility
+2. Fix Language handling in HarfRust
+3. Implement accurate glyph advances from metrics
+4. Add comprehensive tests for new modules
+5. Create examples demonstrating usage
+
+---
+
+## Previous Session (2025-11-10 - Update 2)
 
 ### Quality Improvements Completed ✓
 

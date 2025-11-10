@@ -3,10 +3,10 @@
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use env_logger::Env;
-use haforu::{FontLoader, json_parser};
+use haforu::{FontLoader, json_parser, logging};
 use log::{error, info};
 use std::io::{self, Read};
+use std::time::Instant;
 
 /// Haforu - Enhanced font shaping and rendering tool
 #[derive(Parser)]
@@ -52,13 +52,9 @@ enum Commands {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Configure logging based on CLI arguments
-    let log_level = if cli.quiet { "error" } else { &cli.log_level };
-
-    // Initialize logger with the specified level
-    env_logger::Builder::from_env(Env::default().default_filter_or(log_level))
-        .format_timestamp_millis()
-        .init();
+    // Configure logging using project logger
+    let log_level = if cli.quiet { "error".to_string() } else { cli.log_level.clone() };
+    logging::init_logging(&log_level, cli.quiet, true);
 
     match cli.command {
         Commands::Process { verbose, output } => {
@@ -102,6 +98,7 @@ fn process_jobs(_output_dir: &str) -> Result<()> {
 
     // Process each job
     for job in &job_spec.jobs {
+        let t0 = Instant::now();
         info!("Processing job: {}", job.id);
 
         // For now, just validate and print the job
@@ -119,7 +116,7 @@ fn process_jobs(_output_dir: &str) -> Result<()> {
             rendering_result: None,
             status: "pending".to_string(),
             error: Some("Not fully implemented yet".to_string()),
-            processing_time_ms: 0,
+            processing_time_ms: t0.elapsed().as_millis() as u64,
         };
 
         // Output as JSONL

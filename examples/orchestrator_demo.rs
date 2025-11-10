@@ -1,8 +1,8 @@
 // this_file: examples/orchestrator_demo.rs
 //! Demonstration of smart job orchestration for different workload patterns
 
+// this_file: examples/orchestrator_demo.rs
 use haforu::{JobOrchestrator, JobSpec, json_parser::{Job, VariationSetting, FontSpec, ShapingOptions, RenderingOptions, StorageOptions}};
-use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -83,26 +83,25 @@ fn demo_many_instances() {
 
     let mut jobs = Vec::new();
     for font_idx in 0..3 {
-        // Create 30 different weight/width combinations
         for weight_step in 0..6 {
             for width_step in 0..5 {
                 let weight = 400.0 + (weight_step as f32 * 50.0);
                 let width = 75.0 + (width_step as f32 * 10.0);
-
                 for text_idx in 0..10 {
                     jobs.push(Job {
                         id: format!("job_{}_{}_{}_{}", font_idx, weight as u32, width as u32, text_idx),
-                        font_path: format!("font_{}.ttf", font_idx),
-                        variations: vec![
-                            ("wght".to_string(), weight),
-                            ("wdth".to_string(), width),
-                        ].into_iter().collect(),
-                        texts: vec![format!("Text {}", text_idx)],
-                        size_px: 16.0,
-                        features: vec![],
-                        direction: "ltr".to_string(),
-                        script: None,
-                        language: None,
+                        font: FontSpec {
+                            path: format!("font_{}.ttf", font_idx),
+                            variations: Some(vec![
+                                VariationSetting { tag: "wght".to_string(), value: weight },
+                                VariationSetting { tag: "wdth".to_string(), value: width },
+                            ]),
+                            named_instance: None,
+                        },
+                        text: format!("Text {}", text_idx),
+                        size: 16.0,
+                        shaping: ShapingOptions::default(),
+                        rendering: RenderingOptions::default(),
                     });
                 }
             }
@@ -112,8 +111,8 @@ fn demo_many_instances() {
     let spec = JobSpec {
         version: "1.0.0".to_string(),
         jobs,
-        render: None,
-        storage: None,
+        storage: StorageOptions::default(),
+        include_shaping_output: true,
     };
 
     let orchestrator = JobOrchestrator::new(512).unwrap();
@@ -138,30 +137,30 @@ fn demo_many_texts() {
     let mut jobs = Vec::new();
     for font_idx in 0..2 {
         for weight in [400.0, 500.0, 700.0] {
-            let mut texts = Vec::new();
             for text_idx in 0..500 {
-                texts.push(format!("Sample text number {} for testing", text_idx));
+                jobs.push(Job {
+                    id: format!("job_{}_{}_{}", font_idx, weight as u32, text_idx),
+                    font: FontSpec {
+                        path: format!("font_{}.ttf", font_idx),
+                        variations: Some(vec![
+                            VariationSetting { tag: "wght".to_string(), value: weight },
+                        ]),
+                        named_instance: None,
+                    },
+                    text: format!("Sample text number {} for testing", text_idx),
+                    size: 16.0,
+                    shaping: ShapingOptions::default(),
+                    rendering: RenderingOptions::default(),
+                });
             }
-
-            jobs.push(Job {
-                id: format!("job_{}_{}", font_idx, weight as u32),
-                font_path: format!("font_{}.ttf", font_idx),
-                variations: vec![("wght".to_string(), weight)].into_iter().collect(),
-                texts,
-                size_px: 16.0,
-                features: vec![],
-                direction: "ltr".to_string(),
-                script: None,
-                language: None,
-            });
         }
     }
 
     let spec = JobSpec {
         version: "1.0.0".to_string(),
         jobs,
-        render: None,
-        storage: None,
+        storage: StorageOptions::default(),
+        include_shaping_output: true,
     };
 
     let orchestrator = JobOrchestrator::new(512).unwrap();
@@ -188,18 +187,20 @@ fn demo_balanced() {
     for font_idx in 0..10 {
         for instance_idx in 0..10 {
             let weight = 400.0 + (instance_idx as f32 * 30.0);
-
             for text_idx in 0..10 {
                 jobs.push(Job {
                     id: format!("job_{}_{}_{}", font_idx, instance_idx, text_idx),
-                    font_path: format!("font_{}.ttf", font_idx),
-                    variations: vec![("wght".to_string(), weight)].into_iter().collect(),
-                    texts: vec![format!("Balanced text {}", text_idx)],
-                    size_px: 16.0,
-                    features: vec![],
-                    direction: "ltr".to_string(),
-                    script: None,
-                    language: None,
+                    font: FontSpec {
+                        path: format!("font_{}.ttf", font_idx),
+                        variations: Some(vec![
+                            VariationSetting { tag: "wght".to_string(), value: weight },
+                        ]),
+                        named_instance: None,
+                    },
+                    text: format!("Balanced text {}", text_idx),
+                    size: 16.0,
+                    shaping: ShapingOptions::default(),
+                    rendering: RenderingOptions::default(),
                 });
             }
         }
@@ -208,8 +209,8 @@ fn demo_balanced() {
     let spec = JobSpec {
         version: "1.0.0".to_string(),
         jobs,
-        render: None,
-        storage: None,
+        storage: StorageOptions::default(),
+        include_shaping_output: true,
     };
 
     let orchestrator = JobOrchestrator::new(512).unwrap();

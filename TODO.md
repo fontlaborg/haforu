@@ -49,17 +49,7 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
 ## Phase 1: Foundation with Fontgrep Patterns
 
 ### Font Management (Priority: Critical)
-- [ ] Implement memory-mapped font loading (from fontgrep)
-  - [ ] Add `memmap2` dependency
-  - [ ] Create `FileInfo` struct with mmapped data
-  - [ ] Implement zero-copy `FontRef` creation
-  - [ ] Add support for TTC/OTC collections
-  - [ ] Validate fonts upfront before processing
-
-- [ ] Create font caching system
-  - [ ] Implement LRU cache for loaded `FontRef` objects
-  - [ ] Make cache size configurable (default: 256 fonts)
-  - [ ] Add metrics for cache hit/miss rates
+- [x] Create font caching system
   - [ ] Support variable font instance caching
 
 ### Parallel Processing Infrastructure (Priority: Critical)
@@ -69,45 +59,59 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
   - [ ] Add file type filtering (TTF, OTF, TTC, OTC, WOFF, WOFF2)
   - [ ] Configure thread pool size based on CPU count
 
-- [ ] Implement job parallelization with Rayon
-  - [ ] Add `rayon` and `num_cpus` dependencies
-  - [ ] Create thread pool with configurable size
-  - [ ] Implement work-stealing job queue
+- [x] Implement job parallelization with Rayon
   - [ ] Add backpressure mechanism
 
 ### Text Shaping Integration (Priority: Critical)
-- [ ] Integrate HarfRust for text shaping
-  - [ ] Add `harfrust` dependency (or build from 01code/harfrust)
-  - [ ] Create shaping module with HarfRust integration
-  - [ ] Map font data from read-fonts to HarfRust format
-  - [ ] Implement shaping configuration (direction, script, language)
-  - [ ] Add OpenType feature support
+- [x] Integrate HarfRust for text shaping
 
-- [ ] Implement shaping output format
-  - [ ] Create structs for glyph info (ID, cluster, advance)
-  - [ ] Match hb-shape output format
-  - [ ] Add JSON serialization for shaped results
+- [x] Implement shaping output format
   - [ ] Include timing metrics
 
-## Phase 2: Enhanced CLI with HarfBuzz Compatibility
+## Phase 2: Unified haforu CLI Tool (HarfBuzz-Compatible)
 
-### haforu-shape CLI (Priority: High)
-- [ ] Create basic CLI structure
+
+### Single Unified haforu CLI (Priority: Critical)
+**NOTE: ONE tool combining hb-shape and hb-view functionality - see [PLAN.md](PLAN.md)**
+- [ ] Create unified CLI structure
   - [ ] Add `clap` dependency with derive macros
-  - [ ] Parse command-line arguments matching hb-shape
-  - [ ] Support font file and text arguments
-  - [ ] Add --help with detailed descriptions
+  - [ ] Implement subcommands: `shape`, `view`, `process` (batch)
+  - [ ] Parse command-line arguments matching hb-shape and hb-view
+  - [ ] Add --help with detailed descriptions for each command
 
-- [ ] Implement hb-shape compatibility
+- [ ] Implement `haforu shape` command (hb-shape compatibility)
   - [ ] Support all hb-shape flags (--direction, --language, --script)
   - [ ] Add --features flag with Python-esque syntax
   - [ ] Implement --variations for variable fonts
   - [ ] Add --output-format (text/json)
 
-- [ ] Add batch processing mode
-  - [ ] Add --batch flag for JSON input mode
-  - [ ] Read JSON jobs from stdin
+- [ ] Implement `haforu view` command (hb-view compatibility)
+  - [ ] Support rendering flags (--font-size, --margin, --background)
+  - [ ] Add bitmap output formats
+    - [ ] PNG with full alpha channel support
+    - [ ] PBM (Portable Bitmap) - 1-bit monochrome
+      - [ ] ASCII format for human-readable output
+      - [ ] Binary format for compact storage
+    - [ ] PGM (Portable Graymap) - 8/16-bit grayscale
+      - [ ] ASCII format for human-readable output
+      - [ ] Binary format for compact storage
+    - [ ] Direct stdout output support for pipe-friendly operation
+  - [ ] Add vector output formats (svg/pdf)
+  - [ ] Implement --output-file for rendered images
+  - [ ] Support advanced rendering options
+    - [ ] DPI setting (--dpi)
+    - [ ] Antialiasing control (--antialiasing)
+    - [ ] Hinting modes (--hinting=none|slight|medium|full)
+    - [ ] Subpixel rendering (--subpixel=none|rgb|bgr|vrgb|vbgr)
+    - [ ] Threshold for monochrome conversion (--threshold)
+    - [ ] Dithering options (--dither)
+    - [ ] Bit depth control (--bit-depth=1|8|16)
+  - [ ] Support view-specific options (--show-extents)
+
+- [ ] Implement `haforu process` command (batch JSON mode)
+  - [ ] Read JSON jobs specification from stdin
   - [ ] Output JSONL results to stdout
+  - [ ] Include storage backend references in output
   - [ ] Support streaming for large batches
 
 ### Error Handling Enhancement (Priority: High)
@@ -149,17 +153,17 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
 ## Phase 4: Rendering Integration
 
 ### Rasterization Pipeline (Priority: Critical)
-- [ ] Implement outline extraction with skrifa
-  - [ ] Add `skrifa` dependency for glyph outline extraction
-  - [ ] Use `skrifa::outline::DrawSettings` for zero-copy access
-  - [ ] Handle TrueType/CFF/CFF2 glyph formats
+- [x] Implement outline extraction with skrifa
+  - [x] Add `skrifa` dependency for glyph outline extraction
+  - [x] Use `skrifa::outline::DrawSettings` for zero-copy access
+  - [x] Handle TrueType/CFF/CFF2 glyph formats
   - [ ] Cache frequently-used glyph outlines at specific sizes/variations
 
-- [ ] Integrate zeno for CPU rasterization (Primary Path - CHOSEN OVER tiny-skia)
-  - [ ] Add `zeno` dependency (minimal, no deps, focused on rasterization)
-  - [ ] Implement 256x anti-aliased rendering (8-bit alpha)
-  - [ ] Create ZenoPen adapter implementing skrifa's OutlinePen trait
-  - [ ] Parallelize rasterization with Rayon across glyphs/texts
+- [x] Integrate zeno for CPU rasterization (Primary Path - CHOSEN OVER tiny-skia)
+  - [x] Add `zeno` dependency (minimal, no deps, focused on rasterization)
+  - [x] Implement 256x anti-aliased rendering (8-bit alpha)
+  - [x] Create ZenoPen adapter implementing skrifa's OutlinePen trait
+  - [x] Parallelize rasterization with Rayon across glyphs/texts
   - [ ] Compile with `target-cpu=native` for optimal performance
 
 - [ ] Implement glyph atlas caching
@@ -176,17 +180,34 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
   - [ ] Implement fallback to CPU when GPU unavailable
 
 - [ ] Add output format support
-  - [ ] PNG output with configurable quality
-  - [ ] SVG vector output
-  - [ ] PDF document output
+  - [ ] Bitmap formats
+    - [ ] PNG output with configurable quality and alpha channel
+    - [ ] PBM (Portable Bitmap) writer
+      - [ ] ASCII P1 format for text output
+      - [ ] Binary P4 format for compact storage
+      - [ ] Monochrome thresholding with configurable cutoff
+      - [ ] Optional dithering (Floyd-Steinberg, ordered)
+    - [ ] PGM (Portable Graymap) writer
+      - [ ] ASCII P2 format for text output
+      - [ ] Binary P5 format for compact storage
+      - [ ] 8-bit and 16-bit depth support
+      - [ ] Direct alpha channel to grayscale conversion
+  - [ ] Vector formats
+    - [ ] SVG vector output with path data
+    - [ ] PDF document output with embedded fonts
+  - [ ] Stdout streaming
+    - [ ] Direct PBM/PGM output to stdout for piping
+    - [ ] Buffered writing for performance
+    - [ ] Format auto-detection from output destination
   - [ ] Direct-to-storage rendering with compression
 
-### haforu-view CLI (Priority: Medium)
-- [ ] Create haforu-view tool
-  - [ ] Match hb-view CLI interface
-  - [ ] Add rendering-specific flags
-  - [ ] Support batch rendering mode
-  - [ ] Add storage backend integration
+### Unified haforu CLI Rendering Support (Priority: Medium)
+**NOTE: Rendering is integrated into the unified `haforu` tool via `view` command**
+- [ ] Enhance `haforu view` command features
+  - [ ] Full hb-view CLI compatibility
+  - [ ] Advanced rendering flags (DPI, subpixel, hinting)
+  - [ ] Batch rendering via `haforu process` JSON mode
+  - [ ] Direct storage backend integration for caching
 
 ## Phase 5: Python Bindings
 
@@ -230,13 +251,10 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
 ### Unit Tests (Priority: Critical)
 - [ ] Font loading edge cases
 - [ ] JSON parsing validation
-- [ ] Shaping correctness tests
-- [ ] Storage integrity tests
 
 ### Integration Tests (Priority: High)
 - [ ] End-to-end batch processing
 - [ ] CLI compatibility tests
-- [ ] Storage round-trip tests
 - [ ] Parallel processing tests
 
 ### Performance Tests (Priority: Medium)
@@ -250,7 +268,6 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
 ### User Documentation (Priority: High)
 - [ ] Write comprehensive CLI documentation
 - [ ] Create Python API documentation
-- [ ] Add usage examples
 - [ ] Write troubleshooting guide
 
 ### Developer Documentation (Priority: Medium)

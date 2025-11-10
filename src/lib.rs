@@ -12,7 +12,9 @@ pub mod error;
 pub mod font_loader;
 pub mod json_parser;
 pub mod logging;
+pub mod mmap_font;
 pub mod orchestrator;
+pub mod rasterize;
 pub mod security;
 pub mod shaping;
 pub mod storage;
@@ -20,7 +22,7 @@ pub mod storage;
 // Re-export commonly used types
 pub use error::{Error, Result};
 pub use font_loader::FontLoader;
-pub use json_parser::{JobResult, JobSpec};
+pub use json_parser::{Job, JobResult, JobSpec};
 pub use orchestrator::{JobOrchestrator, JobStats, ParallelizationStrategy};
 
 /// Library version
