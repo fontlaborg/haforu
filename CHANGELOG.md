@@ -10,6 +10,12 @@ this_file: CHANGELOG.md
 - Fixed yanked dependency issue: downgraded read-fonts from 0.35.1 to 0.34.0 and skrifa from 0.38.0 to 0.33.2 for compatibility with harfrust 0.3.2
 - Fixed HarfRust FontRef API incompatibility by creating separate read_fonts::FontRef for UPEM access
 - Updated examples and tests to use skrifa::FontRef instead of read_fonts::FontRef
+- Fixed all clippy warnings including:
+  - Replaced redundant closures with direct function references
+  - Changed `or_insert_with` to `or_default` where applicable
+  - Fixed manual string prefix stripping to use `strip_prefix` method
+  - Removed unnecessary parentheses
+  - Added `#[allow(dead_code)]` for intentionally unused fields
 
 ### Added
 - Build and release tooling:
@@ -17,6 +23,28 @@ this_file: CHANGELOG.md
   - `publish.sh` to publish to crates.io and PyPI with tag-synced semantic versioning.
   - Python bindings crate at `bindings/python` exposing `version()`, `validate_spec()`, `process()`.
   - GitHub Actions: `ci.yml` (fmt, clippy, tests, Python smoke), `release.yml` (tag-driven artifacts + optional publish), `audit.yml`.
+- Comprehensive error recovery tests (`tests/error_recovery.rs`):
+  - 19 test cases for malformed and corrupt font files
+  - Tests for empty, truncated, and garbage font data
+  - Tests for invalid WOFF/WOFF2 headers
+  - Tests for permission denied scenarios (Unix)
+  - Tests for concurrent error handling
+  - Tests for JSON parsing errors
+  - Tests for batch processing resilience
+  - Tests verify graceful degradation without crashes
+- Performance benchmarks (`benches/performance.rs`):
+  - Font loading benchmarks (cold and cached)
+  - JSON parsing benchmarks for various spec sizes
+  - Batch processing benchmarks
+  - Memory tracking performance benchmarks
+  - Uses criterion for statistical analysis
+- Memory tracking module (`src/memory_tracker.rs`):
+  - MemoryTracker for global memory usage monitoring
+  - MemoryGuard for RAII-based allocation tracking
+  - MemoryPool for efficient batch allocations
+  - BatchProcessor with adaptive concurrency based on memory
+  - Comprehensive unit tests for all components
+- Fixed CLI test warnings by updating to new assert_cmd API
 
 ### Notes
 - Tag `vX.Y.Z` sets both Rust and Python versions to `X.Y.Z` in CI and scripts.

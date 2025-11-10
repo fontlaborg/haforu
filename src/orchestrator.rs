@@ -176,9 +176,9 @@ impl JobOrchestrator {
             let instance_key = self.instance_key(&job.font.variations);
             font_instance_texts
                 .entry(job.font.path.clone())
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .entry(instance_key)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(job.text.clone());
         }
 
@@ -259,9 +259,9 @@ impl JobOrchestrator {
             let instance_key = self.instance_key(&job.font.variations);
             font_tree
                 .entry(job.font.path.clone())
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .entry(instance_key.clone())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push((job.text.clone(), job.id.clone()));
         }
 
@@ -549,6 +549,7 @@ impl JobOrchestrator {
     }
 
     /// Convert variations to HashMap for internal use
+    #[allow(dead_code)]
     fn variations_to_map(variations: &Option<Vec<VariationSetting>>) -> HashMap<String, f32> {
         if let Some(vars) = variations {
             vars.iter().map(|v| (v.tag.clone(), v.value)).collect()

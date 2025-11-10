@@ -238,24 +238,23 @@ pub fn parse_features(features: &[String]) -> Result<Vec<Feature>> {
 
     for feature_str in features {
         // Skip variation axes (handled separately)
-        if feature_str.len() == 4 && feature_str.contains('=') {
-            if let Some(pos) = feature_str.find('=') {
+        if feature_str.len() == 4 && feature_str.contains('=')
+            && let Some(pos) = feature_str.find('=') {
                 let value_str = &feature_str[pos + 1..];
                 if value_str.parse::<f32>().is_ok() {
                     continue; // This is a variation, not a feature
                 }
             }
-        }
 
         // Parse feature string format: "kern", "+kern", "-kern", "kern=1", etc.
         let (tag_str, value) = if let Some(pos) = feature_str.find('=') {
             let (tag, val) = feature_str.split_at(pos);
             let val = val[1..].parse::<u32>().unwrap_or(1);
             (tag.trim_start_matches('+').trim_start_matches('-'), val)
-        } else if feature_str.starts_with('-') {
-            (&feature_str[1..], 0)
-        } else if feature_str.starts_with('+') {
-            (&feature_str[1..], 1)
+        } else if let Some(stripped) = feature_str.strip_prefix('-') {
+            (stripped, 0)
+        } else if let Some(stripped) = feature_str.strip_prefix('+') {
+            (stripped, 1)
         } else {
             (feature_str.as_str(), 1)
         };

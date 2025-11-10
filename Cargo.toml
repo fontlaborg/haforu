@@ -29,3 +29,8 @@ zstd = "0.13.3"
 tempfile = "3.23.0"
 assert_cmd = "2.0.16"
 predicates = "3.1.2"
+criterion = "0.7.0"
+
+[[bench]]
+name = "performance"
+harness = false

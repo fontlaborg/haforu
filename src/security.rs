@@ -44,7 +44,7 @@ pub fn sanitize_path<P: AsRef<Path>>(path: P, base_dir: Option<&Path>) -> Result
         base.join(path)
     } else {
         std::env::current_dir()
-            .map_err(|e| Error::Io(e))?
+            .map_err(Error::Io)?
             .join(path)
     };
 

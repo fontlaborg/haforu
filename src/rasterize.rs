@@ -35,6 +35,7 @@ pub struct RenderedGlyph {
 /// CPU-based rasterizer using skrifa for outline extraction and zeno for rendering
 pub struct CpuRasterizer {
     /// Target pixels per em
+    #[allow(dead_code)]
     ppem: f32,
     /// Subpixel precision (4 or 8 for 1/4 or 1/8 pixel)
     subpixel_precision: u32,
@@ -212,7 +213,7 @@ impl CpuRasterizer {
         for glyph in glyphs {
             if glyph.width > 0 && glyph.height > 0 {
                 let x = (x_offset + glyph.left as f32) as i32;
-                let y = (min_top - glyph.top) as i32;
+                let y = min_top - glyph.top;
 
                 // Blit glyph to bitmap
                 for gy in 0..glyph.height {

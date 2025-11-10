@@ -12,6 +12,7 @@ pub mod error;
 pub mod font_loader;
 pub mod json_parser;
 pub mod logging;
+pub mod memory_tracker;
 pub mod mmap_font;
 pub mod orchestrator;
 pub mod rasterize;

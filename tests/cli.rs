@@ -2,12 +2,12 @@
 //! CLI integration tests for haforu binary
 
 use assert_cmd::Command;
-use assert_cmd::prelude::*;
 use predicates::prelude::*;
 
 /// Helper to run the `haforu` binary
 fn bin() -> Command {
-    Command::cargo_bin("haforu").expect("binary exists")
+    // Use new approach recommended by assert_cmd
+    Command::new(env!("CARGO_BIN_EXE_haforu"))
 }
 
 #[test]

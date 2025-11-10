@@ -12,9 +12,15 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
 
 ## Quality Improvements (Small-Scale)
 
-- [ ] Fix Python bindings - export json_parser module for full API access
-- [ ] Clean up clippy warnings (unused fields, redundant closures, etc.)
-- [ ] Add error recovery tests for malformed/corrupt font files
+- [x] Fix Python bindings - export json_parser module for full API access (bindings directory not present in codebase)
+- [x] Clean up clippy warnings (unused fields, redundant closures, etc.)
+- [x] Add error recovery tests for malformed/corrupt font files
+
+## New Quality Improvements (2025-11-10)
+
+- [x] Add performance benchmarks for critical paths (font loading, shaping, rasterization)
+- [x] Improve CLI warnings in tests (deprecated cargo_bin, unused imports)
+- [x] Add memory usage tracking and optimization for large batch processing
 
 ## Build/Release Tasks
 - [ ] Configure GitHub Secrets: `CRATES_IO_TOKEN`, `PYPI_TOKEN`
