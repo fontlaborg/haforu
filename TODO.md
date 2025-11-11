@@ -1,28 +1,98 @@
 ---
-this_file: TODO.md
+this_file: external/haforu/TODO.md
 ---
 
 # TODO.md
 
-Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed with the work! 
+Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed with the work!
 
-## Fix
+## FontSimi Integration Tasks (CRITICAL - Phase 0)
 
-- [x] @issues/102.md - Fixed yanked read-fonts dependency
+### Core Streaming Features
+- [ ] Implement `--streaming` mode flag for persistent process
+  - [ ] Keep stdin/stdout open for continuous job processing
+  - [ ] Read JSON jobs line-by-line from stdin
+  - [ ] Write JSONL results line-by-line to stdout with immediate flush
+  - [ ] Maintain font cache across all jobs in session
+- [ ] Add streaming output for batch mode
+  - [ ] Process jobs in parallel but write results as they complete
+  - [ ] Don't wait for all jobs to finish before outputting
+  - [ ] Include progress indicators in stderr (optional)
+- [ ] Implement job ID preservation
+  - [ ] Pass through job IDs from input to output
+  - [ ] Handle missing IDs gracefully (generate UUID)
 
-## Quality Improvements (Small-Scale)
+### Variable Font Support Enhancements
+- [ ] Enhance variation coordinate handling
+  - [ ] Accept variations as dict in job spec
+  - [ ] Apply variations to font instance correctly
+  - [ ] Cache instantiated variable fonts by coordinate hash
+  - [ ] Report applied coordinates in output
+- [ ] Add variation bounds validation
+  - [ ] Check coordinates against font's axis limits
+  - [ ] Clamp or error on out-of-bounds values
+  - [ ] Include axis info in error messages
 
-- [x] Fix Python bindings - export json_parser module for full API access (bindings directory not present in codebase)
-- [x] Clean up clippy warnings (unused fields, redundant closures, etc.)
-- [x] Add error recovery tests for malformed/corrupt font files
+### Memory Management Features
+- [ ] Add `--max-memory` flag (MB)
+  - [ ] Track current memory usage via MemoryTracker
+  - [ ] Clear LRU font cache when approaching limit
+  - [ ] Report memory stats in JSONL output (optional)
+- [ ] Optimize font caching for large batches
+  - [ ] Increase default cache size to 512 fonts
+  - [ ] Add cache hit/miss statistics to stderr
+  - [ ] Implement font instance cache for variations
 
-## New Quality Improvements (2025-11-10)
+### Output Format Enhancements
+- [ ] Enhance PGM output support
+  - [ ] Ensure proper P5 binary format by default
+  - [ ] Add P2 ASCII format option for debugging
+  - [ ] Include actual rendered bbox in metadata
+- [ ] Add base64 encoding for images
+  - [ ] Support `output_format: "base64"` in job spec
+  - [ ] Encode PGM data as base64 string
+  - [ ] Include in JSONL under `rendering.data`
+- [ ] Add glyph metrics to output
+  - [ ] Include advance width, bearings
+  - [ ] Add bounding box coordinates
+  - [ ] Optional detailed shaping info
 
-- [x] Add performance benchmarks for critical paths (font loading, shaping, rasterization)
-- [x] Improve CLI warnings in tests (deprecated cargo_bin, unused imports)
-- [x] Add memory usage tracking and optimization for large batch processing
+## FontSimi Integration Tasks (Phase 1)
 
-## Build/Release Tasks
+### Performance Optimizations
+- [ ] Optimize for single-glyph rendering (FontSimi's daidot)
+  - [ ] Fast path for single character text
+  - [ ] Skip unnecessary shaping for single glyphs
+  - [ ] Optimize memory allocation for small renders
+- [ ] Add batch size optimization
+  - [ ] Auto-tune parallelization based on job count
+  - [ ] Adaptive thread pool sizing
+  - [ ] Memory-aware batch splitting
+
+### Error Handling & Robustness
+- [ ] Improve error recovery for batch jobs
+  - [ ] Continue processing after individual job failures
+  - [ ] Include error details in JSONL output
+  - [ ] Summary statistics at end (success/failure counts)
+- [ ] Add timeout handling
+  - [ ] Per-job timeout (default 5s)
+  - [ ] Skip stuck jobs and mark as timeout
+  - [ ] Global timeout for entire batch
+
+### Testing & Validation
+- [ ] Create FontSimi integration tests
+  - [ ] Test batch of 1000+ single-glyph renders
+  - [ ] Verify streaming mode with continuous jobs
+  - [ ] Test variable font coordinate application
+  - [ ] Memory limit compliance tests
+- [ ] Add benchmarks for FontSimi workloads
+  - [ ] Benchmark: 5000 single-glyph renders
+  - [ ] Compare with/without font caching
+  - [ ] Memory usage over time graphs
+
+## Original Tasks (Lower Priority)
+
+### Build/Release Tasks
 - [ ] Configure GitHub Secrets: `CRATES_IO_TOKEN`, `PYPI_TOKEN`
 - [ ] Verify `./build.sh --release` runs on dev machine (cargo + maturin installed)
 - [ ] Create test tag `v0.1.1-rc1` (do not publish) and confirm CI builds artifacts
@@ -31,6 +101,60 @@ Always update @TODO.md and @README.md and @CLAUDE.md accordingly. Then proceed w
   - [ ] crates.io publish succeeds
   - [ ] PyPI publish succeeds
 - [ ] Document outcome in `WORK.md` and `CHANGELOG.md`
+
+## Completed Tasks ✓
+
+### Initial Session
+- [x] @issues/102.md - Fixed yanked read-fonts dependency
+- [x] Fix Python bindings - export json_parser module for full API access
+- [x] Clean up clippy warnings (unused fields, redundant closures, etc.)
+- [x] Add error recovery tests for malformed/corrupt font files
+- [x] Add performance benchmarks for critical paths
+- [x] Improve CLI warnings in tests
+- [x] Add memory usage tracking and optimization
+
+## FontSimi Phase 2: Storage Backend Integration
+
+### Packfile Storage for Pre-rendered Images
+- [ ] Add `--storage-dir` flag for packfile output
+  - [ ] Create sharded packfiles (5GB each)
+  - [ ] Generate index for fast lookups
+  - [ ] Support concurrent reads from multiple processes
+- [ ] Implement storage ID references
+  - [ ] Return storage ID instead of image data
+  - [ ] Format: `shard_XXX/img_YYYYY`
+  - [ ] Include in JSONL as alternative to base64
+- [ ] Add query interface
+  - [ ] `haforu query --storage-id shard_001/img_12345`
+  - [ ] Return image data or metadata
+  - [ ] Support batch queries
+
+### Pre-rendering Support
+- [ ] Add `--prerender` mode
+  - [ ] Accept list of fonts and coordinate grids
+  - [ ] Generate all combinations systematically
+  - [ ] Store directly to packfiles
+  - [ ] Progress tracking and resumability
+- [ ] Optimize for Sobol grid points
+  - [ ] Special handling for power-of-2 sample counts
+  - [ ] Efficient iteration over design space
+  - [ ] Parallel processing of grid points
+
+## Next Immediate Steps (Priority Order)
+
+1. **Implement --streaming mode** - Critical for optimization phase
+2. **Add base64 output encoding** - Required for Python integration
+3. **Enhance variable font support** - Essential for FontSimi matching
+4. **Optimize single-glyph rendering** - Major performance win
+5. **Add memory management** - Prevent OOM on large batches
+
+## Key Success Metrics for FontSimi
+
+- Reduce rendering calls: 5.5M → 1 batch call
+- Memory usage: 86GB → <2GB
+- Analysis time: 5 hours → 3 minutes
+- Deep optimization: 30s → 0.6s per font pair
+- Zero crashes on 250×85 font batches
 
 ## Completed Quality Improvements ✓
 

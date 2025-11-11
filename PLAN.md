@@ -1,5 +1,5 @@
 ---
-this_file: PLAN.md
+this_file: external/haforu/PLAN.md
 ---
 
 # PLAN.md - Haforu CLI Tool Comprehensive Specification
@@ -7,6 +7,106 @@ this_file: PLAN.md
 ## Executive Overview
 
 **Haforu** is a single, unified CLI tool that combines and enhances the functionality of HarfBuzz's `hb-shape` and `hb-view` tools. It processes JSON job specifications from stdin and outputs JSONL (JSON Lines) results to stdout, supporting batch processing of thousands of font/text combinations with optional rendering and storage.
+
+## FontSimi Integration Requirements (CRITICAL)
+
+**Problem**: FontSimi currently makes 5.5M individual render calls (250 fonts × 85 instances × 5 segments × 52 glyphs), causing 86GB memory usage and hours of runtime due to Python<->Native overhead.
+
+**Solution**: Haforu will provide batch rendering capabilities to reduce this to a single subprocess call with streaming results.
+
+### Key Requirements for FontSimi
+
+1. **Batch Mode with Streaming Output**
+   - Accept JSON job specification with 5000+ render jobs
+   - Stream JSONL results as they complete (not wait for all)
+   - Include job ID in each result for correlation
+
+2. **Streaming Mode for Optimization**
+   - Support `--streaming` flag to keep process alive
+   - Read jobs from stdin continuously (one per line)
+   - Write results to stdout immediately (one per line)
+   - Maintain font cache across jobs in same process
+
+3. **Variable Font Support**
+   - Accept variation coordinates in job specification
+   - Apply variations correctly for each job
+   - Cache font instances to avoid re-instantiation
+
+4. **Output Requirements**
+   - PGM format (8-bit grayscale) for metrics computation
+   - Include rendered width/height in result metadata
+   - Support both base64 encoded and file reference outputs
+   - Optional: include glyph metrics (advance, bbox)
+
+5. **Memory Management**
+   - Memory-mapped font loading (never load into heap)
+   - Configurable memory limits via --max-memory flag
+   - Clear font cache when approaching limit
+   - Report memory usage in JSONL if requested
+
+### FontSimi-Specific Job Format
+
+```json
+{
+  "version": "1.0",
+  "mode": "batch",  // or "streaming"
+  "config": {
+    "max_memory_mb": 2000,
+    "output_format": "base64",  // or "file"
+    "include_metrics": true
+  },
+  "jobs": [
+    {
+      "id": "font1_wght500_Latn_char_a",
+      "font": {
+        "path": "/path/to/font.ttf",
+        "size": 1000,  // FontSimi uses 1000pt for daidot
+        "variations": {"wght": 500, "wdth": 125}
+      },
+      "text": {
+        "content": "a",  // Single glyph for daidot metrics
+        "script": "Latn"
+      },
+      "rendering": {
+        "format": "pgm",
+        "encoding": "binary",
+        "width": 3000,   // Large enough for metrics
+        "height": 1200
+      }
+    }
+  ]
+}
+```
+
+### Expected Output Format
+
+```json
+{
+  "id": "font1_wght500_Latn_char_a",
+  "status": "success",
+  "rendering": {
+    "format": "pgm",
+    "encoding": "base64",
+    "data": "UDUKMzAwMCAxMjAwCjI1NQo...",  // Base64 encoded PGM
+    "width": 3000,
+    "height": 1200,
+    "actual_bbox": {"x": 100, "y": 200, "w": 800, "h": 900}
+  },
+  "metrics": {
+    "advance_width": 823,
+    "left_bearing": 50,
+    "right_bearing": 73
+  },
+  "timing": {
+    "shape_ms": 0.5,
+    "render_ms": 2.3
+  },
+  "memory": {
+    "font_cache_mb": 45,
+    "total_mb": 156
+  }
+}
+```
 
 ## Architecture Overview
 

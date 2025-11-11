@@ -1,8 +1,8 @@
 // this_file: src/memory_tracker.rs
 //! Memory tracking and optimization utilities
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Global memory tracker for monitoring allocation
 pub struct MemoryTracker {
@@ -42,12 +42,10 @@ impl MemoryTracker {
         // Update peak
         let mut peak = self.peak.load(Ordering::Relaxed);
         while new > peak {
-            match self.peak.compare_exchange_weak(
-                peak,
-                new,
-                Ordering::SeqCst,
-                Ordering::Relaxed,
-            ) {
+            match self
+                .peak
+                .compare_exchange_weak(peak, new, Ordering::SeqCst, Ordering::Relaxed)
+            {
                 Ok(_) => break,
                 Err(p) => peak = p,
             }

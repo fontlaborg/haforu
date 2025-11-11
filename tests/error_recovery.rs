@@ -2,7 +2,7 @@
 //! Error recovery tests for malformed and corrupt font files
 
 use haforu::font_loader::FontLoader;
-use haforu::json_parser::{parse_job_spec, Job, JobSpec, FontSpec};
+use haforu::json_parser::{FontSpec, Job, JobSpec, parse_job_spec};
 use haforu::mmap_font::{FileInfo, MmapFontCache};
 use haforu::rasterize::CpuRasterizer;
 use haforu::shaping::TextShaper;
@@ -183,7 +183,9 @@ fn test_font_loader_handles_permission_denied() {
 
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("permission") || err_msg.contains("denied") || err_msg.contains("access"));
+    assert!(
+        err_msg.contains("permission") || err_msg.contains("denied") || err_msg.contains("access")
+    );
 }
 
 #[test]
@@ -204,12 +206,7 @@ fn test_text_shaper_handles_invalid_font_data() {
     let mut shaper = TextShaper::new();
 
     // Try to shape text with invalid font data
-    let result = shaper.shape(
-        &invalid_font,
-        "Test",
-        12.0,
-        &Default::default(),
-    );
+    let result = shaper.shape(&invalid_font, "Test", 12.0, &Default::default());
 
     assert!(result.is_err());
 }
@@ -278,7 +275,11 @@ fn test_batch_processing_continues_on_font_failure() {
             Job {
                 id: "job1".to_string(),
                 font: FontSpec {
-                    path: temp_dir.path().join("empty.ttf").to_string_lossy().to_string(),
+                    path: temp_dir
+                        .path()
+                        .join("empty.ttf")
+                        .to_string_lossy()
+                        .to_string(),
                     variations: None,
                     named_instance: None,
                 },
@@ -290,7 +291,11 @@ fn test_batch_processing_continues_on_font_failure() {
             Job {
                 id: "job2".to_string(),
                 font: FontSpec {
-                    path: temp_dir.path().join("invalid_magic.ttf").to_string_lossy().to_string(),
+                    path: temp_dir
+                        .path()
+                        .join("invalid_magic.ttf")
+                        .to_string_lossy()
+                        .to_string(),
                     variations: None,
                     named_instance: None,
                 },
