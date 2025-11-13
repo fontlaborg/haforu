@@ -1,170 +1,228 @@
-// this_file: src/shaping.rs
-//! Text shaping module using HarfRust
+// this_file: external/haforu2/src/shaping.rs
+
+//! Text shaping using HarfBuzz.
+//!
+//! This module shapes text into positioned glyphs, handling complex scripts,
+//! ligatures, kerning, and other OpenType features.
 
 use crate::error::{Error, Result};
-use crate::json_parser::{GlyphInfo, ShapingOptions, ShapingOutput};
-use harfrust::{
-    BufferClusterLevel, Direction, Feature, FontRef as HarfRustFontRef, Script, ShaperData,
-    ShaperInstance, Tag, UnicodeBuffer, Variation,
+use crate::fonts::FontInstance;
+use harfbuzz_rs::{
+    Face, Font as HbFont, GlyphBuffer, UnicodeBuffer, Direction,
 };
-use log::{debug, info};
-use read_fonts::{FontRef, TableProvider};
+use read_fonts::TableProvider;
+use std::path::Path;
 
-/// Text shaper using HarfRust
-pub struct TextShaper {
-    /// Cached font data for reuse
-    cached_font_data: Option<(Vec<u8>, ShaperData)>,
+/// Shaped text with positioned glyphs.
+#[derive(Debug, Clone)]
+pub struct ShapedText {
+    /// Positioned glyphs
+    pub glyphs: Vec<ShapedGlyph>,
+    /// Font size in points
+    pub font_size: f32,
 }
 
+/// Single shaped glyph with position.
+#[derive(Debug, Clone)]
+pub struct ShapedGlyph {
+    /// Glyph ID in the font
+    pub glyph_id: u32,
+    /// Horizontal advance (in font units)
+    pub x_advance: i32,
+    /// Vertical advance (in font units, typically 0)
+    pub y_advance: i32,
+    /// Horizontal offset from cursor (in font units)
+    pub x_offset: i32,
+    /// Vertical offset from baseline (in font units)
+    pub y_offset: i32,
+}
+
+/// Text shaper using HarfBuzz.
+pub struct TextShaper;
+
 impl TextShaper {
-    /// Create a new text shaper
+    /// Create a new text shaper.
     pub fn new() -> Self {
-        Self {
-            cached_font_data: None,
-        }
+        Self
     }
 
-    /// Shape text using the provided font and options
+    /// Shape text using the provided font instance.
+    ///
+    /// Returns positioned glyphs with advances and offsets.
     pub fn shape(
-        &mut self,
-        font_data: &[u8],
+        &self,
+        font_instance: &FontInstance,
         text: &str,
-        size: f32,
-        options: &ShapingOptions,
-    ) -> Result<ShapingOutput> {
-        debug!("Shaping text: '{}' with size {}", text, size);
-
-        // Create HarfRust FontRef from font data
-        let font = HarfRustFontRef::from_index(font_data, 0)
-            .map_err(|e| Error::Font(format!("Failed to create HarfRust font: {:?}", e)))?;
-
-        // Create or reuse ShaperData
-        let shaper_data = if let Some((ref cached_data, ref cached_shaper)) = self.cached_font_data
-        {
-            if cached_data == font_data {
-                cached_shaper
-            } else {
-                self.cached_font_data = Some((font_data.to_vec(), ShaperData::new(&font)));
-                &self.cached_font_data.as_ref().unwrap().1
-            }
-        } else {
-            self.cached_font_data = Some((font_data.to_vec(), ShaperData::new(&font)));
-            &self.cached_font_data.as_ref().unwrap().1
-        };
-
-        // Create shaper instance with variations if needed
-        // Convert HashMap to Vec<String> for feature parsing
-        let features_vec: Vec<String> = options
-            .features
-            .iter()
-            .filter_map(|(k, v)| if *v { Some(k.clone()) } else { None })
-            .collect();
-        let variations = parse_variations(&features_vec)?;
-        let instance = if !variations.is_empty() {
-            Some(ShaperInstance::from_variations(&font, &variations))
-        } else {
-            None
-        };
-
-        // Build the shaper
-        let mut builder = shaper_data.shaper(&font);
-        if let Some(ref inst) = instance {
-            builder = builder.instance(Some(inst));
+        font_size: f32,
+        path: &Path,
+    ) -> Result<ShapedText> {
+        // Handle empty string
+        if text.is_empty() {
+            return Ok(ShapedText {
+                glyphs: vec![],
+                font_size,
+            });
         }
 
-        // Set point size if needed (for tracking table)
-        if size > 0.0 {
-            builder = builder.point_size(Some(size));
+        // Fast path for single character (common case for FontSimi)
+        if text.chars().count() == 1 {
+            return self.shape_single_char(font_instance, text, font_size, path);
         }
 
-        let shaper = builder.build();
+        // Full shaping path
+        self.shape_harfbuzz(font_instance, text, font_size, path)
+    }
 
-        // Create and configure buffer
-        let mut buffer = UnicodeBuffer::new();
-        buffer.push_str(text);
+    /// Fast path: shape single character without HarfBuzz overhead.
+    fn shape_single_char(
+        &self,
+        font_instance: &FontInstance,
+        text: &str,
+        font_size: f32,
+        _path: &Path,
+    ) -> Result<ShapedText> {
+        let ch = text.chars().next().unwrap();
+        let font = font_instance.font_ref();
 
-        // Set buffer properties
-        let direction = parse_harfrust_direction(&options.direction)?;
-        buffer.set_direction(direction);
+        // Map character to glyph ID
+        let cmap = font.cmap().map_err(|e| Error::Internal(format!("Failed to read cmap table: {}", e)))?;
+        let glyph_id = cmap
+            .map_codepoint(ch as u32)
+            .ok_or_else(|| Error::Internal(format!("Character '{}' not found in font", ch)))?
+            .to_u32();
 
-        if let Some(ref script_str) = options.script {
-            let script = parse_harfrust_script(script_str)?;
-            buffer.set_script(script);
-        } else {
-            // Let HarfRust guess the script
-            buffer.guess_segment_properties();
+        // Get advance width from hmtx table
+        // TODO: Use instance coordinates for variable fonts
+        if !font_instance.coordinates().is_empty() {
+            log::warn!(
+                "Single-character fast path does not support variable font coordinates yet: {:?}. Using static metrics.",
+                font_instance.coordinates()
+            );
+        }
+        let hmtx = font.hmtx().map_err(|e| Error::Internal(format!("Failed to read hmtx table: {}", e)))?;
+        let advance = hmtx.advance(glyph_id.into()).unwrap_or(0) as i32;
+
+        Ok(ShapedText {
+            glyphs: vec![ShapedGlyph {
+                glyph_id,
+                x_advance: advance,
+                y_advance: 0,
+                x_offset: 0,
+                y_offset: 0,
+            }],
+            font_size,
+        })
+    }
+
+    /// Full shaping using HarfBuzz.
+    fn shape_harfbuzz(
+        &self,
+        font_instance: &FontInstance,
+        text: &str,
+        font_size: f32,
+        path: &Path,
+    ) -> Result<ShapedText> {
+        // Get the raw font data from the FontInstance
+        let font_data = font_instance.font_data();
+
+        // Create HarfBuzz face from font data
+        let face = Face::from_bytes(font_data, 0);
+        let mut hb_font = HbFont::new(face);
+
+        // Set font size (convert points to pixels, assuming 72 DPI)
+        let ppem = font_size as u32;
+        hb_font.set_ppem(ppem, ppem);
+
+        // Apply variations if present
+        if !font_instance.coordinates().is_empty() {
+            let variations: Vec<harfbuzz_rs::Variation> = font_instance
+                .coordinates()
+                .iter()
+                .filter_map(|(tag, value)| {
+                    // Parse tag string (e.g. "wght") into 4 chars
+                    let chars: Vec<char> = tag.chars().collect();
+                    if chars.len() == 4 {
+                        Some(harfbuzz_rs::Variation::new(
+                            harfbuzz_rs::Tag::new(chars[0], chars[1], chars[2], chars[3]),
+                            *value,
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            hb_font.set_variations(&variations);
         }
 
-        if let Some(ref _lang) = options.language {
-            // Language uses from_iso639_str or similar
-            // For now, let's use the default language
-            // TODO: Fix Language construction when API is clear
-            // buffer.set_language(Language::from_iso639_str(lang));
+        // Create buffer and add text (chain methods since they take ownership)
+        let buffer = UnicodeBuffer::new()
+            .add_str(text)
+            .set_direction(Direction::Ltr)
+            .guess_segment_properties();
+
+        // Shape
+        let glyph_buffer: GlyphBuffer = harfbuzz_rs::shape(&hb_font, buffer, &[]);
+
+        // Extract glyph positions
+        let glyph_infos = glyph_buffer.get_glyph_infos();
+        let glyph_positions = glyph_buffer.get_glyph_positions();
+
+        if glyph_infos.is_empty() {
+            return Err(Error::ShapingFailed {
+                text: text.to_string(),
+                path: path.to_path_buf(),
+                reason: "HarfBuzz returned zero glyphs".to_string(),
+            });
         }
-
-        // Set cluster level
-        match options.cluster_level {
-            1 => buffer.set_cluster_level(BufferClusterLevel::Characters),
-            2 => buffer.set_cluster_level(BufferClusterLevel::MonotoneGraphemes),
-            _ => buffer.set_cluster_level(BufferClusterLevel::MonotoneCharacters),
-        }
-
-        // Parse features for shaping
-        let features = parse_features(&features_vec)?;
-
-        // Shape the buffer
-        let glyph_buffer = shaper.shape(buffer, &features);
-
-        // Extract shaped glyphs
-        let glyph_infos = glyph_buffer.glyph_infos();
-        let glyph_positions = glyph_buffer.glyph_positions();
-
-        // Note: HarfRust shapes at UnitsPerEm scale, so we need to scale the results
-        // Create a read-fonts FontRef to get the UPEM value
-        let read_font = FontRef::from_index(font_data, 0)
-            .map_err(|e| Error::Font(format!("Failed to create read-fonts font: {:?}", e)))?;
-        let upem = read_font.head().map(|h| h.units_per_em()).unwrap_or(1000) as f32;
-        let scale = size / upem;
 
         let glyphs = glyph_infos
             .iter()
             .zip(glyph_positions.iter())
-            .map(|(info, pos)| {
-                GlyphInfo {
-                    glyph_id: info.glyph_id,
-                    cluster: info.cluster,
-                    // Scale from UPEM to requested size
-                    x_advance: (pos.x_advance as f32 * scale) as i32,
-                    y_advance: (pos.y_advance as f32 * scale) as i32,
-                    x_offset: (pos.x_offset as f32 * scale) as i32,
-                    y_offset: (pos.y_offset as f32 * scale) as i32,
-                }
+            .map(|(info, pos)| ShapedGlyph {
+                glyph_id: info.codepoint,
+                x_advance: pos.x_advance,
+                y_advance: pos.y_advance,
+                x_offset: pos.x_offset,
+                y_offset: pos.y_offset,
             })
             .collect();
 
-        let output = ShapingOutput {
-            glyphs,
-            direction: options.direction.clone(),
-            script: options.script.clone().unwrap_or_else(|| "auto".to_string()),
-            language: options.language.clone().unwrap_or_else(|| "en".to_string()),
-        };
+        Ok(ShapedText { glyphs, font_size })
+    }
+}
 
-        info!("Shaped {} glyphs using HarfRust", output.glyphs.len());
-        Ok(output)
+impl ShapedText {
+    /// Calculate total advance width in font units.
+    pub fn total_advance_width(&self) -> i32 {
+        self.glyphs.iter().map(|g| g.x_advance).sum()
     }
 
-    /// Shape text using FontRef (compatibility method)
-    pub fn shape_with_fontref(
-        &mut self,
-        _font_ref: &FontRef,
-        font_data: &[u8],
-        text: &str,
-        size: f32,
-        options: &ShapingOptions,
-    ) -> Result<ShapingOutput> {
-        // For now, we need the raw font data for HarfRust
-        // In the future, we might integrate more directly
-        self.shape(font_data, text, size, options)
+    /// Calculate bounding box of all glyphs (in font units).
+    pub fn bounding_box(&self) -> (i32, i32, i32, i32) {
+        if self.glyphs.is_empty() {
+            return (0, 0, 0, 0);
+        }
+
+        let mut min_x = i32::MAX;
+        let mut min_y = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut max_y = i32::MIN;
+
+        let mut cursor_x = 0i32;
+        for glyph in &self.glyphs {
+            let glyph_x = cursor_x + glyph.x_offset;
+            let glyph_y = glyph.y_offset;
+
+            min_x = min_x.min(glyph_x);
+            min_y = min_y.min(glyph_y);
+            max_x = max_x.max(glyph_x + glyph.x_advance);
+            max_y = max_y.max(glyph_y + glyph.y_advance);
+
+            cursor_x += glyph.x_advance;
+        }
+
+        (min_x, min_y, max_x - min_x, max_y - min_y)
     }
 }
 
@@ -174,190 +232,32 @@ impl Default for TextShaper {
     }
 }
 
-/// Parse direction string to HarfRust Direction
-pub fn parse_harfrust_direction(dir: &str) -> Result<Direction> {
-    match dir.to_lowercase().as_str() {
-        "ltr" => Ok(Direction::LeftToRight),
-        "rtl" => Ok(Direction::RightToLeft),
-        "ttb" => Ok(Direction::TopToBottom),
-        "btt" => Ok(Direction::BottomToTop),
-        _ => Err(Error::InvalidParameter(format!(
-            "Invalid direction: {}",
-            dir
-        ))),
-    }
-}
-
-/// Parse script string to HarfRust Script
-pub fn parse_harfrust_script(script_str: &str) -> Result<Script> {
-    // Convert script string to 4-byte tag
-    let bytes = script_str.as_bytes();
-    if bytes.len() != 4 {
-        return Err(Error::InvalidParameter(format!(
-            "Script tag must be 4 characters: {}",
-            script_str
-        )));
-    }
-
-    // Create Script from tag - convert to fixed array
-    let mut tag_bytes = [0u8; 4];
-    tag_bytes.copy_from_slice(bytes);
-    let tag = Tag::from_be_bytes(tag_bytes);
-    // Script has a from_iso15924_tag constructor
-    Script::from_iso15924_tag(tag)
-        .ok_or_else(|| Error::InvalidParameter(format!("Invalid script tag: {}", script_str)))
-}
-
-/// Parse variation strings to HarfRust variations
-pub fn parse_variations(features: &[String]) -> Result<Vec<Variation>> {
-    let mut variations = Vec::new();
-
-    for feature_str in features {
-        // Look for variation syntax like "wght=500" or "wdth=75"
-        if let Some(pos) = feature_str.find('=') {
-            let tag_str = &feature_str[..pos];
-            if tag_str.len() == 4 {
-                // This might be a variation axis
-                let value_str = &feature_str[pos + 1..];
-                if let Ok(value) = value_str.parse::<f32>() {
-                    let mut tag_bytes = [0u8; 4];
-                    tag_bytes.copy_from_slice(tag_str.as_bytes());
-                    let tag = Tag::from_be_bytes(tag_bytes);
-                    variations.push(Variation { tag, value });
-                }
-            }
-        }
-    }
-
-    Ok(variations)
-}
-
-/// Parse feature strings to HarfRust features
-pub fn parse_features(features: &[String]) -> Result<Vec<Feature>> {
-    let mut parsed_features = Vec::new();
-
-    for feature_str in features {
-        // Skip variation axes (handled separately)
-        if feature_str.len() == 4
-            && feature_str.contains('=')
-            && let Some(pos) = feature_str.find('=')
-        {
-            let value_str = &feature_str[pos + 1..];
-            if value_str.parse::<f32>().is_ok() {
-                continue; // This is a variation, not a feature
-            }
-        }
-
-        // Parse feature string format: "kern", "+kern", "-kern", "kern=1", etc.
-        let (tag_str, value) = if let Some(pos) = feature_str.find('=') {
-            let (tag, val) = feature_str.split_at(pos);
-            let val = val[1..].parse::<u32>().unwrap_or(1);
-            (tag.trim_start_matches('+').trim_start_matches('-'), val)
-        } else if let Some(stripped) = feature_str.strip_prefix('-') {
-            (stripped, 0)
-        } else if let Some(stripped) = feature_str.strip_prefix('+') {
-            (stripped, 1)
-        } else {
-            (feature_str.as_str(), 1)
-        };
-
-        // Ensure tag is 4 characters (pad with spaces if needed)
-        let mut tag_bytes = [b' '; 4];
-        let bytes = tag_str.as_bytes();
-        let len = bytes.len().min(4);
-        tag_bytes[..len].copy_from_slice(&bytes[..len]);
-
-        let tag = Tag::from_be_bytes(tag_bytes);
-        let feature = Feature {
-            tag,
-            value,
-            start: 0,
-            end: u32::MAX, // Global feature
-        };
-
-        parsed_features.push(feature);
-    }
-
-    Ok(parsed_features)
-}
-
-/// Parse direction string (compatibility function)
-pub fn parse_direction(dir: &str) -> Result<String> {
-    match dir.to_lowercase().as_str() {
-        "ltr" | "rtl" | "ttb" | "btt" => Ok(dir.to_string()),
-        _ => Err(Error::InvalidParameter(format!(
-            "Invalid direction: {}",
-            dir
-        ))),
-    }
-}
-
-/// Parse script string (compatibility function)
-pub fn parse_script(script_str: &str) -> Result<String> {
-    // Convert script string to 4-byte tag
-    let bytes = script_str.as_bytes();
-    if bytes.len() != 4 {
-        return Err(Error::InvalidParameter(format!(
-            "Script tag must be 4 characters: {}",
-            script_str
-        )));
-    }
-    Ok(script_str.to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::json_parser::ShapingOptions;
 
     #[test]
-    fn test_text_shaper_creation() {
-        let _shaper = TextShaper::new();
-        // Just ensure it creates without panic
-        assert!(true);
+    fn test_shaped_text_empty() {
+        let shaped = ShapedText {
+            glyphs: vec![],
+            font_size: 100.0,
+        };
+        assert_eq!(shaped.total_advance_width(), 0);
+        assert_eq!(shaped.bounding_box(), (0, 0, 0, 0));
     }
 
     #[test]
-    fn test_parse_direction() {
-        assert_eq!(parse_direction("ltr").unwrap(), "ltr");
-        assert_eq!(parse_direction("rtl").unwrap(), "rtl");
-        assert_eq!(parse_direction("ttb").unwrap(), "ttb");
-        assert_eq!(parse_direction("btt").unwrap(), "btt");
-        assert!(parse_direction("invalid").is_err());
-    }
-
-    #[test]
-    fn test_parse_script() {
-        // Valid 4-character script tags
-        assert!(parse_script("Arab").is_ok());
-        assert!(parse_script("Latn").is_ok());
-        assert!(parse_script("Deva").is_ok());
-
-        // Invalid lengths
-        assert!(parse_script("Ar").is_err());
-        assert!(parse_script("Arabic").is_err());
-        assert!(parse_script("").is_err());
-    }
-
-    #[test]
-    fn test_shaping_options_default() {
-        let options = ShapingOptions::default();
-        assert_eq!(options.direction, "ltr");
-        assert!(options.language.is_none());
-        assert!(options.script.is_none());
-        assert_eq!(options.cluster_level, 0);
-        assert!(options.features.is_empty());
-    }
-
-    #[test]
-    fn test_placeholder_shaping() {
-        let _shaper = TextShaper::new();
-        let _options = ShapingOptions::default();
-
-        // Note: We can't test with real FontRef without a real font file
-        // This would be expanded in integration tests
-
-        // For now, just verify the shaper doesn't panic
-        assert!(true);
+    fn test_shaped_text_single_glyph() {
+        let shaped = ShapedText {
+            glyphs: vec![ShapedGlyph {
+                glyph_id: 1,
+                x_advance: 500,
+                y_advance: 0,
+                x_offset: 0,
+                y_offset: 0,
+            }],
+            font_size: 100.0,
+        };
+        assert_eq!(shaped.total_advance_width(), 500);
     }
 }

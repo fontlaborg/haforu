@@ -1,61 +1,50 @@
-__pycache__/
-._*
-.apdisk
-.AppleDB
-.AppleDesktop
-.AppleDouble
-.com.apple.timemachine.donotpresent
-.coverage
-.DocumentRevisions-V100
-.DS_Store
-.eggs/
-.fseventsd
-.installed.cfg
-.LSOverride
-.nox/
-.pytest_cache/
-.Python
-.Spotlight-V100
-.TemporaryItems
-.tox/
-.Trashes
-.venv
-.VolumeIcon.icns
-*.egg
-*.egg-info/
-*.pdb
-*.py[cod]
-*.so
+# this_file: external/haforu2/.gitignore
+
+# Rust
+/target
 **/*.rs.bk
-**/mutants.out*/
+*.pdb
+Cargo.lock
+
+# Python
+__pycache__/
+*.py[cod]
 *$py.class
-01code
-01code-tldr.txt
-02book
-03fonts
-400.md
+*.so
+.Python
 build/
-debug
 develop-eggs/
 dist/
 downloads/
 eggs/
-ENV/
-env/
-external
-hb-shape.txt
-hb-view.txt
-htmlcov/
+.eggs/
 lib/
 lib64/
-llms.txt
-MANIFEST
-Network Trash Folder
 parts/
 sdist/
-share/python-wheels/
-target
-Temporary Items
 var/
-venv/
 wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Maturin
+.cargo/
+python/haforu2/*.so
+python/haforu2/*.pyd
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,55 +1,126 @@
-// this_file: src/error.rs
-//! Error types for the haforu library
+// this_file: external/haforu2/src/error.rs
 
+//! Error types for haforu2.
+//!
+//! This module defines all error types used throughout the codebase,
+//! with descriptive messages and context for debugging.
+
+use std::path::PathBuf;
 use thiserror::Error;
 
-/// Main error type for haforu operations
-#[derive(Debug, Error)]
+/// Main error type for haforu2 operations.
+#[derive(Error, Debug)]
 pub enum Error {
-    /// Font file loading or parsing error
-    #[error("Font error: {0}")]
-    Font(String),
+    /// Font file not found at specified path
+    #[error("Font file not found: {path}")]
+    FontNotFound { path: PathBuf },
 
-    /// JSON parsing or validation error
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    /// Invalid font format or corrupted font file
+    #[error("Invalid font file at {path}: {reason}")]
+    InvalidFont { path: PathBuf, reason: String },
 
-    /// IO operation error
-    #[error("IO error: {0}")]
-    Io(String),
+    /// Unsupported font format
+    #[error("Unsupported font format: {format} at {path}")]
+    UnsupportedFormat { format: String, path: PathBuf },
 
-    /// IO operation error (original)
-    #[error("IO error (original): {0}")]
-    IoError(#[from] std::io::Error),
+    /// Font variation axis not found
+    #[error("Unknown variation axis '{axis}' in font {path}. Available axes: {available:?}")]
+    UnknownAxis {
+        axis: String,
+        path: PathBuf,
+        available: Vec<String>,
+    },
 
-    /// Storage backend error
-    #[error("Storage error: {0}")]
-    Storage(String),
+    /// Variation coordinate out of bounds
+    #[error(
+        "Variation coordinate for axis '{axis}' out of bounds: {value} not in [{min}, {max}]"
+    )]
+    CoordinateOutOfBounds {
+        axis: String,
+        value: f32,
+        min: f32,
+        max: f32,
+    },
 
-    /// Shaping operation error
-    #[error("Shaping error: {0}")]
-    Shaping(String),
+    /// Glyph not found in font
+    #[error("Glyph ID {glyph_id} not found in font {path}")]
+    GlyphNotFound { glyph_id: u32, path: PathBuf },
 
-    /// Rendering error
-    #[error("Rendering error: {0}")]
-    Rendering(String),
+    /// Text shaping failed
+    #[error("Failed to shape text '{text}' with font {path}: {reason}")]
+    ShapingFailed {
+        text: String,
+        path: PathBuf,
+        reason: String,
+    },
 
-    /// Invalid input parameter
-    #[error("Invalid parameter: {0}")]
-    InvalidParameter(String),
+    /// Rasterization failed
+    #[error("Failed to rasterize glyph {glyph_id} from font {path}: {reason}")]
+    RasterizationFailed {
+        glyph_id: u32,
+        path: PathBuf,
+        reason: String,
+    },
 
-    /// Resource not found
-    #[error("Resource not found: {0}")]
-    NotFound(String),
+    /// Invalid job specification
+    #[error("Invalid job specification: {reason}")]
+    InvalidJobSpec { reason: String },
 
-    /// Invalid input data or parameters
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
+    /// Invalid rendering parameters
+    #[error("Invalid rendering parameters: {reason}")]
+    InvalidRenderParams { reason: String },
 
-    /// Internal error
+    /// I/O error
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// JSON parsing error
+    #[error("JSON parse error: {0}")]
+    JsonParse(#[from] serde_json::Error),
+
+    /// Image encoding error
+    #[error("Image encoding error: {0}")]
+    ImageEncode(#[source] image::ImageError),
+
+    /// Memory mapping error
+    #[error("Failed to memory-map font file {path}: {source}")]
+    Mmap {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+
+    /// Internal error (should not happen in production)
     #[error("Internal error: {0}")]
     Internal(String),
 }
 
-/// Result type alias for haforu operations
+/// Specialized Result type for haforu2 operations.
 pub type Result<T> = std::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_display_font_not_found() {
+        let err = Error::FontNotFound {
+            path: PathBuf::from("/path/to/font.ttf"),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("Font file not found"));
+        assert!(msg.contains("/path/to/font.ttf"));
+    }
+
+    #[test]
+    fn test_error_display_unknown_axis() {
+        let err = Error::UnknownAxis {
+            axis: "ZZZZ".to_string(),
+            path: PathBuf::from("font.ttf"),
+            available: vec!["wght".to_string(), "wdth".to_string()],
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("Unknown variation axis 'ZZZZ'"));
+        assert!(msg.contains("wght"));
+        assert!(msg.contains("wdth"));
+    }
+}

@@ -1,25 +1,23 @@
-// this_file: src/main.rs
-//! Haforu CLI - Font shaping and rendering tool
+// this_file: external/haforu2/src/main.rs
 
-use anyhow::Result;
+//! Haforu2 CLI: Batch font renderer for FontSimi.
+//!
+//! Reads JSON job specifications from stdin, processes rendering jobs,
+//! and outputs JSONL results to stdout.
+
 use clap::{Parser, Subcommand};
-use haforu::{FontLoader, json_parser, logging};
-use log::{error, info};
-use std::io::{self, Read};
-use std::time::Instant;
+use haforu2::{process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
+use haforu2::security;
+use camino::Utf8PathBuf;
+use rayon::prelude::*;
+use std::io::{self, BufRead, Read, Write};
+use std::sync::mpsc;
 
-/// Haforu - Enhanced font shaping and rendering tool
+/// Haforu2: High-performance batch font renderer
 #[derive(Parser)]
+#[command(name = "haforu2")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Set log level (error, warn, info, debug, trace)
-    #[arg(short = 'l', long, global = true, default_value = "info")]
-    log_level: String,
-
-    /// Enable quiet mode (only errors)
-    #[arg(short = 'q', long, global = true, conflicts_with = "log_level")]
-    quiet: bool,
-
     /// Subcommand to execute
     #[command(subcommand)]
     command: Commands,
@@ -27,132 +25,237 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Process JSON job specification from stdin
-    Process {
-        /// Enable verbose output
+    /// Process a batch of rendering jobs from stdin (JSON)
+    Batch {
+        /// Font cache size (number of font instances)
+        #[arg(long, default_value = "512")]
+        cache_size: usize,
+
+        /// Number of parallel worker threads (0 = auto)
+        #[arg(long, default_value = "0")]
+        workers: usize,
+
+        /// Enable verbose logging
         #[arg(short, long)]
         verbose: bool,
 
-        /// Output directory for rendered results
-        #[arg(short, long, default_value = "./output")]
-        output: String,
+        /// Constrain font paths to this base directory
+        #[arg(long)]
+        base_dir: Option<Utf8PathBuf>,
+
+        /// Per-job timeout in milliseconds (0 disables)
+        #[arg(long, default_value = "0")]
+        timeout_ms: u64,
     },
 
-    /// Validate JSON job specification
-    Validate {
-        /// Input file (uses stdin if not specified)
+    /// Process jobs from stdin in streaming mode (JSONL input)
+    Stream {
+        /// Font cache size (number of font instances)
+        #[arg(long, default_value = "512")]
+        cache_size: usize,
+
+        /// Enable verbose logging
         #[arg(short, long)]
-        input: Option<String>,
+        verbose: bool,
+
+        /// Constrain font paths to this base directory
+        #[arg(long)]
+        base_dir: Option<Utf8PathBuf>,
+
+        /// Per-job timeout in milliseconds (0 disables)
+        #[arg(long, default_value = "0")]
+        timeout_ms: u64,
     },
 
-    /// Show version information
+    /// Validate a JSON job specification from a file (or stdin if omitted)
+    Validate {
+        /// Input file path (reads stdin if not provided)
+        #[arg(short, long)]
+        input: Option<Utf8PathBuf>,
+    },
+
+    /// Print version information
     Version,
 }
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    // Configure logging using project logger
-    let log_level = if cli.quiet {
-        "error".to_string()
-    } else {
-        cli.log_level.clone()
-    };
-    logging::init_logging(&log_level, cli.quiet, true);
-
     match cli.command {
-        Commands::Process { verbose, output } => {
-            if verbose {
-                info!("Processing jobs with output to: {}", output);
-            }
-            process_jobs(&output)?;
+        Commands::Batch {
+            cache_size,
+            workers,
+            verbose,
+            base_dir,
+            timeout_ms,
+        } => {
+            init_logging(verbose);
+            let opts = ExecutionOptions {
+                base_dir,
+                timeout_ms: if timeout_ms == 0 { None } else { Some(timeout_ms) },
+            };
+            run_batch_mode(cache_size, workers, &opts)?;
+        }
+        Commands::Stream {
+            cache_size,
+            verbose,
+            base_dir,
+            timeout_ms,
+        } => {
+            init_logging(verbose);
+            let opts = ExecutionOptions {
+                base_dir,
+                timeout_ms: if timeout_ms == 0 { None } else { Some(timeout_ms) },
+            };
+            run_streaming_mode(cache_size, &opts)?;
         }
         Commands::Validate { input } => {
-            validate_spec(input)?;
+            init_logging(false);
+            run_validate(input)?;
         }
         Commands::Version => {
-            println!("haforu version {}", haforu::VERSION);
-            println!("Font shaping and rendering tool");
-            println!("Compatible with HarfBuzz CLI tools");
+            println!("haforu2 {}", env!("CARGO_PKG_VERSION"));
+            println!("Rust font renderer for FontSimi integration");
         }
     }
 
     Ok(())
 }
 
-/// Process jobs from stdin
-fn process_jobs(_output_dir: &str) -> Result<()> {
-    // Read JSON from stdin
-    let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer)?;
+/// Initialize logging based on verbosity.
+fn init_logging(verbose: bool) {
+    let level = if verbose { "debug" } else { "info" };
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
+        .format_timestamp_millis()
+        .init();
+}
 
-    // Parse job specification
-    let job_spec = match json_parser::parse_job_spec(&buffer) {
-        Ok(spec) => spec,
-        Err(e) => {
-            error!("Failed to parse job specification: {}", e);
-            return Err(e.into());
+/// Run in batch mode: read entire JobSpec from stdin, process in parallel, output JSONL.
+fn run_batch_mode(cache_size: usize, workers: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+    log::info!("Starting batch mode (cache_size={}, workers={})", cache_size, workers);
+
+    // Configure Rayon thread pool
+    if workers > 0 {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(workers)
+            .build_global()
+            .ok();
+    }
+
+    // Read JobSpec from stdin with size validation
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+    let mut json = String::new();
+    reader.read_to_string(&mut json)?;
+    security::validate_json_size(&json, security::MAX_JSON_SIZE)?;
+    let spec: JobSpec = serde_json::from_str(&json)?;
+
+    log::info!("Loaded {} jobs from stdin", spec.jobs.len());
+
+    // Validate job spec
+    if let Err(e) = spec.validate() {
+        log::error!("Invalid job specification: {}", e);
+        return Err(e.into());
+    }
+
+    log::info!("Job specification validated successfully");
+
+    // Create font loader (shared across threads via Arc internally)
+    let font_loader = FontLoader::new(cache_size);
+
+    // Process jobs in parallel with streaming output
+    let (tx, rx) = mpsc::channel();
+
+    // Spawn output thread
+    let output_handle = std::thread::spawn(move || {
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
+
+        for result in rx {
+            let json = serde_json::to_string(&result).expect("Failed to serialize result");
+            writeln!(handle, "{}", json).expect("Failed to write to stdout");
+            handle.flush().expect("Failed to flush stdout");
         }
-    };
+    });
 
-    info!("Processing {} jobs", job_spec.jobs.len());
+    // Process jobs in parallel
+    spec.jobs.par_iter().for_each_with(tx, |tx, job| {
+        let result = process_job_with_options(job, &font_loader, opts);
+        tx.send(result).ok();
+    });
 
-    // Create font loader
-    let _font_loader = FontLoader::new();
+    // Wait for output thread to finish
+    output_handle.join().expect("Output thread panicked");
 
-    // Process each job
-    for job in &job_spec.jobs {
-        let t0 = Instant::now();
-        info!("Processing job: {}", job.id);
+    log::info!("Batch processing complete");
 
-        // For now, just validate and print the job
-        // Full implementation would:
-        // 1. Load the font using font_loader
-        // 2. Shape the text using TextShaper
-        // 3. Render if requested using Vello
-        // 4. Store results using StorageManager
-        // 5. Output JSONL result
+    Ok(())
+}
 
-        let result = json_parser::JobResult {
-            id: job.id.clone(),
-            input: job.clone(),
-            shaping_output: None,
-            rendering_result: None,
-            status: "pending".to_string(),
-            error: Some("Not fully implemented yet".to_string()),
-            processing_time_ms: t0.elapsed().as_millis() as u64,
+/// Run in streaming mode: read jobs line-by-line (JSONL), output results immediately.
+fn run_streaming_mode(cache_size: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+    log::info!("Starting streaming mode (cache_size={})", cache_size);
+
+    let font_loader = FontLoader::new(cache_size);
+
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+    let mut stdout_handle = stdout.lock();
+
+    for (line_no, line) in stdin.lock().lines().enumerate() {
+        let line = line?;
+
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        // Parse job
+        let job: Result<haforu2::Job, _> = serde_json::from_str(&line);
+        let job = match job {
+            Ok(j) => j,
+            Err(e) => {
+                log::error!("Line {}: Invalid JSON: {}", line_no + 1, e);
+                continue;
+            }
         };
 
-        // Output as JSONL
-        let json_line = json_parser::serialize_job_result(&result)?;
-        println!("{}", json_line);
+        // Validate job
+        if let Err(e) = job.validate() {
+            log::error!("Line {}: Invalid job: {}", line_no + 1, e);
+            continue;
+        }
+
+        // Process job
+        let result = process_job_with_options(&job, &font_loader, opts);
+
+        // Output result
+        let json = serde_json::to_string(&result)?;
+        writeln!(stdout_handle, "{}", json)?;
+        stdout_handle.flush()?;
+
+        log::debug!("Processed job {} (id={})", line_no + 1, job.id);
     }
 
-    info!("Finished processing all jobs");
+    log::info!("Streaming mode complete");
+
     Ok(())
 }
 
-/// Validate job specification
-fn validate_spec(input: Option<String>) -> Result<()> {
+/// Validate a JSON spec from file or stdin and print summary.
+fn run_validate(input: Option<Utf8PathBuf>) -> anyhow::Result<()> {
     let json = if let Some(path) = input {
-        std::fs::read_to_string(path)?
+        std::fs::read_to_string(path.as_std_path())?
     } else {
-        let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer)?;
-        buffer
+        let mut buf = String::new();
+        io::stdin().read_to_string(&mut buf)?;
+        buf
     };
 
-    match json_parser::parse_job_spec(&json) {
-        Ok(spec) => {
-            println!("✓ Valid job specification");
-            println!("  Version: {}", spec.version);
-            println!("  Jobs: {}", spec.jobs.len());
-            println!("  Storage backend: {}", spec.storage.backend);
-            Ok(())
-        }
-        Err(e) => {
-            println!("✗ Invalid job specification: {}", e);
-            Err(e.into())
-        }
-    }
+    security::validate_json_size(&json, security::MAX_JSON_SIZE)?;
+    let spec: JobSpec = serde_json::from_str(&json)?;
+    spec.validate()?;
+    println!("✓ Valid job specification");
+    println!("  Version: {}", spec.version);
+    println!("  Jobs: {}", spec.jobs.len());
+    Ok(())
 }
