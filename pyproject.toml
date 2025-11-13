@@ -1,11 +1,11 @@
-# this_file: external/haforu2/pyproject.toml
+# this_file: pyproject.toml
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "haforu2"
+name = "haforu"
 version = "2.0.0"
 description = "High-performance batch font renderer for FontSimi"
 readme = "README.md"
@@ -43,13 +43,13 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fontsimi/haforu2"
-Repository = "https://github.com/fontsimi/haforu2"
+Homepage = "https://github.com/fontsimi/haforu"
+Repository = "https://github.com/fontsimi/haforu"
 
 [tool.maturin]
 features = ["python"]
 python-source = "python"
-module-name = "haforu2._haforu2"
+module-name = "haforu._haforu"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

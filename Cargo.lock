@@ -632,7 +632,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "haforu2"
+name = "haforu"
 version = "2.0.0"
 dependencies = [
  "anyhow",

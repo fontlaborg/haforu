@@ -1,12 +1,10 @@
----
-this_file: external/haforu2/README.md
----
+this_file: README.md
 
-# Haforu2: High-Performance Batch Font Renderer
+# Haforu: High-Performance Batch Font Renderer
 
 **Status:** Production-ready foundation for FontSimi H2-H5 integration
 
-Haforu2 is a Rust-native batch font renderer designed to accelerate FontSimi's font matching pipeline by 100× (5 hours → 3 minutes) while reducing memory usage by 97% (86GB → <2GB).
+Haforu is a Rust-native batch font renderer designed to accelerate FontSimi's font matching pipeline by 100× (5 hours → 3 minutes) while reducing memory usage by 97% (86GB → <2GB).
 
 ## Architecture
 
@@ -56,7 +54,7 @@ echo '{
       "height": 1200
     }
   }]
-}' | haforu2 batch
+}' | haforu batch
 ```
 
 ### Streaming Mode (H4)
@@ -64,7 +62,7 @@ echo '{
 Keep process alive for continuous job processing:
 
 ```bash
-haforu2 stream < jobs.jsonl > results.jsonl
+haforu stream < jobs.jsonl > results.jsonl
 ```
 
 Each input line is a single Job JSON, each output line is a JobResult.
@@ -136,23 +134,23 @@ Each input line is a single Job JSON, each output line is a JobResult.
 
 ```bash
 # Basic usage
-haforu2 batch < jobs.json > results.jsonl
+haforu batch < jobs.json > results.jsonl
 
 # Custom cache size and workers
-haforu2 batch --cache-size 1024 --workers 8 < jobs.json > results.jsonl
+haforu batch --cache-size 1024 --workers 8 < jobs.json > results.jsonl
 
 # Verbose logging
-haforu2 batch --verbose < jobs.json > results.jsonl 2> debug.log
+haforu batch --verbose < jobs.json > results.jsonl 2> debug.log
 ```
 
 ### Streaming Mode
 
 ```bash
 # Process jobs line-by-line
-haforu2 stream < jobs.jsonl > results.jsonl
+haforu stream < jobs.jsonl > results.jsonl
 
 # With verbose logging
-haforu2 stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
+haforu stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
 ```
 
 ## Building
@@ -170,7 +168,7 @@ cargo test
 cargo build --release
 ```
 
-Binary: `target/release/haforu2`
+Binary: `target/release/haforu`
 
 ### Python Bindings (Future)
 
@@ -179,7 +177,7 @@ Binary: `target/release/haforu2`
 maturin develop
 
 # Import in Python
-import haforu2
+import haforu
 ```
 
 ## Testing
@@ -199,7 +197,7 @@ echo '{"version":"1.0","jobs":[{
   "font":{"path":"../../test-fonts/Arial-Black.ttf","size":1000},
   "text":{"content":"A"},
   "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
-}]}' | ./target/release/haforu2 batch | jq .
+}]}' | ./target/release/haforu batch | jq .
 ```
 
 ## Performance Characteristics
@@ -253,7 +251,7 @@ from fontsimi.renderers.base import BaseRenderer
 class HaforuRenderer(BaseRenderer):
     def render_text(self, font_path, text, size, variations=None):
         # Generate job JSON
-        # Invoke haforu2 subprocess
+        # Invoke haforu subprocess
         # Parse JSONL output
         # Decode base64 PGM
         # Return numpy array

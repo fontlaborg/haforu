@@ -1,7 +1,25 @@
 Project Structure:
-📁 haforu2
+📁 haforu
 ├── 📁 examples
 │   └── 📄 smoke_test.rs
+├── 📁 reference
+│   └── 📁 01code
+│       ├── 📁 color
+│       ├── 📁 diffenator3
+│       ├── 📁 fontations
+│       ├── 📁 fontc
+│       ├── 📁 fontgrep
+│       ├── 📁 fontspector
+│       ├── 📁 harfrust
+│       ├── 📁 kurbo
+│       ├── 📁 norad
+│       ├── 📁 oxidize
+│       ├── 📁 parley
+│       ├── 📁 peniko
+│       ├── 📁 resvg
+│       ├── 📁 tiny-skia
+│       ├── 📁 vello
+│       └── 📁 zeno
 ├── 📁 src
 │   ├── 📄 batch.rs
 │   ├── 📄 error.rs
@@ -10,12 +28,23 @@ Project Structure:
 │   ├── 📄 main.rs
 │   ├── 📄 output.rs
 │   ├── 📄 render.rs
+│   ├── 📄 security.rs
 │   └── 📄 shaping.rs
 ├── 📁 target
 │   ├── 📁 debug
 │   │   ├── 📁 deps
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
+│   │       ├── 📁 haforu-0u1dwcrymd0m7
+│   │       │   └── 📁 s-hcxy1afs8d-1h0gd5w-257a1rcf2sa54q8rf25vybumh
+│   │       ├── 📁 haforu-20moktqsk6xp4
+│   │       │   └── 📁 s-hcxy1c931x-038r21k-6m3nt6lg2oyjmsuv3n4b9q2q7
+│   │       ├── 📁 haforu-2ngfmmfp0ecd0
+│   │       │   └── 📁 s-hcxy1d7z68-03eazg9-cshiww9aojjhdh4oge3ml9fh5
+│   │       ├── 📁 haforu-39mxm02gt8mll
+│   │       │   └── 📁 s-hcxy1d7z6l-0qzg6yu-3l1b44dqg5vhamevhspf80h5f
+│   │       ├── 📁 haforu-3n5eeekmi7hrc
+│   │       │   └── 📁 s-hcxy1f1wi1-1w8408k-0xqpqzrmz0mmx25cisj395ch4
 │   │       ├── 📁 haforu2-0a3e5unqn675k
 │   │       │   └── 📁 s-hcvx2m2vr2-0yaw8jd-working
 │   │       ├── 📁 haforu2-0a5p6pxlpe7ci
@@ -29,13 +58,15 @@ Project Structure:
 │   │       ├── 📁 haforu2-2lc7civ2gfgtg
 │   │       │   └── 📁 s-hcvx2m2vre-0n7q6gg-working
 │   │       ├── 📁 haforu2-2wzcouibcwd6u
-│   │       │   └── 📁 s-hcxgf2hus0-0ef5jw2-9bki5chf02jf81cdj4o8hy03x
+│   │       │   └── 📁 s-hcxxn08d1i-1poz8ty-33t0ubjfidrepoasuv2kjg5yz
 │   │       ├── 📁 haforu2-2xvx0tbdwa989
-│   │       │   └── 📁 s-hcxgf1tjr7-0ow2x0c-5kdhhey4k7oa1wf5zk6wfo1zz
+│   │       │   └── 📁 s-hcxxmxo4lo-1ediz3t-b4ahcwprtaj5783dw813aux2d
 │   │       ├── 📁 haforu2-31e0utg1kk53p
 │   │       │   └── 📁 s-hcxex7s0hv-0uswo4f-working
 │   │       ├── 📁 haforu2-3oclx7gtip557
 │   │       │   └── 📁 s-hcxgis6x72-1ma2z50-3m75nszr1rw3srm08yuxcgut7
+│   │       ├── 📁 smoke_test-0g6iwj0dhjg6k
+│   │       │   └── 📁 s-hcxy1f1w5r-1v74142-83c2fyreh83pc0wetnsiydsdu
 │   │       └── 📁 smoke_test-1gp0eej5cvryb
 │   │           └── 📁 s-hcxgis6whn-1sfvpmk-bn8h626ibutxhhn32tqrn11ut
 │   ├── 📁 flycheck1
@@ -112,6 +143,7 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+reference/
 </document_content>
 </document>
 
@@ -1319,10 +1351,10 @@ If API fixes take too long, we could:
 <document index="5">
 <source>Cargo.toml</source>
 <document_content>
-# this_file: external/haforu2/Cargo.toml
+# this_file: Cargo.toml
 
 [package]
-name = "haforu2"
+name = "haforu"
 version = "2.0.0"
 edition = "2021"
 authors = ["FontSimi Team"]
@@ -1331,11 +1363,11 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.70"
 
 [lib]
-name = "haforu2"
+name = "haforu"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "haforu2"
+name = "haforu"
 path = "src/main.rs"
 
 [dependencies]
@@ -2056,15 +2088,13 @@ Notes:
 <document index="9">
 <source>README.md</source>
 <document_content>
----
-this_file: external/haforu2/README.md
----
+this_file: README.md
 
-# Haforu2: High-Performance Batch Font Renderer
+# Haforu: High-Performance Batch Font Renderer
 
 **Status:** Production-ready foundation for FontSimi H2-H5 integration
 
-Haforu2 is a Rust-native batch font renderer designed to accelerate FontSimi's font matching pipeline by 100× (5 hours → 3 minutes) while reducing memory usage by 97% (86GB → <2GB).
+Haforu is a Rust-native batch font renderer designed to accelerate FontSimi's font matching pipeline by 100× (5 hours → 3 minutes) while reducing memory usage by 97% (86GB → <2GB).
 
 ## Architecture
 
@@ -2114,7 +2144,7 @@ echo '{
       "height": 1200
     }
   }]
-}' | haforu2 batch
+}' | haforu batch
 ```
 
 ### Streaming Mode (H4)
@@ -2122,7 +2152,7 @@ echo '{
 Keep process alive for continuous job processing:
 
 ```bash
-haforu2 stream < jobs.jsonl > results.jsonl
+haforu stream < jobs.jsonl > results.jsonl
 ```
 
 Each input line is a single Job JSON, each output line is a JobResult.
@@ -2194,23 +2224,23 @@ Each input line is a single Job JSON, each output line is a JobResult.
 
 ```bash
 # Basic usage
-haforu2 batch < jobs.json > results.jsonl
+haforu batch < jobs.json > results.jsonl
 
 # Custom cache size and workers
-haforu2 batch --cache-size 1024 --workers 8 < jobs.json > results.jsonl
+haforu batch --cache-size 1024 --workers 8 < jobs.json > results.jsonl
 
 # Verbose logging
-haforu2 batch --verbose < jobs.json > results.jsonl 2> debug.log
+haforu batch --verbose < jobs.json > results.jsonl 2> debug.log
 ```
 
 ### Streaming Mode
 
 ```bash
 # Process jobs line-by-line
-haforu2 stream < jobs.jsonl > results.jsonl
+haforu stream < jobs.jsonl > results.jsonl
 
 # With verbose logging
-haforu2 stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
+haforu stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
 ```
 
 ## Building
@@ -2228,7 +2258,7 @@ cargo test
 cargo build --release
 ```
 
-Binary: `target/release/haforu2`
+Binary: `target/release/haforu`
 
 ### Python Bindings (Future)
 
@@ -2237,7 +2267,7 @@ Binary: `target/release/haforu2`
 maturin develop
 
 # Import in Python
-import haforu2
+import haforu
 ```
 
 ## Testing
@@ -2257,7 +2287,7 @@ echo '{"version":"1.0","jobs":[{
   "font":{"path":"../../test-fonts/Arial-Black.ttf","size":1000},
   "text":{"content":"A"},
   "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
-}]}' | ./target/release/haforu2 batch | jq .
+}]}' | ./target/release/haforu batch | jq .
 ```
 
 ## Performance Characteristics
@@ -2311,7 +2341,7 @@ from fontsimi.renderers.base import BaseRenderer
 class HaforuRenderer(BaseRenderer):
     def render_text(self, font_path, text, size, variations=None):
         # Generate job JSON
-        # Invoke haforu2 subprocess
+        # Invoke haforu subprocess
         # Parse JSONL output
         # Decode base64 PGM
         # Return numpy array
@@ -2526,6 +2556,11 @@ Goal: All published artifacts must be named `haforu` (no "2"). The on-disk folde
   ```bash
   cargo run -- batch < jobs.json > results.jsonl 2> debug.log
   ```
+
+  - [ ] Add script/direction hinting in shaping (uses HarfBuzz buffer properties).
+  - [ ] Implement basic dedup/grouping in batch (e.g., group by font+coords to reuse shaped glyphs between lines).
+  - [ ] Revisit storage shards only if your pipeline benefits from persistent image addressing.
+
 
 ### H2.5: Documentation (1 day)
 
@@ -2752,7 +2787,7 @@ H2.1 API fixes (4-6h) → H2.2-H2.6 (7-10d) → H3-H5 (15-28d)
 </document_content>
 </document>
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/examples/smoke_test.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/examples/smoke_test.rs
 # Language: rust
 
 
@@ -2771,14 +2806,14 @@ llms . "*.txt,AGENTS.md,CLAUDE.md,GEMINI.md,LLXPRT.md,QWEN.md,WORK.md,issues,tar
 <document index="12">
 <source>pyproject.toml</source>
 <document_content>
-# this_file: external/haforu2/pyproject.toml
+# this_file: pyproject.toml
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "haforu2"
+name = "haforu"
 version = "2.0.0"
 description = "High-performance batch font renderer for FontSimi"
 readme = "README.md"
@@ -2816,13 +2851,13 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fontsimi/haforu2"
-Repository = "https://github.com/fontsimi/haforu2"
+Homepage = "https://github.com/fontsimi/haforu"
+Repository = "https://github.com/fontsimi/haforu"
 
 [tool.maturin]
 features = ["python"]
 python-source = "python"
-module-name = "haforu2._haforu2"
+module-name = "haforu._haforu"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -2846,12 +2881,12 @@ disallow_untyped_defs = true
 </document_content>
 </document>
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/smoke_test.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/smoke_test.rs
 # Language: rust
 
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/batch.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/batch.rs
 # Language: rust
 
 mod tests;
@@ -2884,13 +2919,13 @@ struct MemoryInfo {
 }
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/error.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/error.rs
 # Language: rust
 
 mod tests;
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/fonts.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/fonts.rs
 # Language: rust
 
 mod tests;
@@ -2905,7 +2940,7 @@ struct FontCacheKey {
 }
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/lib.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/lib.rs
 # Language: rust
 
 mod batch;
@@ -2920,17 +2955,22 @@ mod render;
 
 mod shaping;
 
+mod security;
+
 mod tests;
 
+struct ExecutionOptions {
+}
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/main.rs
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/main.rs
 # Language: rust
 
 struct Cli {
 }
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/output.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/output.rs
 # Language: rust
 
 mod tests;
@@ -2939,7 +2979,7 @@ struct ImageOutput {
 }
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/render.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/render.rs
 # Language: rust
 
 mod tests;
@@ -2951,7 +2991,14 @@ struct ZenoPen {
 }
 
 
-# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu2/src/shaping.rs
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/security.rs
+# Language: rust
+
+struct TimeoutGuard {
+}
+
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/shaping.rs
 # Language: rust
 
 mod tests;
