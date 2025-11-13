@@ -5,12 +5,12 @@
 //! This module provides the `process_jobs()` function for parallel batch processing
 //! of rendering jobs with streaming JSONL results.
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use std::sync::mpsc;
 use std::thread;
 
-use crate::batch::{JobSpec, JobResult};
+use crate::batch::{JobResult, JobSpec};
 use crate::fonts::FontLoader;
 use crate::process_job;
 
@@ -114,22 +114,21 @@ impl ProcessJobsIterator {
             // TODO: Use rayon for true parallel processing
             for job in spec.jobs {
                 let result = process_job(&job, &font_loader);
-                let result_json = serde_json::to_string(&result)
-                    .unwrap_or_else(|e| {
-                        serde_json::to_string(&JobResult {
-                            id: job.id.clone(),
-                            status: "error".to_string(),
-                            rendering: None,
-                            error: Some(format!("Failed to serialize result: {}", e)),
-                            timing: crate::batch::TimingInfo {
-                                shape_ms: 0.0,
-                                render_ms: 0.0,
-                                total_ms: 0.0,
-                            },
-                            memory: None,
-                        })
-                        .unwrap()
-                    });
+                let result_json = serde_json::to_string(&result).unwrap_or_else(|e| {
+                    serde_json::to_string(&JobResult {
+                        id: job.id.clone(),
+                        status: "error".to_string(),
+                        rendering: None,
+                        error: Some(format!("Failed to serialize result: {}", e)),
+                        timing: crate::batch::TimingInfo {
+                            shape_ms: 0.0,
+                            render_ms: 0.0,
+                            total_ms: 0.0,
+                        },
+                        memory: None,
+                    })
+                    .unwrap()
+                });
 
                 // Send result (ignore error if receiver dropped)
                 let _ = tx.send(result_json);
@@ -179,6 +178,9 @@ mod tests {
         let spec_json = r#"{"version": "2.0", "jobs": [{"id": "test"}]}"#;
         let result = process_jobs(spec_json);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Unsupported version"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Unsupported version"));
     }
 }

@@ -32,9 +32,7 @@ pub enum Error {
     },
 
     /// Variation coordinate out of bounds
-    #[error(
-        "Variation coordinate for axis '{axis}' out of bounds: {value} not in [{min}, {max}]"
-    )]
+    #[error("Variation coordinate for axis '{axis}' out of bounds: {value} not in [{min}, {max}]")]
     CoordinateOutOfBounds {
         axis: String,
         value: f32,

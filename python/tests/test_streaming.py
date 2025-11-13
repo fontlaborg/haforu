@@ -37,6 +37,23 @@ def test_streaming_session_custom_cache_size():
     assert session is not None
 
 
+def test_streaming_session_cache_stats_and_resize():
+    """StreamingSession exposes cache stats + resize knob."""
+    try:
+        import haforu
+    except ImportError:
+        pytest.skip("haforu Python bindings not installed")
+
+    session = haforu.StreamingSession(cache_size=128)
+    stats = session.cache_stats()
+    assert "capacity" in stats and "entries" in stats
+    assert stats["capacity"] == 128
+
+    session.set_cache_size(64)
+    resized = session.cache_stats()
+    assert resized["capacity"] == 64
+
+
 def test_streaming_session_close():
     """Test that StreamingSession can be closed."""
     try:
@@ -46,7 +63,17 @@ def test_streaming_session_close():
 
     session = haforu.StreamingSession()
     session.close()
-    # Should not raise error
+    # Follow-up renders should raise RuntimeError once closed
+    job = json.dumps(
+        {
+            "id": "after-close",
+            "font": {"path": "/nonexistent/font.ttf", "size": 1000, "variations": {}},
+            "text": {"content": "a"},
+            "rendering": {"format": "pgm", "encoding": "base64", "width": 32, "height": 32},
+        }
+    )
+    with pytest.raises(RuntimeError):
+        session.render(job)
 
 
 def test_streaming_session_context_manager():
@@ -70,6 +97,7 @@ def test_streaming_session_render_method_exists():
 
     session = haforu.StreamingSession()
     assert hasattr(session, "render")
+    assert hasattr(session, "warm_up")
 
 
 def test_streaming_session_render_invalid_json():
@@ -82,6 +110,17 @@ def test_streaming_session_render_invalid_json():
     session = haforu.StreamingSession()
     with pytest.raises(ValueError, match="Invalid JSON"):
         session.render("not valid json")
+
+
+def test_streaming_session_warm_up_ping():
+    """warm_up should succeed without a font path."""
+    try:
+        import haforu
+    except ImportError:
+        pytest.skip("haforu Python bindings not installed")
+
+    session = haforu.StreamingSession()
+    assert session.warm_up() is True
 
 
 def test_streaming_session_render_single_job():
@@ -197,6 +236,17 @@ def test_streaming_session_error_handling():
         pytest.skip("haforu Python bindings not installed")
 
     session = haforu.StreamingSession()
+
+
+def test_haforu_module_is_available_probe():
+    """Module-level availability probe should be fast and boolean."""
+    try:
+        import haforu
+    except ImportError:
+        pytest.skip("haforu Python bindings not installed")
+
+    available = haforu.is_available()
+    assert isinstance(available, bool)
 
     # Test with missing required field
     job = {

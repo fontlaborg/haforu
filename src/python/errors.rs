@@ -6,9 +6,9 @@
 //! converting haforu::Error variants to appropriate Python exception types
 //! with enhanced context including job IDs, font paths, and detailed messages.
 
-use pyo3::prelude::*;
-use pyo3::exceptions::{PyIOError, PyRuntimeError, PyValueError};
 use crate::error::Error as HaforuError;
+use pyo3::exceptions::{PyIOError, PyRuntimeError, PyValueError};
+use pyo3::prelude::*;
 
 /// Enhanced error converter with context support.
 ///
@@ -32,41 +32,32 @@ impl ErrorConverter {
 
         match err {
             // I/O Errors → PyIOError
-            HaforuError::FontNotFound { path } => {
-                PyIOError::new_err(format!(
-                    "{}Font file not found: {}",
-                    context,
-                    path.display()
-                ))
-            }
+            HaforuError::FontNotFound { path } => PyIOError::new_err(format!(
+                "{}Font file not found: {}",
+                context,
+                path.display()
+            )),
 
             HaforuError::Io(source) => {
                 PyIOError::new_err(format!("{}I/O error: {}", context, source))
             }
 
-            HaforuError::Mmap { path, source } => {
-                PyIOError::new_err(format!(
-                    "{}Failed to memory-map font file {}: {}",
-                    context,
-                    path.display(),
-                    source
-                ))
-            }
+            HaforuError::Mmap { path, source } => PyIOError::new_err(format!(
+                "{}Failed to memory-map font file {}: {}",
+                context,
+                path.display(),
+                source
+            )),
 
             // Validation Errors → PyValueError
             HaforuError::InvalidJobSpec { reason } => {
-                PyValueError::new_err(format!(
-                    "{}Invalid job specification: {}",
-                    context, reason
-                ))
+                PyValueError::new_err(format!("{}Invalid job specification: {}", context, reason))
             }
 
-            HaforuError::InvalidRenderParams { reason } => {
-                PyValueError::new_err(format!(
-                    "{}Invalid rendering parameters: {}",
-                    context, reason
-                ))
-            }
+            HaforuError::InvalidRenderParams { reason } => PyValueError::new_err(format!(
+                "{}Invalid rendering parameters: {}",
+                context, reason
+            )),
 
             HaforuError::UnknownAxis {
                 axis,
@@ -95,42 +86,34 @@ impl ErrorConverter {
             }
 
             // Runtime Errors → PyRuntimeError
-            HaforuError::InvalidFont { path, reason } => {
-                PyRuntimeError::new_err(format!(
-                    "{}Invalid font file at {}: {}",
-                    context,
-                    path.display(),
-                    reason
-                ))
-            }
+            HaforuError::InvalidFont { path, reason } => PyRuntimeError::new_err(format!(
+                "{}Invalid font file at {}: {}",
+                context,
+                path.display(),
+                reason
+            )),
 
-            HaforuError::UnsupportedFormat { format, path } => {
-                PyRuntimeError::new_err(format!(
-                    "{}Unsupported font format '{}' at {}",
-                    context,
-                    format,
-                    path.display()
-                ))
-            }
+            HaforuError::UnsupportedFormat { format, path } => PyRuntimeError::new_err(format!(
+                "{}Unsupported font format '{}' at {}",
+                context,
+                format,
+                path.display()
+            )),
 
-            HaforuError::GlyphNotFound { glyph_id, path } => {
-                PyRuntimeError::new_err(format!(
-                    "{}Glyph ID {} not found in font {}",
-                    context,
-                    glyph_id,
-                    path.display()
-                ))
-            }
+            HaforuError::GlyphNotFound { glyph_id, path } => PyRuntimeError::new_err(format!(
+                "{}Glyph ID {} not found in font {}",
+                context,
+                glyph_id,
+                path.display()
+            )),
 
-            HaforuError::ShapingFailed { text, path, reason } => {
-                PyRuntimeError::new_err(format!(
-                    "{}Failed to shape text '{}' with font {}: {}",
-                    context,
-                    text,
-                    path.display(),
-                    reason
-                ))
-            }
+            HaforuError::ShapingFailed { text, path, reason } => PyRuntimeError::new_err(format!(
+                "{}Failed to shape text '{}' with font {}: {}",
+                context,
+                text,
+                path.display(),
+                reason
+            )),
 
             HaforuError::RasterizationFailed {
                 glyph_id,

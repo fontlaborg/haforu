@@ -30,6 +30,27 @@ src/
 └── main.rs       # CLI with batch and streaming modes
 ```
 
+## Install
+
+### Python bindings (recommended for deep matching)
+
+```bash
+uv pip install haforu
+```
+
+This installs the PyO3 module (`haforu.StreamingSession`, `haforu.process_jobs`, `haforu.is_available`) with universal2/manylinux wheels so no compiler is required.
+
+### CLI binary
+
+```bash
+cargo install haforu
+# or build from source inside this repo:
+cargo build --release
+export HAFORU_BIN="$PWD/target/release/haforu"
+```
+
+`fontsimi` looks for `HAFORU_BIN` first; falling back to `target/release/haforu` works for local development.
+
 ## Features
 
 ### Batch Mode
@@ -136,8 +157,11 @@ Each input line is a single Job JSON, each output line is a JobResult.
 # Basic usage
 haforu batch < jobs.json > results.jsonl
 
-# Custom cache size and workers
-haforu batch --cache-size 1024 --workers 8 < jobs.json > results.jsonl
+# Custom cache size and explicit parallelism (alias: --workers)
+haforu batch --cache-size 1024 --jobs 8 < jobs.json > results.jsonl
+
+# JSONL input (one job per line, perfect for streaming chunks)
+haforu batch --jobs 6 < jobs.jsonl > results.jsonl
 
 # Verbose logging
 haforu batch --verbose < jobs.json > results.jsonl 2> debug.log
@@ -251,8 +275,17 @@ Persistent rendering session with font cache for zero-overhead repeated renderin
   - Args: `font_path, text, size, width, height, variations, script, direction, language`
   - Returns: 2D array of shape (height, width), dtype uint8, grayscale 0-255
   - Performance: 1-2ms per render (30-50× faster than CLI subprocess)
+- **`warm_up(font_path: str | None = None, *, text=\"Haforu\", size=600, width=128, height=128) -> bool`**:
+  Ping the cache or proactively render a glyph so later renders stay within the 1-2 ms budget.
+- **`cache_stats() -> dict[str, int]`** and **`set_cache_size(cache_size: int) -> None`**:
+  Inspect or tune the LRU capacity at runtime (setting a new size resets the cache safely).
 - **`close()`**: Release font cache and resources
 - **Context manager**: Supports `with` statement for automatic cleanup
+- **`is_available()` (classmethod)**: Cheap probe fontsimi can call without importing heavy deps.
+
+**`haforu.is_available() -> bool`**
+
+Module-level probe that returns True when the native extension is importable and ready.
 
 #### Examples
 
@@ -291,6 +324,9 @@ echo '{"version":"1.0","jobs":[{
   "text":{"content":"A"},
   "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
 }]}' | ./target/release/haforu batch | jq .
+
+# 2-second JSONL smoke (uses testdata/jobs_smoke.jsonl)
+./scripts/batch_smoke.sh
 ```
 
 ## Performance Characteristics

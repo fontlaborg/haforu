@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let font_instance = loader.load_font(
         &Utf8PathBuf::from_path_buf(font_path.clone()).unwrap(),
-        &coords
+        &coords,
     )?;
 
     println!("✓ Font loaded successfully");
@@ -38,8 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let shaped = shaper.shape(
         &font_instance,
         "A",
-        100.0,  // 100pt
-        &font_path
+        100.0, // 100pt
+        &font_path,
     )?;
 
     println!("✓ Text shaped: {} glyphs", shaped.glyphs.len());
@@ -49,10 +49,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pixels = rasterizer.render_text(
         &font_instance,
         &shaped,
-        800,    // width
-        600,    // height
-        0.0,    // tracking
-        &font_path
+        800, // width
+        600, // height
+        0.0, // tracking
+        &font_path,
     )?;
 
     println!("✓ Rendered {} pixels", pixels.len());

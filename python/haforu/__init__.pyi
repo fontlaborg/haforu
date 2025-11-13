@@ -7,6 +7,10 @@ from typing import Iterator, Optional, Any
 
 __version__: str
 
+def is_available() -> bool:
+    """Return True when haforu bindings and dependencies are ready."""
+    ...
+
 def process_jobs(spec_json: str) -> Iterator[str]:
     """Process a batch of rendering jobs in parallel.
 
@@ -44,12 +48,37 @@ class StreamingSession:
         ...     print(f"Status: {result['status']}")
     """
 
+    @classmethod
+    def is_available(cls) -> bool:
+        """Cheap probe indicating whether StreamingSession can be constructed."""
+        ...
+
     def __init__(self, cache_size: int = 512) -> None:
         """Create a new streaming session.
 
         Args:
             cache_size: Maximum number of fonts to keep in cache (default: 512)
         """
+        ...
+
+    def warm_up(
+        self,
+        font_path: str | None = None,
+        *,
+        text: str = "Haforu",
+        size: float = 600.0,
+        width: int = 128,
+        height: int = 128,
+    ) -> bool:
+        """Prime caches (optionally rendering a font) for faster subsequent renders."""
+        ...
+
+    def cache_stats(self) -> dict[str, int]:
+        """Return cache capacity and current entry count."""
+        ...
+
+    def set_cache_size(self, cache_size: int) -> None:
+        """Resize cache capacity (drops cached entries)."""
         ...
 
     def render(self, job_json: str) -> str:
@@ -125,6 +154,7 @@ class StreamingSession:
 
 __all__ = [
     "__version__",
+    "is_available",
     "process_jobs",
     "StreamingSession",
 ]

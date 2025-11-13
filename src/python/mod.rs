@@ -12,6 +12,11 @@ pub mod errors;
 pub mod streaming;
 pub mod types;
 
+#[pyfunction]
+fn is_available() -> bool {
+    streaming::StreamingSession::new(1).is_ok()
+}
+
 /// Python module definition.
 ///
 /// This creates the `haforu._haforu` extension module that Python code can import.
@@ -23,6 +28,7 @@ fn _haforu(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Add batch mode function
     m.add_function(wrap_pyfunction!(batch::process_jobs, m)?)?;
+    m.add_function(wrap_pyfunction!(is_available, m)?)?;
 
     // Add streaming session class
     m.add_class::<streaming::StreamingSession>()?;

@@ -5,19 +5,20 @@
 //! This module provides the `StreamingSession` class for Python, which maintains
 //! a persistent font cache and allows zero-overhead rendering across multiple calls.
 
-use pyo3::prelude::*;
-use pyo3::exceptions::{PyValueError, PyRuntimeError};
-use pyo3::types::PyAny;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
 use numpy::PyArray2;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::prelude::*;
+use pyo3::types::{PyAny, PyType};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
+use super::errors::ErrorConverter;
 use crate::batch::Job;
 use crate::fonts::FontLoader;
 use crate::process_job;
-use crate::{TextShaper, GlyphRasterizer};
+use crate::{GlyphRasterizer, TextShaper};
 use camino::Utf8PathBuf;
-use super::errors::ErrorConverter;
 
 /// Persistent rendering session with font cache.
 ///
@@ -44,6 +45,7 @@ use super::errors::ErrorConverter;
 #[pyclass]
 pub struct StreamingSession {
     font_loader: Arc<Mutex<FontLoader>>,
+    closed: Arc<AtomicBool>,
 }
 
 #[pymethods]
@@ -53,7 +55,75 @@ impl StreamingSession {
     fn new(cache_size: usize) -> PyResult<Self> {
         Ok(Self {
             font_loader: Arc::new(Mutex::new(FontLoader::new(cache_size))),
+            closed: Arc::new(AtomicBool::new(false)),
         })
+    }
+
+    #[classmethod]
+    fn is_available(_cls: &Bound<'_, PyType>) -> bool {
+        StreamingSession::new(1).is_ok()
+    }
+
+    fn ensure_open(&self) -> PyResult<()> {
+        if self.closed.load(Ordering::SeqCst) {
+            Err(PyRuntimeError::new_err("StreamingSession is closed"))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Warm up the streaming session (optionally rendering a font).
+    ///
+    /// Args:
+    ///     font_path: Optional font path to pre-load via a quick render.
+    ///     text: Optional short string to render during warm-up.
+    ///     size: Font size in points (default 600).
+    ///     width: Canvas width (default 128).
+    ///     height: Canvas height (default 128).
+    ///
+    /// Returns:
+    ///     bool: True when warm-up completed.
+    #[pyo3(signature = (font_path=None, *, text="Haforu", size=600.0, width=128, height=128))]
+    fn warm_up<'py>(
+        &self,
+        py: Python<'py>,
+        font_path: Option<&str>,
+        text: &str,
+        size: f64,
+        width: u32,
+        height: u32,
+    ) -> PyResult<bool> {
+        self.ensure_open()?;
+        if let Some(path) = font_path {
+            // Render via numpy path; ignore pixels but surface errors.
+            let _ =
+                self.render_to_numpy(py, path, text, size, width, height, None, None, None, None)?;
+        } else {
+            // Touch the cache to ensure structures are allocated.
+            let _ = self.font_loader.lock().unwrap();
+        }
+        Ok(true)
+    }
+
+    /// Return cache statistics for observability.
+    fn cache_stats(&self) -> PyResult<HashMap<&'static str, usize>> {
+        let loader = self.font_loader.lock().unwrap();
+        let stats = loader.stats();
+        Ok(HashMap::from([
+            ("capacity", stats.capacity),
+            ("entries", stats.entries),
+        ]))
+    }
+
+    /// Resize the cache capacity (drops stored entries).
+    fn set_cache_size(&self, cache_size: usize) -> PyResult<()> {
+        if cache_size == 0 {
+            return Err(PyValueError::new_err("cache_size must be >= 1"));
+        }
+        self.ensure_open()?;
+        let loader = self.font_loader.lock().unwrap();
+        loader.set_capacity(cache_size);
+        Ok(())
     }
 
     /// Render a single job and return JSONL result.
@@ -84,6 +154,7 @@ impl StreamingSession {
     /// result_json = session.render(job_json)
     /// ```
     fn render(&self, job_json: &str) -> PyResult<String> {
+        self.ensure_open()?;
         // Parse job
         let job: Job = serde_json::from_str(job_json)
             .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
@@ -150,6 +221,7 @@ impl StreamingSession {
         direction: Option<&str>,
         language: Option<&str>,
     ) -> PyResult<Bound<'py, PyArray2<u8>>> {
+        self.ensure_open()?;
         // Convert font path to Utf8PathBuf
         let font_path_buf = Utf8PathBuf::from(font_path);
 
@@ -202,13 +274,14 @@ impl StreamingSession {
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to create numpy array: {}", e)))
     }
 
-    /// Close session and release resources.
-    ///
-    /// Clears font cache and releases memory-mapped files.
-    /// Session cannot be used after closing.
+    /// Close session and release resources immediately.
     fn close(&self) {
-        // Font loader will be dropped when Arc refcount reaches 0
-        // LRU cache in FontLoader will be automatically cleared
+        if self.closed.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(loader) = self.font_loader.lock() {
+            loader.clear();
+        }
     }
 
     fn __enter__(slf: PyRef<Self>) -> PyRef<Self> {

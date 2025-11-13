@@ -22,6 +22,15 @@ pub struct FontLoader {
     cache: Arc<Mutex<LruCache<FontCacheKey, Arc<FontInstance>>>>,
 }
 
+/// Font cache statistics for observability.
+#[derive(Debug, Clone, Copy)]
+pub struct CacheStats {
+    /// Maximum number of cached font instances.
+    pub capacity: usize,
+    /// Currently cached font instances.
+    pub entries: usize,
+}
+
 /// Font instance with applied variations.
 pub struct FontInstance {
     /// Memory-mapped font data
@@ -86,6 +95,31 @@ impl FontLoader {
         Ok(instance)
     }
 
+    /// Clear all cached font instances.
+    pub fn clear(&self) {
+        let mut cache = self.cache.lock().unwrap();
+        cache.clear();
+    }
+
+    /// Resize the cache to the requested capacity (drops old entries).
+    pub fn set_capacity(&self, cache_size: usize) {
+        let cap = NonZeroUsize::new(cache_size.max(1)).unwrap();
+        let mut cache = self.cache.lock().unwrap();
+        if cache.cap() == cap {
+            return;
+        }
+        *cache = LruCache::new(cap);
+    }
+
+    /// Return current cache statistics.
+    pub fn stats(&self) -> CacheStats {
+        let cache = self.cache.lock().unwrap();
+        CacheStats {
+            capacity: cache.cap().get(),
+            entries: cache.len(),
+        }
+    }
+
     /// Internal implementation: load font from disk and apply variations.
     fn load_font_impl(path: &Utf8Path, coordinates: &HashMap<String, f32>) -> Result<FontInstance> {
         // Memory-map the font file
@@ -111,9 +145,8 @@ impl FontLoader {
         let mmap = Arc::new(mmap);
 
         // Parse font
-        let font_data: &'static [u8] = unsafe {
-            std::slice::from_raw_parts(mmap.as_ptr(), mmap.len())
-        };
+        let font_data: &'static [u8] =
+            unsafe { std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()) };
 
         let file_ref = FileRef::new(font_data).map_err(|e| Error::InvalidFont {
             path: path.as_std_path().to_path_buf(),
@@ -122,12 +155,10 @@ impl FontLoader {
 
         let font_ref = match file_ref {
             FileRef::Font(f) => f,
-            FileRef::Collection(c) => {
-                c.get(0).map_err(|e| Error::InvalidFont {
-                    path: path.as_std_path().to_path_buf(),
-                    reason: format!("Failed to get font from collection: {}", e),
-                })?
-            }
+            FileRef::Collection(c) => c.get(0).map_err(|e| Error::InvalidFont {
+                path: path.as_std_path().to_path_buf(),
+                reason: format!("Failed to get font from collection: {}", e),
+            })?,
         };
 
         // Validate and clamp variation coordinates
@@ -156,7 +187,10 @@ impl FontLoader {
             .iter()
             .map(|axis| {
                 let tag = axis.tag().to_string();
-                (tag, (axis.min_value(), axis.default_value(), axis.max_value()))
+                (
+                    tag,
+                    (axis.min_value(), axis.default_value(), axis.max_value()),
+                )
             })
             .collect();
 
@@ -228,7 +262,9 @@ impl FontInstance {
         self.coordinates
             .iter()
             .filter_map(|(tag_str, value)| {
-                Tag::new_checked(tag_str.as_bytes()).ok().map(|tag| (tag, *value))
+                Tag::new_checked(tag_str.as_bytes())
+                    .ok()
+                    .map(|tag| (tag, *value))
             })
             .collect()
     }

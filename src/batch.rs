@@ -127,15 +127,12 @@ impl JobSpec {
     /// Validate job specification structure and parameters.
     pub fn validate(&self) -> Result<(), crate::error::Error> {
         use crate::error::Error;
-        use crate::security::{MAX_JOBS_PER_SPEC};
+        use crate::security::MAX_JOBS_PER_SPEC;
 
         // Check version
         if self.version != "1.0" {
             return Err(Error::InvalidJobSpec {
-                reason: format!(
-                    "Unsupported API version '{}', expected '1.0'",
-                    self.version
-                ),
+                reason: format!("Unsupported API version '{}', expected '1.0'", self.version),
             });
         }
 

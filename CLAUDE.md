@@ -1,58 +1,54 @@
 ---
-this_file: haforu2/CLAUDE.md
+this_file: haforu/CLAUDE.md
 ---
 
-Claude Guide — haforu (canonical)
+# Haforu Builder Notes
 
-Purpose: make the new, canonical `haforu` renderer (developed here in `haforu2/`, published as `haforu`) the high‑performance batch/stream rendering backend for `fontsimi`. This file aligns with `haforu2/PLAN.md`, `haforu2/TODO.md`, and root `PLAN.md`/`TODO.md`.
+## Repository Snapshot (from llms summaries)
+- `src/` — Rust core (`fonts.rs`, `render.rs`, `shaping.rs`, `batch.rs`, `streaming.rs`, `output.rs`). Keep modules tiny; everything funnels into deterministic JSONL output.
+- `python/` — PyO3 bindings (`haforu/__init__.py`, stubs, tests). Only expose `StreamingSession`, `warm_up`, cache stats, and fast availability probes.
+- `examples/python/` — smoke demos (batch, streaming, numpy). Update them only when the API truly changes.
+- `target/` & `wheels/` — build artifacts; clean as needed but avoid touching during normal dev.
+- `scripts/` (add) — host `batch_smoke.sh` plus `jobs_smoke.json` so fontsimi devs can validate the CLI in ~2 s.
+- `testdata/fonts/` — minimal fixtures for shaping/raster tests.
 
-Canonical Naming Policy
-- Crate: `haforu`; Library: `haforu`; CLI binary: `haforu`; Python package/module: `haforu` / `haforu._haforu`.
-- Do not introduce `haforu2` identifiers in code, manifests, imports, or docs. `haforu2/` is a workspace path only.
+## Mission
+Deliver a zero-drama renderer that feeds fontsimi’s analyzer and deep matcher at full speed: stdin JSONL → stdout JSONL for the CLI, plus a warmed StreamingSession for Python. Anything not required for that goal gets cut.
 
-What `haforu` Must Provide (contracts required by fontsimi)
-- Batch mode: stdin single JSON JobSpec `{"version":"1.0","jobs":[...]}` → stdout JSONL JobResult per line (flush per job).
-- Streaming mode: `haforu stream` keeps a long‑lived process; JSON in/out one line at a time; persistent instance cache.
-- Rendering payload: base64 PGM P5 (8‑bit grayscale) with `width`, `height`; optional `actual_bbox` `[x0,y0,x1,y1]`.
-- Deterministic output; images must yield identical Daidot metrics to current renderers.
+## Development Priorities
+1. **StreamingSession reliability.** Cache knobs (`max_fonts`, `max_glyphs`), `warm_up()` helper, `close()` that frees descriptors immediately, `is_available()` probe that returns in microseconds.
+2. **Batch CLI ergonomics.** Stream jobs from stdin (2–4k batches), flush stdout per job, exit on first fatal error, and expose `--jobs N` to tune parallel workers without recompiles.
+3. **Distribution.** Produce universal2 macOS and manylinux wheels via `maturin`, plus a `cargo install haforu` path. Document the exact commands fontsimi should echo and how to set `HAFORU_BIN`.
+4. **Integration contract.** Rendering payload stays base64 PGM (8-bit). Fields: `id`, `status`, `width`, `height`, `actual_bbox?`, `data`. Keep schema backward compatible; announce changes in both repos.
 
-Immediate Objectives (H2 focus)
-- Unblock H2 API compilation/runtime issues (skrifa/harfrust/zeno surface) — estimated 4–6 hours — this unlocks the entire integration timeline.
-- Implement JSON parsing, font loading with variations, shaping, rasterization, and JSONL emission per `haforu2/PLAN.md`.
-- Provide minimal Python bindings via pyo3/maturin only if needed; fontsimi primarily uses the CLI.
+## Working Methods
+- **Keep it small.** Short functions, flat modules, explicit data paths. If a helper doesn’t reduce latency, delete it.
+- **Measure constantly.** Use `cargo run --release -- batch < jobs_smoke.json` and note jobs/sec + RSS. No enterprise benchmarking rigs.
+- **Tight test loop.** Rely on lightweight Rust unit tests + the bundled smoke scripts. Only add new tests when a bug slips through or a contract changes.
+- **Shared vocabulary.** Mirror helper names (`warm_up`, `ping`, `is_available`) with fontsimi so integration code stays trivial.
+- **Error handling = guidance.** Fail fast with concise JSON errors (id + message). Don’t add retry loops or backoff systems.
 
-Guiding Principles (from AGENTS.md, applied here)
-- Keep the public surface tiny, stable, and tested. Every function gets a test. Edge and error cases are first‑class.
-- Prefer zero‑copy and simple data paths. Avoid abstractions “for flexibility”.
-- Delete non‑essential code. No analytics/monitoring/enterprise scaffolding.
-- Measure performance; don’t guess. Validate memory usage and determinism.
+## Minimal Testing Stack
+- `cargo test --lib render` for raster correctness.
+- `cargo test streaming::tests::smoke` for JSONL path.
+- `examples/python/*.py` doubles as sanity checks for bindings.
+- `scripts/batch_smoke.sh` (runs haforu CLI on bundled `jobs_smoke.json`, expects success in ~2 s). Share elapsed times in WORK.md when relevant.
 
-Data Structures (reference)
-- `JobSpec { version, mode?, config?, jobs[] }`
-- `Job { id, font{path,size,variations?}, text{content,script?}, rendering{format:"pgm",encoding:"base64",width,height} }`
-- `JobResult { id, status:"success"|"error", rendering{format,encoding,data,width,height,actual_bbox?}, error? }`
+## Integration Checklist with fontsimi
+1. Maintain `haforu::is_available()` so fontsimi can choose bindings vs CLI instantly.
+2. Guarantee StreamingSession warm-up/ping exists and is cheap; fontsimi calls it before deep optimization.
+3. Document CLI env requirements (fonts, HB data, HAFORU_BIN) so fontsimi can surface actionable errors.
+4. Keep JSON schema versioned; bump a `version` field only when absolutely necessary and update fontsimi in lockstep.
+5. Any change that affects analyzer batching or deep renders must be reflected in `PLAN.md`, `TODO.md`, and `WORK.md` here and in fontsimi.
 
-Testing Checklist
-- Unit tests for JSON parsing, font loading, shaping, rasterization, and PGM encoding.
-- Integration tests: JSON → render → JSONL; decode base64 PGM, verify dims/pixels; variable font coordinates; error cases.
-- Performance smoke: 1000 renders <10s; peak RSS <500MB; no leaks over millions of renders.
-- FontSimi compatibility: run sample jobs from fontsimi’s HaforuRenderer; validate schema and image fidelity.
+## Daily Workflow Template
+1. Read `haforu/PLAN.md` + `haforu/TODO.md`, jot intent in `haforu/WORK.md` (clear after completion).
+2. Implement only the next bottleneck fix (StreamingSession knobs, batch CLI streaming, packaging). Avoid parallel tasking.
+3. Run `cargo test` for touched modules and the smoke scripts (CLI + python) to confirm latency hasn’t regressed.
+4. Update docs (PLAN/TODO/CHANGELOG) immediately; keep this CLAUDE file current so future agents share the same map.
 
-Dev Commands
-- Build/tests: `cargo build --release`, `cargo test`, `cargo clippy`, `cargo fmt`.
-- CLI smoke: `echo '{"version":"1.0","jobs":[...]}' | cargo run -- batch > out.jsonl`.
-- Streaming smoke: `echo '{"id":"t1",...}' | cargo run -- stream`.
-
-Migration Notes
-- Rename manifests to `haforu` (Cargo.toml lib/bin, pyproject `project.name` and `tool.maturin.module-name`).
-- Update all `use`/`mod` paths and docs; remove any `haforu2` identifiers.
-- Publish artifacts as `haforu`; coordinate with fontsimi integration tests before release.
-
-Hard Rules
-- No serif/sans classification or style heuristics — matching stays metric‑based downstream.
-- Keep `this_file` markers at the top of all source/docs.
-- Small, flat modules; functions <20 lines when practical; test everything.
-
-If in Doubt
-- Re‑read `haforu2/PLAN.md` and `haforu2/TODO.md`. Unblock H2 first; keep the CLI contracts stable for fontsimi.
-
+## Mindset
+- No enterprise scaffolding: no analytics, metrics dashboards, or exhaustive validation passes.
+- Prefer deleting flags and configs; hard-code sane defaults that favor speed.
+- Push expensive work into Rust; keep Python bindings thin wrappers.
+- Every change should remove latency, memory, or integration friction. If it doesn’t, don’t ship it.

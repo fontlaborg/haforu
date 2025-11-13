@@ -64,8 +64,11 @@ impl ImageOutput {
 
         // Encode as PNG
         let mut output = Vec::new();
-        img.write_to(&mut std::io::Cursor::new(&mut output), image::ImageFormat::Png)
-            .map_err(|e| Error::ImageEncode(e))?;
+        img.write_to(
+            &mut std::io::Cursor::new(&mut output),
+            image::ImageFormat::Png,
+        )
+        .map_err(|e| Error::ImageEncode(e))?;
 
         Ok(output)
     }
@@ -107,19 +110,20 @@ impl ImageOutput {
         if parts.len() != 2 {
             return Err(Error::Internal("Invalid PGM dimensions".to_string()));
         }
-        let width: u32 = parts[0].parse().map_err(|_| {
-            Error::Internal(format!("Invalid width: {}", parts[0]))
-        })?;
-        let height: u32 = parts[1].parse().map_err(|_| {
-            Error::Internal(format!("Invalid height: {}", parts[1]))
-        })?;
+        let width: u32 = parts[0]
+            .parse()
+            .map_err(|_| Error::Internal(format!("Invalid width: {}", parts[0])))?;
+        let height: u32 = parts[1]
+            .parse()
+            .map_err(|_| Error::Internal(format!("Invalid height: {}", parts[1])))?;
 
         // Read maxval (should be 255)
         line.clear();
         reader.read_line(&mut line)?;
-        let maxval: u32 = line.trim().parse().map_err(|_| {
-            Error::Internal(format!("Invalid maxval: {}", line.trim()))
-        })?;
+        let maxval: u32 = line
+            .trim()
+            .parse()
+            .map_err(|_| Error::Internal(format!("Invalid maxval: {}", line.trim())))?;
         if maxval != 255 {
             return Err(Error::Internal(format!(
                 "Unsupported maxval: {} (expected 255)",
@@ -195,9 +199,6 @@ mod tests {
         let pixels = vec![0u8; 10];
         let result = ImageOutput::write_pgm_binary(&pixels, 100, 50);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("size mismatch"));
+        assert!(result.unwrap_err().to_string().contains("size mismatch"));
     }
 }

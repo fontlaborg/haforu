@@ -5,13 +5,15 @@
 //! Reads JSON job specifications from stdin, processes rendering jobs,
 //! and outputs JSONL results to stdout.
 
-use clap::{Parser, Subcommand};
-use haforu::{process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
-use haforu::security;
 use camino::Utf8PathBuf;
+use clap::{Parser, Subcommand};
+use haforu::security;
+use haforu::{batch::Job, process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
 use rayon::prelude::*;
 use std::io::{self, BufRead, Read, Write};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
+
+mod input;
 
 /// Haforu: High-performance batch font renderer
 #[derive(Parser)]
@@ -32,8 +34,8 @@ enum Commands {
         cache_size: usize,
 
         /// Number of parallel worker threads (0 = auto)
-        #[arg(long, default_value = "0")]
-        workers: usize,
+        #[arg(long = "jobs", default_value = "0", alias = "workers")]
+        jobs: usize,
 
         /// Enable verbose logging
         #[arg(short, long)]
@@ -84,7 +86,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Batch {
             cache_size,
-            workers,
+            jobs,
             verbose,
             base_dir,
             timeout_ms,
@@ -92,9 +94,13 @@ fn main() -> anyhow::Result<()> {
             init_logging(verbose);
             let opts = ExecutionOptions {
                 base_dir,
-                timeout_ms: if timeout_ms == 0 { None } else { Some(timeout_ms) },
+                timeout_ms: if timeout_ms == 0 {
+                    None
+                } else {
+                    Some(timeout_ms)
+                },
             };
-            run_batch_mode(cache_size, workers, &opts)?;
+            run_batch_mode(cache_size, jobs, &opts)?;
         }
         Commands::Stream {
             cache_size,
@@ -105,7 +111,11 @@ fn main() -> anyhow::Result<()> {
             init_logging(verbose);
             let opts = ExecutionOptions {
                 base_dir,
-                timeout_ms: if timeout_ms == 0 { None } else { Some(timeout_ms) },
+                timeout_ms: if timeout_ms == 0 {
+                    None
+                } else {
+                    Some(timeout_ms)
+                },
             };
             run_streaming_mode(cache_size, &opts)?;
         }
@@ -131,65 +141,27 @@ fn init_logging(verbose: bool) {
 }
 
 /// Run in batch mode: read entire JobSpec from stdin, process in parallel, output JSONL.
-fn run_batch_mode(cache_size: usize, workers: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
-    log::info!("Starting batch mode (cache_size={}, workers={})", cache_size, workers);
+fn run_batch_mode(
+    cache_size: usize,
+    workers: usize,
+    opts: &ExecutionOptions,
+) -> anyhow::Result<()> {
+    log::info!(
+        "Starting batch mode (cache_size={}, jobs={})",
+        cache_size,
+        workers
+    );
 
-    // Configure Rayon thread pool
-    if workers > 0 {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(workers)
-            .build_global()
-            .ok();
-    }
-
-    // Read JobSpec from stdin with size validation
     let stdin = io::stdin();
     let mut reader = stdin.lock();
-    let mut json = String::new();
-    reader.read_to_string(&mut json)?;
-    security::validate_json_size(&json, security::MAX_JSON_SIZE)?;
-    let spec: JobSpec = serde_json::from_str(&json)?;
+    let mut payload = String::new();
+    reader.read_to_string(&mut payload)?;
+    security::validate_json_size(&payload, security::MAX_JSON_SIZE)?;
 
-    log::info!("Loaded {} jobs from stdin", spec.jobs.len());
+    let jobs = input::parse_jobs_payload(&payload)?;
+    log::info!("Loaded {} jobs from stdin", jobs.len());
 
-    // Validate job spec
-    if let Err(e) = spec.validate() {
-        log::error!("Invalid job specification: {}", e);
-        return Err(e.into());
-    }
-
-    log::info!("Job specification validated successfully");
-
-    // Create font loader (shared across threads via Arc internally)
-    let font_loader = FontLoader::new(cache_size);
-
-    // Process jobs in parallel with streaming output
-    let (tx, rx) = mpsc::channel();
-
-    // Spawn output thread
-    let output_handle = std::thread::spawn(move || {
-        let stdout = io::stdout();
-        let mut handle = stdout.lock();
-
-        for result in rx {
-            let json = serde_json::to_string(&result).expect("Failed to serialize result");
-            writeln!(handle, "{}", json).expect("Failed to write to stdout");
-            handle.flush().expect("Failed to flush stdout");
-        }
-    });
-
-    // Process jobs in parallel
-    spec.jobs.par_iter().for_each_with(tx, |tx, job| {
-        let result = process_job_with_options(job, &font_loader, opts);
-        tx.send(result).ok();
-    });
-
-    // Wait for output thread to finish
-    output_handle.join().expect("Output thread panicked");
-
-    log::info!("Batch processing complete");
-
-    Ok(())
+    process_jobs_parallel(jobs, cache_size, workers, opts)
 }
 
 /// Run in streaming mode: read jobs line-by-line (JSONL), output results immediately.
@@ -238,6 +210,53 @@ fn run_streaming_mode(cache_size: usize, opts: &ExecutionOptions) -> anyhow::Res
 
     log::info!("Streaming mode complete");
 
+    Ok(())
+}
+
+fn process_jobs_parallel(
+    jobs: Vec<Job>,
+    cache_size: usize,
+    workers: usize,
+    opts: &ExecutionOptions,
+) -> anyhow::Result<()> {
+    if jobs.is_empty() {
+        anyhow::bail!("No jobs supplied");
+    }
+
+    if workers > 0 {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(workers)
+            .build_global()
+            .ok();
+    }
+
+    let font_loader = Arc::new(FontLoader::new(cache_size));
+    let opts = Arc::new(opts.clone());
+    let total = jobs.len();
+
+    let (tx, rx) = mpsc::channel();
+
+    let output_handle = std::thread::spawn(move || {
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
+        for result in rx {
+            let json = serde_json::to_string(&result).expect("Failed to serialize result");
+            writeln!(handle, "{}", json).expect("Failed to write to stdout");
+            handle.flush().expect("Failed to flush stdout");
+        }
+    });
+
+    jobs.into_par_iter().for_each(|job| {
+        let loader = Arc::clone(&font_loader);
+        let opts = Arc::clone(&opts);
+        let result = process_job_with_options(&job, loader.as_ref(), opts.as_ref());
+        let _ = tx.send(result);
+    });
+
+    drop(tx);
+    output_handle.join().expect("Output thread panicked");
+
+    log::info!("Batch processing complete ({} jobs)", total);
     Ok(())
 }
 

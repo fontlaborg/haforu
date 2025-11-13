@@ -7,9 +7,7 @@
 
 use crate::error::{Error, Result};
 use crate::fonts::FontInstance;
-use harfbuzz_rs::{
-    Face, Font as HbFont, GlyphBuffer, UnicodeBuffer, Direction,
-};
+use harfbuzz_rs::{Direction, Face, Font as HbFont, GlyphBuffer, UnicodeBuffer};
 use read_fonts::TableProvider;
 use std::path::Path;
 
@@ -85,7 +83,9 @@ impl TextShaper {
         let font = font_instance.font_ref();
 
         // Map character to glyph ID
-        let cmap = font.cmap().map_err(|e| Error::Internal(format!("Failed to read cmap table: {}", e)))?;
+        let cmap = font
+            .cmap()
+            .map_err(|e| Error::Internal(format!("Failed to read cmap table: {}", e)))?;
         let glyph_id = cmap
             .map_codepoint(ch as u32)
             .ok_or_else(|| Error::Internal(format!("Character '{}' not found in font", ch)))?
@@ -99,7 +99,9 @@ impl TextShaper {
                 font_instance.coordinates()
             );
         }
-        let hmtx = font.hmtx().map_err(|e| Error::Internal(format!("Failed to read hmtx table: {}", e)))?;
+        let hmtx = font
+            .hmtx()
+            .map_err(|e| Error::Internal(format!("Failed to read hmtx table: {}", e)))?;
         let advance = hmtx.advance(glyph_id.into()).unwrap_or(0) as i32;
 
         Ok(ShapedText {

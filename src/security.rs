@@ -37,28 +37,27 @@ pub fn sanitize_path(path: &Utf8Path, base_dir: Option<&Utf8Path>) -> Result<Utf
     } else if let Some(base) = base_dir {
         base.join(path)
     } else {
-        let cwd = std::env::current_dir().map_err(|e| Error::Internal(format!(
-            "Failed to get current dir: {}",
-            e
-        )))?;
-        let cwd = Utf8PathBuf::from_path_buf(cwd).map_err(|_| Error::Internal(
-            "Non-UTF8 current working directory".to_string(),
-        ))?;
+        let cwd = std::env::current_dir()
+            .map_err(|e| Error::Internal(format!("Failed to get current dir: {}", e)))?;
+        let cwd = Utf8PathBuf::from_path_buf(cwd)
+            .map_err(|_| Error::Internal("Non-UTF8 current working directory".to_string()))?;
         cwd.join(path)
     };
 
     // Canonicalize and ensure it remains within base_dir if provided
-    let canonical_std = std::fs::canonicalize(abs.as_std_path()).map_err(|e| Error::InvalidJobSpec {
-        reason: format!("Cannot resolve path {}: {}", abs, e),
-    })?;
+    let canonical_std =
+        std::fs::canonicalize(abs.as_std_path()).map_err(|e| Error::InvalidJobSpec {
+            reason: format!("Cannot resolve path {}: {}", abs, e),
+        })?;
 
     let canonical = Utf8PathBuf::from_path_buf(canonical_std)
         .map_err(|_| Error::Internal("Canonical path is not valid UTF-8".to_string()))?;
 
     if let Some(base) = base_dir {
-        let base_canon_std = std::fs::canonicalize(base.as_std_path()).map_err(|e| Error::InvalidJobSpec {
-            reason: format!("Cannot resolve base path {}: {}", base, e),
-        })?;
+        let base_canon_std =
+            std::fs::canonicalize(base.as_std_path()).map_err(|e| Error::InvalidJobSpec {
+                reason: format!("Cannot resolve base path {}: {}", base, e),
+            })?;
         let base_canon = Utf8PathBuf::from_path_buf(base_canon_std)
             .map_err(|_| Error::Internal("Canonical base path is not valid UTF-8".to_string()))?;
         if !canonical.as_str().starts_with(base_canon.as_str()) {
@@ -128,14 +127,17 @@ pub struct TimeoutGuard {
 
 impl TimeoutGuard {
     pub fn new(timeout: Duration) -> Self {
-        Self { start: Instant::now(), timeout }
+        Self {
+            start: Instant::now(),
+            timeout,
+        }
     }
 
     pub fn check(&self, label: &str) -> Result<()> {
         if self.start.elapsed() > self.timeout {
-            return Err(Error::InvalidRenderParams { reason: format!(
-                "Operation '{}' timed out after {:?}", label, self.timeout
-            )});
+            return Err(Error::InvalidRenderParams {
+                reason: format!("Operation '{}' timed out after {:?}", label, self.timeout),
+            });
         }
         Ok(())
     }

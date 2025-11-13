@@ -14,7 +14,13 @@ Example:
 from __future__ import annotations
 
 try:
-    from haforu._haforu import __version__, __doc__, process_jobs, StreamingSession
+    from haforu._haforu import (
+        __version__,
+        __doc__,
+        process_jobs,
+        StreamingSession,
+        is_available,
+    )
 except ImportError as e:
     raise ImportError(
         "Failed to import haforu._haforu extension module. "
@@ -25,4 +31,5 @@ __all__ = [
     "__version__",
     "process_jobs",
     "StreamingSession",
+    "is_available",
 ]

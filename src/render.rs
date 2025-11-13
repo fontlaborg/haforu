@@ -56,7 +56,9 @@ impl GlyphRasterizer {
         let location_ref = LocationRef::default();
 
         // Calculate scale factor (font size to pixels)
-        let head = font.head().map_err(|e| Error::Internal(format!("Failed to read head table: {}", e)))?;
+        let head = font
+            .head()
+            .map_err(|e| Error::Internal(format!("Failed to read head table: {}", e)))?;
         let upem = head.units_per_em();
         let scale = shaped.font_size / upem as f32;
 
@@ -94,7 +96,15 @@ impl GlyphRasterizer {
             let glyph_y = baseline_y - (glyph.y_offset as f32 * scale);
 
             // Rasterize and composite
-            self.composite_glyph(&mut canvas, &path_commands, glyph_x, glyph_y, scale, width, height)?;
+            self.composite_glyph(
+                &mut canvas,
+                &path_commands,
+                glyph_x,
+                glyph_y,
+                scale,
+                width,
+                height,
+            )?;
 
             // Advance cursor
             cursor_x += (glyph.x_advance as f32 + tracking) * scale;
@@ -119,8 +129,7 @@ impl GlyphRasterizer {
 
         // Rasterize to temporary mask
         let mut mask = Mask::new(path);
-        mask.size(width, height)
-            .transform(Some(transform));
+        mask.size(width, height).transform(Some(transform));
 
         let (alpha_data, placement) = mask.render();
 
@@ -142,7 +151,8 @@ impl GlyphRasterizer {
                     let src = canvas[canvas_idx];
 
                     // Blend: dst + src * (1 - dst_alpha/255)
-                    let blended = src.saturating_add(((alpha as u16 * (255 - src) as u16) / 255) as u8);
+                    let blended =
+                        src.saturating_add(((alpha as u16 * (255 - src) as u16) / 255) as u8);
                     canvas[canvas_idx] = blended;
                 }
             }
@@ -206,11 +216,16 @@ impl<'a> OutlinePen for ZenoPen<'a> {
     }
 
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.commands.push(Command::QuadTo([cx0, -cy0].into(), [x, -y].into()));
+        self.commands
+            .push(Command::QuadTo([cx0, -cy0].into(), [x, -y].into()));
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.commands.push(Command::CurveTo([cx0, -cy0].into(), [cx1, -cy1].into(), [x, -y].into()));
+        self.commands.push(Command::CurveTo(
+            [cx0, -cy0].into(),
+            [cx1, -cy1].into(),
+            [x, -y].into(),
+        ));
     }
 
     fn close(&mut self) {

@@ -46,8 +46,8 @@ pub mod error;
 pub mod fonts;
 pub mod output;
 pub mod render;
-pub mod shaping;
 pub mod security;
+pub mod shaping;
 
 // Python bindings (optional feature)
 #[cfg(feature = "python")]
@@ -56,7 +56,7 @@ pub mod python;
 // Re-export main types
 pub use batch::{Job, JobResult, JobSpec, RenderingOutput, TimingInfo};
 pub use error::{Error, Result};
-pub use fonts::{FontInstance, FontLoader};
+pub use fonts::{CacheStats, FontInstance, FontLoader};
 pub use output::ImageOutput;
 pub use render::GlyphRasterizer;
 pub use shaping::{ShapedText, TextShaper};
@@ -73,10 +73,7 @@ pub struct ExecutionOptions {
 /// Process a single job and return the result.
 ///
 /// This is the main entry point for batch processing.
-pub fn process_job(
-    job: &Job,
-    font_loader: &FontLoader,
-) -> JobResult {
+pub fn process_job(job: &Job, font_loader: &FontLoader) -> JobResult {
     process_job_with_options(job, font_loader, &ExecutionOptions::default())
 }
 
@@ -94,7 +91,9 @@ pub fn process_job_with_options(
         .map(|ms| crate::security::TimeoutGuard::new(std::time::Duration::from_millis(ms)));
 
     let result = (|| -> Result<RenderingOutput> {
-        if let Some(ref guard) = timeout_guard { guard.check("start")?; }
+        if let Some(ref guard) = timeout_guard {
+            guard.check("start")?;
+        }
         // Load font with variations
         // Sanitize path if a base_dir is specified
         let font_path = if let Some(base) = opts.base_dir.as_ref() {
@@ -113,7 +112,9 @@ pub fn process_job_with_options(
             font_path.as_std_path(),
         )?;
 
-        if let Some(ref guard) = timeout_guard { guard.check("shape")?; }
+        if let Some(ref guard) = timeout_guard {
+            guard.check("shape")?;
+        }
         // Rasterize
         let rasterizer = GlyphRasterizer::new();
         let pixels = rasterizer.render_text(
@@ -126,12 +127,17 @@ pub fn process_job_with_options(
         )?;
 
         // Calculate bounding box
-        let bbox = GlyphRasterizer::calculate_bbox(&pixels, job.rendering.width, job.rendering.height);
+        let bbox =
+            GlyphRasterizer::calculate_bbox(&pixels, job.rendering.width, job.rendering.height);
 
-        if let Some(ref guard) = timeout_guard { guard.check("render")?; }
+        if let Some(ref guard) = timeout_guard {
+            guard.check("render")?;
+        }
         // Generate output image
         let image_data = match job.rendering.format.as_str() {
-            "pgm" => ImageOutput::write_pgm_binary(&pixels, job.rendering.width, job.rendering.height)?,
+            "pgm" => {
+                ImageOutput::write_pgm_binary(&pixels, job.rendering.width, job.rendering.height)?
+            }
             "png" => ImageOutput::write_png(&pixels, job.rendering.width, job.rendering.height)?,
             _ => {
                 return Err(Error::InvalidRenderParams {
