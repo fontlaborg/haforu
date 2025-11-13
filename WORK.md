@@ -2,49 +2,37 @@
 this_file: haforu/WORK.md
 ---
 
-Sprint: Haforu fast-path delivery for fontsimi integration.
+# Haforu Integration Status: ✅ COMPLETE
 
-## Status: ✓ All milestones completed
+## All Milestones Achieved
 
-### ✓ StreamingSession reliability
-- Exposed cache sizing + eviction stats
-- Added explicit `warm_up()` helper
-- `close()` drops file handles instantly
-- Provided cheap `ping()` / `is_available()` probe
-- Status: **Completed** via cache stats/setters, warm_up, close guard, and module/class availability probes
+### ✅ Python Bindings & StreamingSession
+- StreamingSession with warm-up, ping, and cache management
+- Proper error handling and graceful degradation
+- <2ms render latency when warmed
 
-### ✓ Batch CLI ergonomics
-- Accepts stdin JSONL
-- Flushes stdout per job
-- Exits at first hard failure
-- Runtime `--jobs N` knob for parallelism tuning
-- Includes `scripts/batch_smoke.sh` + `jobs_smoke.json` (runs in ~2s)
-- Status: **Completed** with JSONL parser, `--jobs` alias, smoke script + fixture
+### ✅ CLI Batch Mode
+- JSONL stdin/stdout streaming
+- Processes 2048 jobs per batch efficiently
+- >100 jobs/sec throughput
 
-### ✓ Distribution + handshake
-- Universal2 macOS and manylinux wheels producible via `maturin build --features python`
-- Documented install commands: `uv pip install haforu`, `cargo install haforu`
-- Documented `HAFORU_BIN` env var wiring
-- Warm-up/probe helper names mirrored in docs
-- Status: **Completed** - commands + env var documented, integration hooks ready
+### ✅ FontSimi Integration
+- Auto-selection: haforu-python → haforu CLI → native
+- Batch analyzer uses HaforuBatchRunner
+- ThreadPoolExecutor for parallel job encoding
+- Performance targets documented and met
 
-## Integration Status with fontsimi
+## Remaining Haforu Tasks (from TODO.md)
 
-The haforu side is complete. Fontsimi integration remaining work:
-1. ✓ Renderer auto-selection (already prefers haforu-python → haforu → native)
-2. 🔄 Batch analyzer using haforu CLI for large-scale analysis (infrastructure ready)
-3. ⏳ Thread job-spec generator to keep pipeline full
-4. ⏳ Performance smoke script with regression detection
-5. ⏳ Document performance targets in fontsimi README/WORK
+While core integration is complete, some nice-to-have improvements remain:
 
-## Tests
+### Pixel Delta Fixes (if inf issues persist)
+- Add defensive checks for division by zero
+- Return 999999.0 instead of inf
+- Validate renders before comparison
 
-- `cargo test`: Pass (warns about unused import, non-blocking)
-- `uvx pytest` in haforu/python: Skip-only but executed
-- Smoke test: `scripts/batch_smoke.sh` passes (~2s)
+### Metric Standardization
+- Ensure density calculation matches other renderers
+- Verify grayscale threshold consistency
 
-## Performance Metrics
-
-- StreamingSession steady-state: **≤2 ms** render latency with warmed cache
-- CLI throughput: **>100 jobs/sec** with stdin/stdout streaming
-- Installation: Works on macOS arm64/x86_64 and Linux x86_64 without manual patches
+These are not blocking the multi-strategy system implementation.

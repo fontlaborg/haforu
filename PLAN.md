@@ -2,97 +2,158 @@
 this_file: haforu/PLAN.md
 ---
 
-# Haforu Renderer Accuracy Fix
+# Haforu Renderer Support for Multi-Stage Pipeline
 
-## Critical Issue
-Haforu is producing incorrect matches with infinite pixel deltas (Δpx=inf) and wrong weight values. While width values are closer to correct (100-125), weights are far too light (100-400 instead of 900).
+## Critical Issues to Fix
 
-## Root Causes to Fix
-1. **Pixel delta returns infinity**: Division by zero or failed comparison in pixel delta calculation
-2. **Inconsistent metrics**: Haforu metrics differ from other renderers, causing optimizer confusion
-3. **Failed renders not handled**: Empty or failed renders might be causing inf values
-4. **Weight axis interpretation**: Haforu may be interpreting weight values differently
+### Issue 1: Infinite Pixel Delta Bug (CRITICAL)
+- **Problem**: Returning Δpx=inf when renders fail or images empty
+- **Root Cause**: Division by zero, no validation before comparison
+- **Solution**: Add defensive checks, return 999999.0 instead of inf
+- **Files**: `src/render.rs`, `src/metrics.rs`
 
-## Milestones
+### Issue 2: Variable Font Coordinate Accuracy
+- **Problem**: Possible misinterpretation of axis values (wght, wdth)
+- **Root Cause**: Non-standard axis scaling or incorrect application
+- **Solution**: Verify standard scales (wght=100-900, wdth=50-200)
+- **Files**: `src/fonts.rs`, `src/variations.rs`
 
-### 1. Fix Infinite Pixel Delta Bug (CRITICAL)
-- **Goal**: Never return inf for pixel comparisons
-- **Actions**:
-  - Add defensive checks in render comparison logic
-  - Handle case where one or both renders fail/are empty
-  - Replace inf with large finite value (999999.0) as fallback
-  - Add logging to identify when/why inf occurs
-  - Ensure both images have valid dimensions before comparison
-  - Check for division by zero in similarity calculations
-- **Success**: No inf values in any render comparison
+### Issue 3: Error Status Propagation
+- **Problem**: Failed renders return empty data instead of error status
+- **Root Cause**: Missing error handling in render pipeline
+- **Solution**: Return explicit `status: "error"` in JSONL
+- **Files**: `src/output.rs`, `src/error.rs`
 
-### 2. Standardize Metric Calculation
-- **Goal**: Haforu produces metrics matching CoreText/HarfBuzz within 1%
-- **Actions**:
-  - Audit density calculation: ensure (ink_pixels / total_pixels) formula
-  - Verify rendered_width calculation uses consistent pixel bounds
-  - Check aspect ratio calculation matches other renderers
-  - Ensure grayscale thresholding is consistent (>0 vs >127)
-  - Add metric comparison logging for debugging
-- **Success**: Same font/text produces metrics within 1% across all renderers
+## New Features for Pipeline
 
-### 3. Improve Error Handling
-- **Goal**: Gracefully handle render failures without breaking matching
-- **Actions**:
-  - Return error status in JobResult when render fails
-  - Provide meaningful error messages (font not found, invalid coordinates, etc.)
-  - Add retry logic for transient failures
-  - Validate font coordinates are within valid ranges before rendering
-  - Test with edge cases (empty text, huge sizes, invalid fonts)
-- **Success**: All errors handled gracefully with informative messages
+### Metrics-Only Output Mode
+- **Purpose**: Compute Daidot metrics without full image for tentpoles
+- **Implementation**: Add `--format metrics` to return JSON metrics only
+- **Benefits**: 10x faster tentpole analysis (no base64 encoding)
+- **Fields**: width_px, height_px, density, h_beam, v_beam, d_beam
 
-### 4. Fix Variable Font Coordinate Handling
-- **Goal**: Correctly interpret and apply variable font axes
-- **Actions**:
-  - Verify weight axis uses standard 100-900 scale
-  - Ensure width axis uses standard 50-200 scale
-  - Filter out non-standard axes (TRAK, custom axes)
-  - Add coordinate normalization if needed
-  - Log actual vs requested coordinates for debugging
-- **Success**: Requested coordinates match rendered results
+### Streaming Session Optimization
+- **Purpose**: Reuse font loading across optimization iterations
+- **Current**: Each render spawns new process
+- **Improved**: Persistent session with cached fonts
+- **Target**: <1ms render latency in tight loops
 
-### 5. Add Render Validation
-- **Goal**: Validate renders are correct before returning
-- **Actions**:
-  - Check rendered image is non-empty
-  - Verify dimensions match requested size
-  - Ensure actual_bbox is within image bounds
-  - Validate base64 encoding is correct
-  - Add checksum/hash for render reproducibility
-- **Success**: All renders pass validation checks
+### Batch Mode Enhancements
+- **Current Limit**: 5000 jobs per batch
+- **New**: Stream processing for unlimited jobs
+- **Memory**: Process and flush every 1000 jobs
+- **Output**: Stream JSONL results as available
 
-### 6. Performance With Correctness
-- **Goal**: Maintain <2ms render time while fixing accuracy
-- **Actions**:
-  - Keep defensive checks lightweight
-  - Use fast-path for common cases
-  - Avoid unnecessary allocations in error handling
-  - Profile to ensure fixes don't regress performance
-  - Cache validation results when possible
-- **Success**: <2ms render time with correct results
+## Implementation Plan
+
+### Phase 1: Fix Δpx=inf (Day 1)
+```rust
+// In src/render.rs
+fn calculate_pixel_delta(img1: &Image, img2: &Image) -> f64 {
+    if img1.is_empty() || img2.is_empty() {
+        return 999999.0;
+    }
+
+    let delta = compute_delta(img1, img2);
+    if delta.is_nan() || delta.is_infinite() {
+        999999.0
+    } else {
+        delta.clamp(0.0, 999999.0)
+    }
+}
+```
+
+### Phase 2: Coordinate Validation (Day 2)
+```rust
+// In src/fonts.rs
+fn validate_coordinates(coords: &HashMap<String, f32>) -> HashMap<String, f32> {
+    let mut valid = HashMap::new();
+
+    // Ensure standard scales
+    if let Some(wght) = coords.get("wght") {
+        valid.insert("wght", wght.clamp(100.0, 900.0));
+    }
+    if let Some(wdth) = coords.get("wdth") {
+        valid.insert("wdth", wdth.clamp(50.0, 200.0));
+    }
+
+    // Log warnings for non-standard axes
+    for (axis, value) in coords {
+        if !STANDARD_AXES.contains(axis) {
+            warn!("Ignoring non-standard axis: {}", axis);
+        }
+    }
+    valid
+}
+```
+
+### Phase 3: Metrics Mode (Day 3-4)
+```rust
+// In src/output.rs
+#[derive(Serialize)]
+struct MetricsResult {
+    width_px: u32,
+    height_px: u32,
+    ref_height_px: u32,
+    density: f32,
+    h_beam: f32,
+    v_beam: f32,
+    d_beam: f32,
+}
+
+fn output_metrics(image: &Image, params: &RenderParams) -> String {
+    let metrics = compute_metrics(image);
+    serde_json::to_string(&metrics).unwrap()
+}
+```
+
+### Phase 4: Streaming Session (Week 2)
+- Implement font cache with LRU eviction
+- Add session management to Python bindings
+- Persistent process with stdin/stdout protocol
+- Benchmark to ensure <1ms render latency
 
 ## Testing Requirements
-- Render Arial Black at various sizes and verify consistent metrics
-- Compare Haforu metrics with CoreText/HarfBuzz for 10+ fonts
-- Test variable font coordinates across full range
-- Verify error handling with invalid inputs
-- Ensure no memory leaks in error paths
+
+### Regression Tests
+- Arial Black at wght=900 produces correct weight
+- Archivo coordinates map correctly to visual weight/width
+- Failed renders return error status, not empty data
+- Metrics match reference values within 1%
+
+### Performance Tests
+- Batch mode: 10,000 renders in <20s
+- Streaming mode: 1000 iterations in <1s
+- Metrics mode: 10x faster than image mode
+- Memory: Stable at <500MB for any batch size
+
+### Edge Case Tests
+- Empty text → error status
+- Invalid font → error status
+- Huge size (10000px) → error or reasonable fallback
+- Zero size → error status
+- Missing axes → use defaults
 
 ## Success Metrics
-- ✅ Zero infinite pixel deltas in all comparisons
-- ✅ Metrics match other renderers within 1% tolerance
-- ✅ Arial Black → Archivo matches at wdth=100±5, wght=900±50
-- ✅ All renders complete in <2ms
-- ✅ Error messages are actionable and specific
-- ✅ No memory leaks or resource exhaustion
+
+### Immediate (Phase 1)
+- ✅ Zero Δpx=inf in all test cases
+- ✅ Error messages instead of silent failures
+- ✅ Arial Black test passes
+
+### Short-term (Phase 2-3)
+- ✅ Metrics mode 10x faster
+- ✅ Coordinates validated and logged
+- ✅ Standard axis scales enforced
+
+### Long-term (Phase 4)
+- ✅ <1ms streaming render
+- ✅ Unlimited batch size via streaming
+- ✅ Memory stable under load
 
 ## Out of Scope
-- New rendering features or modes
-- Additional output formats beyond PGM/PNG
-- Performance optimizations that compromise correctness
-- Support for color fonts or emoji
+- New rendering features
+- Additional output formats beyond PGM/PNG/metrics
+- Color font support
+- Emoji rendering
+- Subpixel antialiasing
