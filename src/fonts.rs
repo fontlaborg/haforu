@@ -1,4 +1,4 @@
-// this_file: external/haforu2/src/fonts.rs
+// this_file: src/fonts.rs
 
 //! Font loading, variation handling, and caching.
 //!

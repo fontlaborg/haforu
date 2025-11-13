@@ -1,9 +1,9 @@
-// this_file: external/haforu2/src/batch.rs
+// this_file: src/batch.rs
 
 //! Batch job processing and JSONL I/O.
 //!
 //! This module defines the job specification format that FontSimi sends,
-//! and the result format that haforu2 returns via JSONL.
+//! and the result format that haforu returns via JSONL.
 
 use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};

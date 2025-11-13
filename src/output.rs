@@ -1,4 +1,4 @@
-// this_file: external/haforu2/src/output.rs
+// this_file: src/output.rs
 
 //! Image output generation (PGM and PNG formats).
 //!
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_base64_round_trip() {
-        let data = b"Hello, Haforu2!";
+        let data = b"Hello, Haforu!";
         let encoded = ImageOutput::encode_base64(data);
         let decoded = ImageOutput::decode_base64(&encoded).unwrap();
         assert_eq!(decoded, data);

@@ -48,23 +48,23 @@ The project requires fast storage of ~10 million monochrome images using:
 
 ### Font Processing Stack
 
-1. **fontations** (`01code/fontations/`): Core font parsing and manipulation
+1. **fontations** (`reference/01code/fontations/`): Core font parsing and manipulation
    - `font-types`: Common OpenType type definitions
    - `read-fonts`: High-performance, zero-copy font parser
    - `write-fonts`: Font modification and writing
    - `skrifa`: Mid-level library for metadata and glyph loading
 
-2. **harfrust** (`01code/harfrust/`): Rust port of HarfBuzz text shaping
+2. **harfrust** (`reference/01code/harfrust/`): Rust port of HarfBuzz text shaping
    - Uses `read-fonts` for parsing
    - No external dependencies (no FreeType, ICU, etc.)
    - ~25% slower than HarfBuzz C++
 
-3. **parley** (`01code/parley/`): Rich text layout
+3. **parley** (`reference/01code/parley/`): Rich text layout
    - Uses Fontique for font enumeration/fallback
    - Integrates HarfRust for shaping
    - Skrifa for font reading
 
-4. **vello** (`01code/vello/`): GPU-accelerated 2D renderer
+4. **vello** (`reference/01code/vello/`): GPU-accelerated 2D renderer
    - Uses wgpu for GPU compute
    - Can render large 2D scenes interactively
 
@@ -214,8 +214,8 @@ The haforu project consists of:
 
 References: 
 
-- @./01code/ contains a large colleciton of Rust repos that are useful
-- @./02book/ contains a book about Rust font usage and text shaping (you can then research more detailed info inside the @./01code/ folder ) ./01code-tldr.txt is a compact overview of the @./01code/ folder.
+- @./reference/01code/ contains a large colleciton of Rust repos that are useful
+- @./02book/ contains a book about Rust font usage and text shaping (you can then research more detailed info inside the @./reference/01code/ folder) ./01code-tldr.txt is a compact overview of the @./reference/01code/ folder.
 - @./03fonts/ contains a small colleciton of font files that you can use to test the package
 
 # Development guidelines

@@ -1,17 +1,17 @@
-// this_file: external/haforu2/examples/smoke_test.rs
+// this_file: examples/smoke_test.rs
 //
 // Quick smoke test with a real font file
 
 use camino::Utf8PathBuf;
-use haforu2::fonts::FontLoader;
-use haforu2::output::ImageOutput;
-use haforu2::render::GlyphRasterizer;
-use haforu2::shaping::TextShaper;
+use haforu::fonts::FontLoader;
+use haforu::output::ImageOutput;
+use haforu::render::GlyphRasterizer;
+use haforu::shaping::TextShaper;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Use absolute path to fontsimi's test font (since haforu2 is in separate repo)
+    // Use absolute path to fontsimi's test font
     let font_path = PathBuf::from("/Users/adam/Developer/vcs/github.docrepair-fonts/fontsimi/micro/fonts/originals/Arial-Black.ttf");
 
     if !font_path.exists() {

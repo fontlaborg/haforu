@@ -1,7 +1,7 @@
-# this_file: external/haforu2/Cargo.toml
+# this_file: Cargo.toml
 
 [package]
-name = "haforu2"
+name = "haforu"
 version = "2.0.0"
 edition = "2021"
 authors = ["FontSimi Team"]
@@ -10,11 +10,11 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.70"
 
 [lib]
-name = "haforu2"
+name = "haforu"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "haforu2"
+name = "haforu"
 path = "src/main.rs"
 
 [dependencies]

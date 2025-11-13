@@ -1,6 +1,6 @@
-// this_file: external/haforu2/src/lib.rs
+// this_file: src/lib.rs
 
-//! Haforu2: High-performance batch font renderer for FontSimi.
+//! Haforu: High-performance batch font renderer for FontSimi.
 //!
 //! This library provides zero-copy font loading, text shaping, and rasterization
 //! with support for variable fonts and batch processing via JSONL.
@@ -17,7 +17,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use haforu2::{FontLoader, TextShaper, GlyphRasterizer, ImageOutput};
+//! use haforu::{FontLoader, TextShaper, GlyphRasterizer, ImageOutput};
 //! use std::collections::HashMap;
 //! use camino::Utf8Path;
 //!
@@ -38,7 +38,7 @@
 //! // Generate PGM
 //! let pgm = ImageOutput::write_pgm_binary(&pixels, 3000, 1200)?;
 //! let base64 = ImageOutput::encode_base64(&pgm);
-//! # Ok::<(), haforu2::Error>(())
+//! # Ok::<(), haforu::Error>(())
 //! ```
 
 pub mod batch;

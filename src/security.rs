@@ -1,6 +1,6 @@
-// this_file: external/haforu2/src/security.rs
+// this_file: src/security.rs
 
-//! Security and validation utilities for haforu2.
+//! Security and validation utilities for haforu.
 //!
 //! Provides basic path sanitization, input size limits, text validation,
 //! font size checks, and simple timeouts. Kept minimal to avoid bloat while
@@ -140,4 +140,3 @@ impl TimeoutGuard {
         Ok(())
     }
 }
-

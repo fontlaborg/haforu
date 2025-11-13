@@ -1,4 +1,4 @@
-// this_file: external/haforu2/src/render.rs
+// this_file: src/render.rs
 
 //! Glyph rasterization and compositing using zeno.
 //!

@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Testing with font: {}", font_path.display());
     
     // Load the font
-    let loader = haforu2::fonts::FontLoader::new(10);
+    let loader = haforu::fonts::FontLoader::new(10);
     let coords = HashMap::new(); // No variation coordinates for static font
     
     let font_instance = loader.load_font(
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ Font loaded successfully");
     
     // Shape a simple character
-    let shaper = haforu2::shaping::TextShaper::new();
+    let shaper = haforu::shaping::TextShaper::new();
     let shaped = shaper.shape(
         &font_instance,
         "A",
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ Text shaped: {} glyphs", shaped.glyphs.len());
     
     // Render it
-    let rasterizer = haforu2::render::GlyphRasterizer::new();
+    let rasterizer = haforu::render::GlyphRasterizer::new();
     let pixels = rasterizer.render_text(
         &font_instance,
         &shaped,
@@ -49,11 +49,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ Rendered {} pixels", pixels.len());
     
     // Generate PGM
-    let pgm = haforu2::output::ImageOutput::write_pgm_binary(&pixels, 800, 600)?;
+    let pgm = haforu::output::ImageOutput::write_pgm_binary(&pixels, 800, 600)?;
     println!("✓ Generated PGM ({} bytes)", pgm.len());
     
     // Encode to base64
-    let b64 = haforu2::output::ImageOutput::encode_base64(&pgm);
+    let b64 = haforu::output::ImageOutput::encode_base64(&pgm);
     println!("✓ Base64 encoded ({} chars)", b64.len());
     
     println!("\n✅ All steps completed successfully!");

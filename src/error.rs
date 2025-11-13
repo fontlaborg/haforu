@@ -1,6 +1,6 @@
-// this_file: external/haforu2/src/error.rs
+// this_file: src/error.rs
 
-//! Error types for haforu2.
+//! Error types for haforu.
 //!
 //! This module defines all error types used throughout the codebase,
 //! with descriptive messages and context for debugging.
@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 use thiserror::Error;
 
-/// Main error type for haforu2 operations.
+/// Main error type for haforu operations.
 #[derive(Error, Debug)]
 pub enum Error {
     /// Font file not found at specified path
@@ -94,7 +94,7 @@ pub enum Error {
     Internal(String),
 }
 
-/// Specialized Result type for haforu2 operations.
+/// Specialized Result type for haforu operations.
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(test)]

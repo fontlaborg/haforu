@@ -1,21 +1,21 @@
-// this_file: external/haforu2/src/main.rs
+// this_file: src/main.rs
 
-//! Haforu2 CLI: Batch font renderer for FontSimi.
+//! Haforu CLI: Batch font renderer for FontSimi.
 //!
 //! Reads JSON job specifications from stdin, processes rendering jobs,
 //! and outputs JSONL results to stdout.
 
 use clap::{Parser, Subcommand};
-use haforu2::{process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
-use haforu2::security;
+use haforu::{process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
+use haforu::security;
 use camino::Utf8PathBuf;
 use rayon::prelude::*;
 use std::io::{self, BufRead, Read, Write};
 use std::sync::mpsc;
 
-/// Haforu2: High-performance batch font renderer
+/// Haforu: High-performance batch font renderer
 #[derive(Parser)]
-#[command(name = "haforu2")]
+#[command(name = "haforu")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Subcommand to execute
@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
             run_validate(input)?;
         }
         Commands::Version => {
-            println!("haforu2 {}", env!("CARGO_PKG_VERSION"));
+            println!("haforu {}", env!("CARGO_PKG_VERSION"));
             println!("Rust font renderer for FontSimi integration");
         }
     }
@@ -210,7 +210,7 @@ fn run_streaming_mode(cache_size: usize, opts: &ExecutionOptions) -> anyhow::Res
         }
 
         // Parse job
-        let job: Result<haforu2::Job, _> = serde_json::from_str(&line);
+        let job: Result<haforu::Job, _> = serde_json::from_str(&line);
         let job = match job {
             Ok(j) => j,
             Err(e) => {

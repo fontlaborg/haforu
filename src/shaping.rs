@@ -1,4 +1,4 @@
-// this_file: external/haforu2/src/shaping.rs
+// this_file: src/shaping.rs
 
 //! Text shaping using HarfBuzz.
 //!
