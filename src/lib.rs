@@ -49,6 +49,10 @@ pub mod render;
 pub mod shaping;
 pub mod security;
 
+// Python bindings (optional feature)
+#[cfg(feature = "python")]
+pub mod python;
+
 // Re-export main types
 pub use batch::{Job, JobResult, JobSpec, RenderingOutput, TimingInfo};
 pub use error::{Error, Result};

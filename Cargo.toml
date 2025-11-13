@@ -62,7 +62,8 @@ lru = "0.12"
 camino = { version = "1.1", features = ["serde1"] }
 
 # Python bindings
-pyo3 = { version = "0.22", optional = true }
+pyo3 = { version = "0.22", optional = true, features = ["extension-module"] }
+numpy = { version = "0.22", optional = true }
 
 [dev-dependencies]
 tempfile = "3.10"
@@ -71,7 +72,7 @@ insta = "1.39"
 
 [features]
 default = []
-python = ["pyo3"]
+python = ["pyo3", "numpy"]
 
 [profile.release]
 opt-level = 3
