@@ -43,7 +43,9 @@ pub fn sanitize_path<P: AsRef<Path>>(path: P, base_dir: Option<&Path>) -> Result
     } else if let Some(base) = base_dir {
         base.join(path)
     } else {
-        std::env::current_dir().map_err(Error::Io)?.join(path)
+        std::env::current_dir()
+            .map_err(|e| Error::Io(e.to_string()))?
+            .join(path)
     };
 
     // Canonicalize to resolve symlinks

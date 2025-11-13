@@ -2,14 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL ARCHITECTURE DECISION
+
+**Haforu uses a SINGLE UNIFIED CLI TOOL** (`haforu`) with subcommands, NOT separate executables like HarfBuzz:
+
+- ✅ CORRECT: `haforu shape`, `haforu view`, `haforu process`, `haforu query`
+- ❌ WRONG: `haforu-shape`, `haforu-view`, `haforu-process` (separate tools)
+
+All CLI functionality is in ONE binary at `src/main.rs` that dispatches to subcommand modules. See [PLAN.md](PLAN.md) for complete specification.
+
 ## Project Overview
 
-The haforu project aims to create a set of Rust crates that provide:
+The haforu project provides:
 
-- A library, CLI tool, and Python bindings for font shaping and rendering
-- Emulation and enhancement of HarfBuzz tools (`hb-shape` and `hb-view`)
+- A Rust library for font shaping and rendering
+- A **single unified CLI tool** (`haforu`) that combines and enhances HarfBuzz's `hb-shape` and `hb-view` functionality
 - JSON-based batch processing for multiple fonts, variations, sizes, and texts
 - High-performance storage and retrieval of pre-rendered font results
+- Python bindings for the library
 
 ## Key Project Requirements
 
@@ -179,12 +189,28 @@ let mask = Mask::new(&path)
 
 ---
 
-Inside this folder we want a spec and implementation of a set of "haforu-" Rust crates: 
+## Implementation Structure
 
-- a lib and CLI tool and a Python bindings package where the CLI emulates or follows the CLI of @./hb-shape.txt and @./hb-view.txt but enhances it so that it takes a JSON from stdin as a "jobs-spec" for shaping & rendering of multiple fonts, variable font instances, sizes, and texts, and outputs a JSONL "jobs-result" where each JSON line is a job result that repeats the input params, and includes a shaping output similar to hb-shape (if requested) and includes an identifier to the rendering, which may be a path to file (if requested) or some pointed to the output database (if requested). 
-- For output database see @./400.md —— the package should also allow for fast retrieval of the prerendered results from the database or filesystem, so the database or filesystem can be used as a cache for the prerendered results.
-- We want the code to be extremely fast, using all parallelism and other Rust features to the fullest, but also safe
-- We want the code to just as easily be able to render 10,000 different texts using one font instance or one text using 10,000 different font instances coming from hundreds of different variable fonts.
+The haforu project consists of:
+
+1. **haforu library** (`src/lib.rs`): Core functionality as a Rust library
+2. **haforu CLI** (`src/main.rs`): SINGLE unified executable with subcommands:
+   - `haforu shape` - Emulates `hb-shape` with enhanced features
+   - `haforu view` - Emulates `hb-view` with enhanced features
+   - `haforu process` - New batch processing mode for JSON jobs
+   - `haforu query` - New storage query/management operations
+3. **Python bindings**: PyO3-based wrapper around the library
+
+### Key Requirements:
+
+- The CLI tool takes JSON from stdin as "jobs-spec" for batch processing multiple fonts, variable font instances, sizes, and texts
+- Outputs JSONL "jobs-result" where each line includes:
+  - Original input parameters
+  - Shaping output (similar to hb-shape) if requested
+  - Rendering identifier (file path or database reference)
+- Fast storage/retrieval using techniques from [400.md](400.md) for caching ~10M pre-rendered results
+- Extreme performance: full parallelism, zero-copy parsing, GPU acceleration where applicable
+- Handle both extremes: 10,000 texts × 1 font OR 1 text × 10,000 font instances
 
 References: 
 

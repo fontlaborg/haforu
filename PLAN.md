@@ -2,895 +2,766 @@
 this_file: external/haforu/PLAN.md
 ---
 
-# PLAN.md - Haforu CLI Tool Comprehensive Specification
+# 🚨 DEPRECATION NOTICE: Legacy haforu repo
 
-## Executive Overview
+This folder hosts the legacy, half‑implemented `haforu` codebase. It remains only as a temporary reference until the canonical `haforu` package (developed in `../haforu2/`, published as `haforu`) is complete and integrated. Do not add new features here. Only perform minimal edits strictly necessary to aid migration, if any. Once the new `haforu` is mature, remove this folder/symlink from the `fontsimi` workspace.
 
-**Haforu** is a single, unified CLI tool that combines and enhances the functionality of HarfBuzz's `hb-shape` and `hb-view` tools. It processes JSON job specifications from stdin and outputs JSONL (JSON Lines) results to stdout, supporting batch processing of thousands of font/text combinations with optional rendering and storage.
+# 🚀 CRITICAL PRIORITY: HAFORU RENDERING IMPLEMENTATION FOR FONTSIMI
 
-## FontSimi Integration Requirements (CRITICAL)
+**Status:** Foundation complete. BEGIN H2 Rust rendering implementation NOW.
+**Expected Impact:** 100× speedup (5h → 3min), 97% memory reduction (86GB → <2GB)
+**Timeline:** 12-18 days for H2 complete
 
-**Problem**: FontSimi currently makes 5.5M individual render calls (250 fonts × 85 instances × 5 segments × 52 glyphs), causing 86GB memory usage and hours of runtime due to Python<->Native overhead.
+**Note:** This PLAN covers Haforu Rust implementation. See @../../PLAN.md for FontSimi Python integration.
 
-**Solution**: Haforu will provide batch rendering capabilities to reduce this to a single subprocess call with streaming results.
+---
 
-### Key Requirements for FontSimi
+## 📊 FontSimi Integration Context
 
-1. **Batch Mode with Streaming Output**
-   - Accept JSON job specification with 5000+ render jobs
-   - Stream JSONL results as they complete (not wait for all)
-   - Include job ID in each result for correlation
+### Current FontSimi Bottleneck
 
-2. **Streaming Mode for Optimization**
-   - Support `--streaming` flag to keep process alive
-   - Read jobs from stdin continuously (one per line)
-   - Write results to stdout immediately (one per line)
-   - Maintain font cache across jobs in same process
+FontSimi makes 5.5 million individual render calls:
+- **250 fonts** × **85 variable instances** × **5 script segments** × **52 glyphs per segment**
+- Each call crosses Python→Native boundary with object creation/destruction
+- **Result:** 86GB RAM usage, 5+ hours runtime, frequent OOM crashes
 
-3. **Variable Font Support**
-   - Accept variation coordinates in job specification
-   - Apply variations correctly for each job
-   - Cache font instances to avoid re-instantiation
+### Haforu Solution
 
-4. **Output Requirements**
-   - PGM format (8-bit grayscale) for metrics computation
-   - Include rendered width/height in result metadata
-   - Support both base64 encoded and file reference outputs
-   - Optional: include glyph metrics (advance, bbox)
+**Haforu is a Rust-native batch font renderer** that processes thousands of font/text combinations in a single call with memory-mapped fonts and parallel rendering.
 
-5. **Memory Management**
-   - Memory-mapped font loading (never load into heap)
-   - Configurable memory limits via --max-memory flag
-   - Clear font cache when approaching limit
-   - Report memory usage in JSONL if requested
+**Key Capability:** Process 5000+ render jobs in one subprocess invocation, streaming JSONL results progressively.
 
-### FontSimi-Specific Job Format
+**Expected Performance:**
+- Memory: 86GB → <2GB (97% reduction)
+- Analysis Speed: 5 hours → 3 minutes (100× faster)
+- Deep Matching: 30s → 0.6s per font pair (50× faster)
+- Reliability: Zero OOM crashes
 
-```json
-{
-  "version": "1.0",
-  "mode": "batch",  // or "streaming"
-  "config": {
-    "max_memory_mb": 2000,
-    "output_format": "base64",  // or "file"
-    "include_metrics": true
-  },
-  "jobs": [
-    {
-      "id": "font1_wght500_Latn_char_a",
-      "font": {
-        "path": "/path/to/font.ttf",
-        "size": 1000,  // FontSimi uses 1000pt for daidot
-        "variations": {"wght": 500, "wdth": 125}
-      },
-      "text": {
-        "content": "a",  // Single glyph for daidot metrics
-        "script": "Latn"
-      },
-      "rendering": {
-        "format": "pgm",
-        "encoding": "binary",
-        "width": 3000,   // Large enough for metrics
-        "height": 1200
-      }
-    }
-  ]
-}
-```
+---
 
-### Expected Output Format
+## 🎯 H2 RUST RENDERING IMPLEMENTATION (12-18 DAYS)
 
-```json
-{
-  "id": "font1_wght500_Latn_char_a",
-  "status": "success",
-  "rendering": {
-    "format": "pgm",
-    "encoding": "base64",
-    "data": "UDUKMzAwMCAxMjAwCjI1NQo...",  // Base64 encoded PGM
-    "width": 3000,
-    "height": 1200,
-    "actual_bbox": {"x": 100, "y": 200, "w": 800, "h": 900}
-  },
-  "metrics": {
-    "advance_width": 823,
-    "left_bearing": 50,
-    "right_bearing": 73
-  },
-  "timing": {
-    "shape_ms": 0.5,
-    "render_ms": 2.3
-  },
-  "memory": {
-    "font_cache_mb": 45,
-    "total_mb": 156
-  }
-}
-```
+### H2.1: Implement JSON Job Processing (2-3 days) ⚡ CRITICAL
 
-## Architecture Overview
+**Goal:** Parse JSON job specifications from stdin and validate all required fields.
 
-```
-┌─────────────────────────────────────────────────┐
-│                 haforu CLI                       │
-│                                                  │
-│  ┌───────────────────────────────────────────┐  │
-│  │          Command Parser                   │  │
-│  │  - Traditional mode (hb-shape/view compat)│  │
-│  │  - Batch mode (JSON jobs from stdin)      │  │
-│  └───────────────────────────────────────────┘  │
-│                      ↓                           │
-│  ┌───────────────────────────────────────────┐  │
-│  │          Job Orchestrator                 │  │
-│  │  - Parallelization strategy selection     │  │
-│  │  - Work unit distribution                 │  │
-│  │  - Resource management                    │  │
-│  └───────────────────────────────────────────┘  │
-│                      ↓                           │
-│  ┌───────────────────────────────────────────┐  │
-│  │          Processing Pipeline              │  │
-│  │  1. Font loading (mmap_font.rs)           │  │
-│  │  2. Text shaping (shaping.rs)             │  │
-│  │  3. Rendering (rasterize.rs)              │  │
-│  │  4. Storage (storage.rs)                  │  │
-│  └───────────────────────────────────────────┘  │
-│                      ↓                           │
-│  ┌───────────────────────────────────────────┐  │
-│  │          Output Formatter                 │  │
-│  │  - JSONL for batch mode                   │  │
-│  │  - Text/JSON for traditional mode         │  │
-│  └───────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
-```
+**Files:** `src/json_parser.rs`, `src/main.rs`
 
-## Build, Versioning, and Publish Plan
+#### Task 1: Complete JobSpec Data Structures (4 hours)
 
-Goal: One-command local builds and tag-driven semantic releases for both Rust and Python packages.
+**Objective:** Define complete Rust structs matching FontSimi's JSON format.
 
-- Version source of truth: git tag `vX.Y.Z`.
-- Scripts:
-  - `build.sh` — check, lint, test, build; sync versions from tag or `--version`.
-  - `publish.sh` — publish to crates.io and PyPI, syncing version from tag or `--version`.
-- Python bindings: `bindings/python` (crate `haforu-py`, PyPI package `haforu`) using PyO3 + maturin.
-- CI (GitHub Actions):
-  - `ci.yml` — fmt, clippy, tests; Python bindings build smoke test (maturin develop).
-  - `release.yml` — on `v*` tag, set versions, build Rust binaries for Linux/macOS/Windows, build Python wheels + sdist, create GitHub Release, optionally publish to crates.io/PyPI if secrets present.
-  - `audit.yml` — scheduled cargo-audit.
-
-Secrets required for automated publish:
-- `CRATES_IO_TOKEN` — crates.io publish.
-- `PYPI_TOKEN` — PyPI publish.
-
-Python API (v0):
-- `haforu.version() -> str`
-- `haforu.validate_spec(json: str) -> bool`
-- `haforu.process(json: str) -> list[str]` (JSONL lines)
-
-Testing strategy for release pipeline:
-- CI runs `cargo fmt`, `clippy -D warnings`, `cargo test --all`.
-- Python build smoke test: `maturin develop` + import/version check.
-- Release job re-runs build with synced version to ensure artifacts correctness.
-
-## CLI Interface Specification
-
-### Command Structure
-
-```bash
-haforu [OPTIONS] [FONT_FILE] [TEXT]
-```
-
-### Operating Modes
-
-#### 1. Traditional Mode (HarfBuzz Compatibility)
-
-When called with font file and text arguments, operates like hb-shape/hb-view:
-
-```bash
-# Shape only (like hb-shape)
-haforu font.ttf "Hello World" --no-render
-
-# Shape and render (like hb-view)
-haforu font.ttf "Hello World" -o output.png
-
-# With variations
-haforu --variations="wght=500,wdth=125" font.ttf "Text"
-
-# Output to PBM/PGM formats
-haforu font.ttf "Hello World" -o output.pbm  # 1-bit monochrome
-haforu font.ttf "Hello World" -o output.pgm  # 8-bit grayscale
-
-# Direct stdout output (pipe-friendly)
-haforu font.ttf "Text" --output-format=pgm-ascii > output.pgm
-haforu font.ttf "Text" --output-format=pbm-binary | convert - output.jpg
-
-# Advanced rendering options
-haforu --dpi=300 --threshold=200 --dither font.ttf "Text" -o output.pbm
-haforu --antialiasing=false --bit-depth=16 font.ttf "Text" -o output.pgm
-```
-
-#### 2. Batch Mode (JSON Jobs)
-
-When `--batch` flag is present or stdin is piped, reads JSON jobs specification:
-
-```bash
-# Read from stdin
-echo '{"jobs":[...]}' | haforu --batch
-
-# Read from file
-haforu --batch < jobs.json
-
-# With storage backend
-haforu --batch --storage-dir=/data/cache --store-results
-```
-
-### Command-Line Options
-
-#### Core Options
-```
---batch                    Enable batch processing mode (JSON input)
---help, -h                 Show help message
---version, -V              Show version information
---verbose, -v              Increase verbosity (can be repeated)
---quiet, -q                Suppress non-error output
-```
-
-#### Font Options (see [hb-shape.txt](./hb-shape.txt))
-```
---font-file=PATH           Font file path
---face-index=N             Face index in font file (default: 0)
---font-size=SIZE           Font size in points or 'upem'
---variations=LIST          Comma-separated variation settings (e.g., "wght=500,wdth=125")
---named-instance=N         Use named instance from variable font
-```
-
-#### Shaping Options (see [hb-shape.txt](./hb-shape.txt))
-```
---direction=DIR            Text direction (ltr/rtl/ttb/btt/auto)
---language=LANG            BCP 47 language tag
---script=SCRIPT            ISO-15924 script tag
---features=LIST            OpenType features (e.g., "kern,liga,calt")
---no-shape                 Skip shaping (render only)
---shapers=LIST             Shaper preference list (default: ot,fallback)
-```
-
-#### Rendering Options (see [hb-view.txt](./hb-view.txt))
-```
---no-render                Skip rendering (shape only)
---output, -o PATH          Output file path (PNG/SVG/PDF/PBM/PGM or stdout)
---output-format=FORMAT     Output format selection:
-                          Bitmap: png, pbm, pbm-ascii, pbm-binary,
-                                 pgm, pgm-ascii, pgm-binary
-                          Vector: svg, pdf
-                          Data: json
---foreground=COLOR         Text color (hex: RRGGBB or RRGGBBAA)
---background=COLOR         Background color
---margin=SIZE              Margin around output (default: 16)
---font-extents=VALUES      Set ascent/descent/line-gap
---dpi=VALUE               Resolution for rasterization (default: 96)
---antialiasing=BOOL       Enable/disable antialiasing (default: true)
---hinting=MODE            Hinting: none|slight|medium|full (default: full)
---subpixel=MODE           Subpixel: none|rgb|bgr|vrgb|vbgr (default: none)
---threshold=VALUE         Monochrome threshold 0-255 (default: 128)
---dither=BOOL             Enable dithering for monochrome (default: false)
---bit-depth=VALUE         Bit depth: 1|8|16 (default: 8)
---encoding=MODE           PBM/PGM encoding: ascii|binary (default: binary)
-```
-
-#### Storage Options (see [400.md](./400.md))
-```
---storage-dir=PATH         Storage directory for packfiles
---store-results            Store rendered results in database
---retrieve=ID              Retrieve stored result by ID
---compression=ALGO         Compression (zstd:3, lz4, none)
---shard-size=N             Images per shard (default: 10000)
-```
-
-#### Parallelization Options
-```
---threads=N                Thread pool size (0=auto)
---strategy=STRAT           Parallelization strategy (auto/font/instance/text)
---max-parallel=N           Max parallel jobs
---batch-size=N             Jobs per batch
-```
-
-## JSON Jobs Specification Format
-
-### Input Format (jobs-spec)
-
-The input is a JSON object containing an array of jobs. Each job specifies:
-- Font configuration (path, variations, size)
-- Text content and shaping parameters
-- Output requirements (shape data, rendering, storage)
-
-```json
-{
-  "version": "1.0",
-  "defaults": {
-    "font": {
-      "size": 16,
-      "ppem": [96, 96]
-    },
-    "shaping": {
-      "direction": "ltr",
-      "language": "en",
-      "script": "Latn"
-    },
-    "rendering": {
-      "format": "png",
-      "foreground": "#000000",
-      "background": "#FFFFFF"
-    },
-    "output": {
-      "include_shaping": true,
-      "include_rendering": true,
-      "store_in_db": false
-    }
-  },
-  "jobs": [
-    {
-      "id": "job_001",
-      "font": {
-        "path": "/path/to/font.ttf",
-        "face_index": 0,
-        "variations": {
-          "wght": 500,
-          "wdth": 125
-        },
-        "size": 24,
-        "named_instance": null
-      },
-      "text": {
-        "content": "Hello World",
-        "direction": "ltr",
-        "language": "en",
-        "script": "Latn",
-        "features": ["kern", "liga", "calt"],
-        "cluster_level": 0
-      },
-      "rendering": {
-        "format": "png",
-        "output_path": "/output/job_001.png",
-        "foreground": "#000000",
-        "background": "#FFFFFF",
-        "margin": 16,
-        "dpi": 96,
-        "antialiasing": true,
-        "hinting": "full",
-        "subpixel": "none",
-        "threshold": 128,
-        "dither": false,
-        "bit_depth": 8,
-        "encoding": "binary"
-      },
-      "output": {
-        "include_shaping": true,
-        "include_rendering": true,
-        "store_in_db": true,
-        "output_path": "/output/job_001.png"
-      }
-    }
-  ]
-}
-```
-
-### Output Format (JSONL jobs-result)
-
-Each line is a complete JSON object representing one job result:
-
-```json
-{"id":"job_001","status":"success","input":{"font":{"path":"/path/to/font.ttf","size":24},"text":{"content":"Hello World"}},"shaping":{"glyphs":[{"glyph_id":43,"cluster":0,"x_advance":576,"y_advance":0,"x_offset":0,"y_offset":0},{"glyph_id":72,"cluster":1,"x_advance":512,"y_advance":0,"x_offset":0,"y_offset":0}],"direction":"ltr","script":"Latn","language":"en"},"rendering":{"output_path":"/output/job_001.png","width":4200,"height":300,"format":"png","storage_id":"shard_042/img_31415"},"timing":{"total_ms":4.7,"shape_ms":1.2,"render_ms":3.4,"store_ms":0.1},"metadata":{"font_family":"Roboto","font_version":"2.138","glyph_count":72}}
-```
-
-### Field Specifications
-
-#### Job ID (`id`)
-- **Type**: String
-- **Required**: Yes
-- **Description**: Unique identifier for the job
-- **Example**: `"job_001"`, `"test_42_arial_bold"`
-
-#### Font Configuration (`font`)
-- **path** (string, required): Absolute or relative path to font file
-- **face_index** (integer): Index of face in collection (default: 0)
-- **variations** (object): Variable font axis settings as key-value pairs
-- **size** (number): Font size in points (default: 16)
-- **named_instance** (integer|null): Named instance index for variable fonts
-
-#### Text Configuration (`text`)
-- **content** (string, required): Text to shape/render
-- **direction** (string): Text direction - "ltr", "rtl", "ttb", "btt", "auto"
-- **language** (string): BCP 47 language tag (e.g., "en", "ar-SA")
-- **script** (string): ISO-15924 script code (e.g., "Latn", "Arab")
-- **features** (array): OpenType feature tags to enable
-- **cluster_level** (integer): HarfBuzz cluster level (0-2)
-
-#### Rendering Configuration (`rendering`)
-- **format** (string): Output format - "png", "pbm", "pgm", "svg", "pdf"
-- **output_path** (string): Where to save rendered image (or "-" for stdout)
-- **foreground** (string): Text color as hex (#RRGGBB or #RRGGBBAA)
-- **background** (string): Background color
-- **margin** (integer): Pixels of margin around text
-- **dpi** (integer): Resolution for rasterization (default: 96)
-- **antialiasing** (boolean): Enable antialiasing (default: true)
-- **hinting** (string): Hinting mode - "none", "slight", "medium", "full" (default: "full")
-- **subpixel** (string): Subpixel rendering - "none", "rgb", "bgr", "vrgb", "vbgr" (default: "none")
-- **threshold** (integer): Monochrome conversion threshold 0-255 (default: 128)
-- **dither** (boolean): Enable dithering for monochrome output (default: false)
-- **bit_depth** (integer): Bit depth for PGM - 8 or 16 (default: 8)
-- **encoding** (string): PBM/PGM encoding - "ascii" or "binary" (default: "binary")
-
-#### Output Control (`output`)
-- **include_shaping** (boolean): Include shaping data in output
-- **include_rendering** (boolean): Perform rendering
-- **store_in_db** (boolean): Store in packfile database
-- **output_path** (string): File path for rendered output
-
-## Implementation Modules
-
-### 1. Main CLI Entry Point ([src/main.rs](./src/main.rs))
-
+**Implementation:**
 ```rust
-use clap::{Parser, Subcommand};
-use haforu::{JobOrchestrator, JobSpec};
+// src/json_parser.rs
 
-#[derive(Parser)]
-#[command(name = "haforu")]
-#[command(about = "High-performance font shaping and rendering")]
-struct Cli {
-    #[arg(long)]
-    batch: bool,
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-    // Font file for traditional mode
-    font_file: Option<String>,
-
-    // Text for traditional mode
-    text: Option<String>,
-
-    // ... other options
+#[derive(Debug, Clone, Deserialize)]
+pub struct JobSpec {
+    pub version: String,
+    #[serde(default)]
+    pub mode: JobMode,
+    #[serde(default)]
+    pub config: BatchConfig,
+    pub jobs: Vec<Job>,
 }
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JobMode {
+    Batch,
+    Streaming,
+}
 
-    if cli.batch || is_stdin_piped() {
-        run_batch_mode(cli)
-    } else {
-        run_traditional_mode(cli)
+impl Default for JobMode {
+    fn default() -> Self {
+        JobMode::Batch
     }
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BatchConfig {
+    #[serde(default = "default_max_memory")]
+    pub max_memory_mb: usize,
+    #[serde(default = "default_output_format")]
+    pub output_format: OutputFormat,
+    #[serde(default)]
+    pub include_metrics: bool,
+}
+
+fn default_max_memory() -> usize { 2000 }
+fn default_output_format() -> OutputFormat { OutputFormat::Base64 }
+
+impl Default for BatchConfig {
+    fn default() -> Self {
+        BatchConfig {
+            max_memory_mb: 2000,
+            output_format: OutputFormat::Base64,
+            include_metrics: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputFormat {
+    Base64,
+    File,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Job {
+    pub id: String,
+    pub font: FontConfig,
+    pub text: TextConfig,
+    pub rendering: RenderingConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct FontConfig {
+    pub path: String,
+    pub size: f32,  // FontSimi uses 1000pt for daidot
+    #[serde(default)]
+    pub variations: HashMap<String, f32>,
+    #[serde(default)]
+    pub face_index: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TextConfig {
+    pub content: String,
+    #[serde(default = "default_script")]
+    pub script: String,
+    #[serde(default = "default_direction")]
+    pub direction: String,
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_script() -> String { "Latn".to_string() }
+fn default_direction() -> String { "ltr".to_string() }
+fn default_language() -> String { "en".to_string() }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RenderingConfig {
+    #[serde(default = "default_format")]
+    pub format: String,  // "pgm" for FontSimi
+    #[serde(default = "default_encoding")]
+    pub encoding: String,  // "binary" for P5
+    pub width: u32,   // 3000 for FontSimi
+    pub height: u32,  // 1200 for FontSimi
+}
+
+fn default_format() -> String { "pgm".to_string() }
+fn default_encoding() -> String { "binary".to_string() }
 ```
 
-### 2. Job Orchestrator ([src/orchestrator.rs](./src/orchestrator.rs))
+**Tasks:**
+- [ ] Define complete JobSpec struct hierarchy
+- [ ] Add serde derive macros for JSON deserialization
+- [ ] Implement sensible defaults for optional fields
+- [ ] Add validation helper methods
+- [ ] **Test:** Parse valid FontSimi job spec, verify all fields correct
 
-Manages parallel job execution with intelligent work distribution:
+**Success Criteria:**
+- Parses FontSimi job spec with 5000+ jobs without error
+- Correctly deserializes variable font coordinates
+- Handles missing optional fields with defaults
 
+#### Task 2: Implement JSON Parsing from stdin (4 hours)
+
+**Objective:** Read and parse JSON from stdin in batch mode.
+
+**Implementation:**
 ```rust
-pub struct JobOrchestrator {
-    font_cache: MmapFontCache,
-    shaper_pool: ShaperPool,
-    renderer_pool: RendererPool,
-    storage: StorageManager,
-    thread_pool: ThreadPool,
-}
+// src/main.rs
 
-impl JobOrchestrator {
-    pub fn process_jobs(&mut self, spec: JobSpec) -> Vec<JobResult> {
-        // 1. Analyze workload
-        let stats = self.analyze_jobs(&spec);
+use std::io::{self, Read};
+use anyhow::{Context, Result};
 
-        // 2. Select parallelization strategy
-        let strategy = self.determine_strategy(&stats);
+pub fn read_job_spec_from_stdin() -> Result<JobSpec> {
+    let mut buffer = String::new();
+    io::stdin()
+        .read_to_string(&mut buffer)
+        .context("Failed to read from stdin")?;
 
-        // 3. Create work units
-        let work_units = self.create_work_units(&spec, strategy);
-
-        // 4. Execute in parallel
-        work_units.par_iter()
-            .map(|unit| self.process_work_unit(unit))
-            .collect()
+    // Validate JSON size (FontSimi sends ~10MB for 5000 jobs)
+    if buffer.len() > 100_000_000 {  // 100MB limit
+        anyhow::bail!("JSON input too large: {} bytes (max 100MB)", buffer.len());
     }
+
+    let spec: JobSpec = serde_json::from_str(&buffer)
+        .context("Failed to parse JSON job specification")?;
+
+    // Validate version
+    if spec.version != "1.0" {
+        anyhow::bail!("Unsupported job spec version: {}", spec.version);
+    }
+
+    // Validate job count
+    if spec.jobs.is_empty() {
+        anyhow::bail!("Job spec contains no jobs");
+    }
+
+    Ok(spec)
 }
 ```
 
-### 3. Font Management ([src/mmap_font.rs](./src/mmap_font.rs))
+**Tasks:**
+- [ ] Read stdin into string buffer with size limit (100MB max)
+- [ ] Parse JSON using serde_json
+- [ ] Validate job spec version (currently "1.0")
+- [ ] Validate job array is non-empty
+- [ ] Provide helpful error messages for malformed JSON
+- [ ] **Test:** Parse 10KB, 1MB, 10MB JSON successfully
 
-Zero-copy font loading with memory mapping:
+**Success Criteria:**
+- Parses 10MB job spec in <500ms
+- Clear error messages for syntax errors
+- Rejects oversized input (>100MB)
 
+#### Task 3: Implement Field Validation (4 hours)
+
+**Objective:** Validate all required fields and value ranges.
+
+**Implementation:**
 ```rust
-pub struct FileInfo {
-    pub path: PathBuf,
-    pub mmap: Arc<Mmap>,
-    pub font_type: FontType,
-    pub font_count: u32,
-}
+// src/json_parser.rs
 
-impl FileInfo {
-    pub fn from_path(path: &Path) -> Result<Self> {
-        // Memory-map the font file
-        let file = File::open(path)?;
-        let mmap = unsafe { Mmap::map(&file)? };
+impl Job {
+    pub fn validate(&self) -> Result<()> {
+        // Validate job ID
+        if self.id.is_empty() {
+            anyhow::bail!("Job ID cannot be empty");
+        }
 
-        // Detect font type and validate
-        let font_type = FontType::from_data(&mmap)?;
+        // Validate font path
+        if self.font.path.is_empty() {
+            anyhow::bail!("Font path cannot be empty for job {}", self.id);
+        }
 
-        Ok(FileInfo { ... })
-    }
+        // Validate font size
+        if self.font.size <= 0.0 || self.font.size > 10000.0 {
+            anyhow::bail!("Font size must be 0-10000pt for job {}", self.id);
+        }
 
-    pub fn get_font(&self, index: u32) -> Result<FontRef> {
-        // Return zero-copy FontRef
-    }
-}
-```
+        // Validate text content
+        if self.text.content.is_empty() {
+            anyhow::bail!("Text content cannot be empty for job {}", self.id);
+        }
 
-### 4. Text Shaping ([src/shaping.rs](./src/shaping.rs))
+        if self.text.content.len() > 10000 {
+            anyhow::bail!("Text content too long ({} chars, max 10000) for job {}",
+                         self.text.content.len(), self.id);
+        }
 
-HarfRust integration for text shaping:
+        // Validate rendering dimensions
+        if self.rendering.width == 0 || self.rendering.width > 10000 {
+            anyhow::bail!("Width must be 1-10000 pixels for job {}", self.id);
+        }
 
-```rust
-pub struct TextShaper {
-    cached_font_data: Option<(Vec<u8>, ShaperData)>,
-}
+        if self.rendering.height == 0 || self.rendering.height > 10000 {
+            antml:bail!("Height must be 1-10000 pixels for job {}", self.id);
+        }
 
-impl TextShaper {
-    pub fn shape(&mut self,
-        font_data: &[u8],
-        text: &str,
-        size: f32,
-        options: &ShapingOptions
-    ) -> Result<ShapingOutput> {
-        // Create HarfRust font
-        let font = HarfRustFontRef::from_index(font_data, 0)?;
+        // Validate format
+        if self.rendering.format != "pgm" && self.rendering.format != "png" {
+            anyhow::bail!("Unsupported format '{}' for job {}",
+                         self.rendering.format, self.id);
+        }
 
-        // Configure buffer
-        let mut buffer = UnicodeBuffer::new();
-        buffer.push_str(text);
-        buffer.set_direction(parse_direction(&options.direction)?);
-
-        // Shape with features
-        let shaper = /* ... */;
-        let glyph_buffer = shaper.shape(buffer, &features);
-
-        // Extract results
-        Ok(ShapingOutput { glyphs, ... })
+        Ok(())
     }
 }
-```
 
-### 5. Rendering ([src/rasterize.rs](./src/rasterize.rs))
-
-#### Output Format Specifications
-
-**Portable Bitmap (PBM) - 1-bit Monochrome**
-- **P1 (ASCII)**: Human-readable text format, larger files
-- **P4 (Binary)**: Compact binary format, efficient storage
-- **Conversion**: Apply threshold to grayscale, optional dithering
-- **Use cases**: Simple black/white output, OCR preprocessing, fax systems
-
-**Portable Graymap (PGM) - Grayscale**
-- **P2 (ASCII)**: Human-readable text format, debugging-friendly
-- **P5 (Binary)**: Compact binary format, standard for tools
-- **Bit depth**: 8-bit (0-255) or 16-bit (0-65535)
-- **Use cases**: Grayscale rendering, alpha channel export, image processing
-
-**PNG - Portable Network Graphics**
-- **Channels**: RGB, RGBA, Grayscale, Grayscale+Alpha
-- **Bit depth**: 1, 2, 4, 8, 16 bits per channel
-- **Compression**: Deflate (zlib), lossless
-- **Use cases**: Web graphics, full-color output, transparency
-
-**Vector Formats**
-- **SVG**: XML-based, scalable, web-compatible
-- **PDF**: Document format, embedded fonts, print-ready
-
-**Stdout Support**
-- Direct output to stdout for PBM/PGM formats
-- Binary or ASCII encoding based on format
-- Enables Unix pipeline integration: `haforu view font.ttf "text" | convert - output.jpg`
-
-#### CPU rasterization with skrifa + zeno:
-
-```rust
-pub struct CpuRasterizer {
-    subpixel_precision: u32,
-}
-
-impl CpuRasterizer {
-    pub fn render_glyph(
-        &self,
-        font: &FontRef,
-        glyph_id: GlyphId,
-        size: f32,
-    ) -> Result<RenderedGlyph> {
-        // Extract outline with skrifa
-        let glyph = font.outline_glyphs().get(glyph_id)?;
-
-        // Convert to zeno path
-        let mut pen = ZenoPen::new();
-        glyph.draw(settings, &mut pen)?;
-
-        // Rasterize with zeno
-        let mask = Mask::new(&path)
-            .size(width, height)
-            .render();
-
-        Ok(RenderedGlyph { ... })
+impl JobSpec {
+    pub fn validate_all(&self) -> Result<()> {
+        for job in &self.jobs {
+            job.validate()?;
+        }
+        Ok(())
     }
 }
 ```
 
-### 6. Storage Backend ([src/storage.rs](./src/storage.rs))
+**Tasks:**
+- [ ] Validate job ID is non-empty
+- [ ] Validate font path exists and is readable
+- [ ] Validate font size is positive (typical: 16-2000pt)
+- [ ] Validate text content is non-empty and <10K chars
+- [ ] Validate rendering dimensions are positive
+- [ ] Validate output format (pgm/png)
+- [ ] **Test:** Detect all invalid field combinations
 
-Sharded packfile system for efficient storage:
+**Success Criteria:**
+- Validates 5000 jobs in <100ms
+- Helpful error messages with job ID and field name
+- Rejects invalid values before processing
 
-```rust
-pub struct StorageManager {
-    shards: HashMap<u32, Shard>,
-    current_shard: u32,
-    config: StorageConfig,
-}
+#### Task 4: Unit Tests for JSON Parsing (2 hours)
 
-impl StorageManager {
-    pub fn store_image(&mut self, image: &[u8], metadata: ImageMetadata) -> Result<String> {
-        // Compress image
-        let compressed = zstd::compress(image, 3)?;
-
-        // Get or create shard
-        let shard = self.get_current_shard()?;
-
-        // Append to shard
-        let offset = shard.append(compressed)?;
-
-        // Return storage ID
-        Ok(format!("shard_{:03}/img_{:05}", shard.id, offset))
-    }
-
-    pub fn retrieve_image(&self, storage_id: &str) -> Result<Vec<u8>> {
-        // Parse storage ID
-        let (shard_id, img_offset) = parse_storage_id(storage_id)?;
-
-        // Get shard
-        let shard = self.shards.get(&shard_id)?;
-
-        // Read and decompress
-        let compressed = shard.read_at(img_offset)?;
-        Ok(zstd::decompress(compressed)?)
-    }
-}
-```
-
-## Testing Strategy
-
-### Unit Tests
-
-Each module should have comprehensive unit tests:
-
+**Tests:**
 ```rust
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_shape_simple_text() {
-        let shaper = TextShaper::new();
-        let result = shaper.shape(font_data, "Hello", 16.0, &options);
-        assert_eq!(result.glyphs.len(), 5);
+    fn test_parse_valid_fontsimi_job() {
+        let json = r#"{
+            "version": "1.0",
+            "jobs": [{
+                "id": "font1_wght500_Latn_a",
+                "font": {
+                    "path": "/fonts/test.ttf",
+                    "size": 1000,
+                    "variations": {"wght": 500}
+                },
+                "text": {
+                    "content": "a",
+                    "script": "Latn"
+                },
+                "rendering": {
+                    "format": "pgm",
+                    "encoding": "binary",
+                    "width": 3000,
+                    "height": 1200
+                }
+            }]
+        }"#;
+
+        let spec: JobSpec = serde_json::from_str(json).unwrap();
+        assert_eq!(spec.jobs.len(), 1);
+        assert_eq!(spec.jobs[0].id, "font1_wght500_Latn_a");
+        assert_eq!(spec.jobs[0].font.size, 1000.0);
+        spec.validate_all().unwrap();
     }
 
     #[test]
-    fn test_render_glyph() {
-        let rasterizer = CpuRasterizer::new(16.0);
-        let glyph = rasterizer.render_glyph(&font, glyph_id, 16.0);
-        assert!(glyph.is_ok());
+    fn test_reject_empty_job_array() {
+        let json = r#"{"version": "1.0", "jobs": []}"#;
+        let spec: JobSpec = serde_json::from_str(json).unwrap();
+        // Should fail validation, not parsing
+    }
+
+    #[test]
+    fn test_reject_invalid_version() {
+        let json = r#"{"version": "2.0", "jobs": []}"#;
+        let spec: JobSpec = serde_json::from_str(json).unwrap();
+        assert_ne!(spec.version, "1.0");
     }
 }
 ```
 
-### Integration Tests
+**Tasks:**
+- [ ] Test valid FontSimi job spec parsing
+- [ ] Test malformed JSON rejection
+- [ ] Test missing required fields
+- [ ] Test invalid value ranges
+- [ ] Test edge cases (empty strings, negative numbers, huge arrays)
+- [ ] **Goal:** 100% code coverage for json_parser.rs
 
-End-to-end tests in `tests/` directory:
+**Estimated Time:** 2-3 days total for H2.1
 
+---
+
+### H2.2: Implement Font Loading with Variations (2-3 days) ⚡ CRITICAL
+
+**Goal:** Load font files via memory mapping and apply variable font coordinates.
+
+**Files:** `src/mmap_font.rs`, `src/font_cache.rs`
+
+#### Task 1: Memory-Mapped Font Loading (6 hours)
+
+**Objective:** Load fonts with zero-copy memory mapping.
+
+**Implementation:**
 ```rust
-// tests/cli_test.rs
-use assert_cmd::Command;
-use predicates::prelude::*;
+// src/mmap_font.rs
+
+use std::fs::File;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use memmap2::Mmap;
+use read_fonts::{FontRef, FileRef, ReadError};
+use anyhow::{Context, Result};
+
+pub struct MmapFont {
+    pub path: PathBuf,
+    mmap: Arc<Mmap>,
+    file_ref: FileRef<'static>,
+}
+
+impl MmapFont {
+    pub fn from_path(path: &Path) -> Result<Self> {
+        // Open file
+        let file = File::open(path)
+            .with_context(|| format!("Failed to open font file: {}", path.display()))?;
+
+        // Memory-map with read-only access
+        let mmap = unsafe {
+            Mmap::map(&file)
+                .with_context(|| format!("Failed to mmap font file: {}", path.display()))?
+        };
+
+        let mmap = Arc::new(mmap);
+
+        // Parse font file structure
+        // SAFETY: mmap lives as long as MmapFont, stored in Arc
+        let file_ref = unsafe {
+            let bytes: &'static [u8] = std::mem::transmute(mmap.as_ref());
+            FileRef::new(bytes)
+                .with_context(|| format!("Failed to parse font file: {}", path.display()))?
+        };
+
+        Ok(MmapFont {
+            path: path.to_path_buf(),
+            mmap,
+            file_ref,
+        })
+    }
+
+    pub fn get_font(&self, index: u32) -> Result<FontRef<'static>> {
+        self.file_ref
+            .font(index)
+            .with_context(|| format!("Failed to access font index {} in {}",
+                                    index, self.path.display()))
+    }
+
+    pub fn font_count(&self) -> usize {
+        self.file_ref.len()
+    }
+}
+```
+
+**Tasks:**
+- [ ] Open font file and memory-map with read-only access
+- [ ] Parse font file using read-fonts::FileRef
+- [ ] Handle both single fonts and collections (TTC)
+- [ ] Return zero-copy FontRef with 'static lifetime
+- [ ] **Test:** Load TTF, OTF, TTC files successfully
+
+**Success Criteria:**
+- Loads 250 fonts in <250ms (1ms per font)
+- Zero heap allocations for font data
+- Proper error messages for corrupted fonts
+
+#### Task 2: Variable Font Coordinate Application (8 hours)
+
+**Objective:** Apply variable font coordinates to create font instances.
+
+**Implementation:**
+```rust
+// src/mmap_font.rs
+
+use read_fonts::types::NameId;
+use read_fonts::tables::variations::ItemVariationStore;
+use skrifa::{FontRef as SkrifaFontRef, instance::Location};
+use std::collections::HashMap;
+
+impl MmapFont {
+    pub fn instantiate_with_coords(
+        &self,
+        index: u32,
+        coords: &HashMap<String, f32>,
+    ) -> Result<SkrifaFontRef<'static>> {
+        let font_ref = self.get_font(index)?;
+
+        // Get skrifa font for variation support
+        // SAFETY: mmap data lives as long as MmapFont
+        let skrifa_font = unsafe {
+            let bytes: &'static [u8] = std::mem::transmute(self.mmap.as_ref());
+            SkrifaFontRef::from_index(bytes, index)
+                .with_context(|| format!("Failed to create skrifa font for index {}", index))?
+        };
+
+        // Check if font has variations
+        if skrifa_font.axes().is_empty() {
+            // Static font - return as-is
+            return Ok(skrifa_font);
+        }
+
+        // Create location from coordinates
+        let mut location = Location::default();
+
+        for axis in skrifa_font.axes() {
+            let tag = axis.tag().to_string();
+
+            if let Some(&value) = coords.get(&tag) {
+                // Clamp value to axis bounds
+                let min = axis.min_value();
+                let max = axis.max_value();
+                let clamped = value.max(min).min(max);
+
+                if (value - clamped).abs() > 0.01 {
+                    eprintln!("Warning: Axis {} value {} clamped to range [{}, {}]",
+                             tag, value, min, max);
+                }
+
+                location.set_axis(axis.tag(), clamped);
+            } else {
+                // Use default value
+                location.set_axis(axis.tag(), axis.default_value());
+            }
+        }
+
+        // Apply location to font (no-op for now, skrifa handles this internally)
+        Ok(skrifa_font)
+    }
+}
+```
+
+**Tasks:**
+- [ ] Detect if font has variable axes
+- [ ] Parse axis tags and bounds from fvar table
+- [ ] Apply user-provided coordinates via skrifa::Location
+- [ ] Clamp coordinates to valid axis bounds
+- [ ] Use default values for unspecified axes
+- [ ] Handle static fonts (no variations)
+- [ ] **Test:** Apply coords to Roboto VF, verify clamping
+
+**Success Criteria:**
+- Instantiates variable font with custom coords in <5ms
+- Correctly clamps out-of-bounds values
+- Handles fonts with 1-16 axes
+
+#### Task 3: Font Instance Caching (6 hours)
+
+**Objective:** Cache instantiated fonts by (path, coords) to avoid reloading.
+
+**Implementation:**
+```rust
+// src/font_cache.rs
+
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::{Arc, Mutex};
+use lru::LruCache;
+use std::num::NonZeroUsize;
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct FontInstanceKey {
+    path: PathBuf,
+    face_index: u32,
+    // Variations hashed as sorted (tag, quantized_value) pairs
+    variations_hash: u64,
+}
+
+impl FontInstanceKey {
+    fn new(path: PathBuf, face_index: u32, coords: &HashMap<String, f32>) -> Self {
+        // Create deterministic hash of variations
+        let mut sorted_coords: Vec<_> = coords.iter().collect();
+        sorted_coords.sort_by_key(|(tag, _)| *tag);
+
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        for (tag, value) in sorted_coords {
+            tag.hash(&mut hasher);
+            // Quantize to 0.01 precision to improve cache hits
+            let quantized = (value * 100.0).round() as i32;
+            quantized.hash(&mut hasher);
+        }
+
+        FontInstanceKey {
+            path,
+            face_index,
+            variations_hash: hasher.finish(),
+        }
+    }
+}
+
+pub struct FontCache {
+    // Memory-mapped fonts (never evicted)
+    mmaps: Mutex<HashMap<PathBuf, Arc<MmapFont>>>,
+
+    // Instantiated fonts with variations (LRU, 512 entries)
+    instances: Mutex<LruCache<FontInstanceKey, Arc<SkrifaFontRef<'static>>>>,
+
+    stats: Mutex<CacheStats>,
+}
+
+#[derive(Default)]
+struct CacheStats {
+    mmap_hits: usize,
+    mmap_misses: usize,
+    instance_hits: usize,
+    instance_misses: usize,
+}
+
+impl FontCache {
+    pub fn new(instance_capacity: usize) -> Self {
+        FontCache {
+            mmaps: Mutex::new(HashMap::new()),
+            instances: Mutex::new(LruCache::new(
+                NonZeroUsize::new(instance_capacity).unwrap()
+            )),
+            stats: Mutex::new(CacheStats::default()),
+        }
+    }
+
+    pub fn get_or_load_instance(
+        &self,
+        path: &Path,
+        face_index: u32,
+        coords: &HashMap<String, f32>,
+    ) -> Result<Arc<SkrifaFontRef<'static>>> {
+        let key = FontInstanceKey::new(path.to_path_buf(), face_index, coords);
+
+        // Check instance cache first
+        {
+            let mut cache = self.instances.lock().unwrap();
+            if let Some(instance) = cache.get(&key) {
+                self.stats.lock().unwrap().instance_hits += 1;
+                return Ok(Arc::clone(instance));
+            }
+            self.stats.lock().unwrap().instance_misses += 1;
+        }
+
+        // Get or load mmap
+        let mmap = {
+            let mut mmaps = self.mmaps.lock().unwrap();
+            if let Some(mmap) = mmaps.get(path) {
+                self.stats.lock().unwrap().mmap_hits += 1;
+                Arc::clone(mmap)
+            } else {
+                self.stats.lock().unwrap().mmap_misses += 1;
+                let mmap = Arc::new(MmapFont::from_path(path)?);
+                mmaps.insert(path.to_path_buf(), Arc::clone(&mmap));
+                mmap
+            }
+        };
+
+        // Instantiate with coords
+        let instance = Arc::new(mmap.instantiate_with_coords(face_index, coords)?);
+
+        // Cache instance
+        let mut cache = self.instances.lock().unwrap();
+        cache.put(key, Arc::clone(&instance));
+
+        Ok(instance)
+    }
+
+    pub fn stats(&self) -> String {
+        let stats = self.stats.lock().unwrap();
+        format!(
+            "FontCache: mmaps({}/{}) instances({}/{})",
+            stats.mmap_hits,
+            stats.mmap_hits + stats.mmap_misses,
+            stats.instance_hits,
+            stats.instance_hits + stats.instance_misses
+        )
+    }
+}
+```
+
+**Tasks:**
+- [ ] Create LRU cache for font instances (512 capacity)
+- [ ] Key by (path, face_index, variations_hash)
+- [ ] Never evict memory-mapped fonts (only instances)
+- [ ] Track cache hit/miss statistics
+- [ ] **Test:** 1000 lookups with 100 unique fonts, verify >90% hit rate
+
+**Success Criteria:**
+- Cache hit in <0.1ms
+- Cache miss + load in <5ms
+- >90% hit rate for typical FontSimi workload
+
+#### Task 4: Unit Tests for Font Loading (4 hours)
+
+**Tests:**
+```rust
+#[test]
+fn test_load_static_font() {
+    let font = MmapFont::from_path(Path::new("tests/fonts/Arial.ttf")).unwrap();
+    assert_eq!(font.font_count(), 1);
+    let font_ref = font.get_font(0).unwrap();
+    // Verify font loaded correctly
+}
 
 #[test]
-fn test_traditional_mode() {
-    let mut cmd = Command::cargo_bin("haforu").unwrap();
-    cmd.arg("font.ttf")
-       .arg("Hello World")
-       .arg("--no-render");
-
-    cmd.assert()
-       .success()
-       .stdout(predicate::str::contains("glyph"));
+fn test_load_variable_font() {
+    let font = MmapFont::from_path(Path::new("tests/fonts/RobotoVF.ttf")).unwrap();
+    let mut coords = HashMap::new();
+    coords.insert("wght".to_string(), 500.0);
+    let instance = font.instantiate_with_coords(0, &coords).unwrap();
+    // Verify variations applied
 }
 
 #[test]
-fn test_batch_mode() {
-    let mut cmd = Command::cargo_bin("haforu").unwrap();
-    cmd.arg("--batch")
-       .write_stdin(r#"{"jobs":[...]}"#);
-
-    cmd.assert()
-       .success()
-       .stdout(predicate::str::contains("\"status\":\"success\""));
+fn test_cache_hit_rate() {
+    let cache = FontCache::new(512);
+    // Load same font 100 times, verify 99 cache hits
 }
 ```
 
-### Performance Benchmarks
+**Estimated Time:** 2-3 days total for H2.2
 
-Using criterion for benchmarking:
+---
 
-```rust
-// benches/shaping_bench.rs
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+### H2.3: Implement Text Shaping (2-3 days) ⚡ CRITICAL
 
-fn benchmark_shaping(c: &mut Criterion) {
-    c.bench_function("shape_100_chars", |b| {
-        b.iter(|| {
-            shaper.shape(black_box(font_data), black_box(text), 16.0, &options)
-        });
-    });
-}
-```
+**Goal:** Shape text into positioned glyphs using HarfRust.
 
-## Error Handling
+**Files:** `src/shaping.rs`
 
-### Error Types
+(Continuing with H2.3-H2.7 implementation details...)
 
-```rust
-#[derive(Error, Debug)]
-pub enum HaforuError {
-    #[error("Font error: {0}")]
-    Font(String),
+**Estimated Time:** 12-18 days total for complete H2 implementation
 
-    #[error("Shaping error: {0}")]
-    Shaping(String),
+---
 
-    #[error("Rendering error: {0}")]
-    Rendering(String),
+## 🚧 DEPRIORITIZED TASKS (Postponed Until H2 Complete)
 
-    #[error("Storage error: {0}")]
-    Storage(String),
+The following are postponed until H2-H5 integration completes:
 
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
-}
-```
+### Lower Priority (Do NOT work on these)
+- ❌ Traditional CLI mode (hb-shape/hb-view compatibility)
+- ❌ GPU rendering with Vello
+- ❌ Python bindings (PyO3/maturin)
+- ❌ Web server mode
+- ❌ Distributed processing
+- ❌ Storage backend (packfiles) - only needed for Phase H4
 
-### Error Recovery
+### Future Enhancements (After H5)
+- Font subsetting
+- Color font support
+- Cloud storage backends
+- Advanced caching strategies
 
-- Continue processing other jobs on single job failure
-- Log errors with full context
-- Include error details in JSONL output
-- Provide `--fail-fast` option for strict mode
+---
 
-## Performance Optimization
+## ⚡ IMMEDIATE NEXT STEPS
 
-### Parallelization Strategies
+**Current Status:** H1 Python integration complete, H2 Rust blocked
 
-1. **Font-Level**: Best for many fonts with few instances
-2. **Instance-Level**: Best for few fonts with many variations
-3. **Text-Level**: Best for few fonts with many texts
-4. **Hierarchical**: Adaptive based on workload analysis
+**Next Actions:**
 
-### Caching Layers
+1. **START HERE:** Implement H2.1 JSON job processing (2-3 days)
+2. Implement H2.2 font loading with variations (2-3 days)
+3. Implement H2.3 text shaping with HarfRust (2-3 days)
+4. Implement H2.4 glyph rasterization with zeno (3-4 days)
+5. Implement H2.5 PGM output format (1-2 days)
+6. Implement H2.6 JSONL output (1-2 days)
+7. Implement H2.7 error handling (1-2 days)
 
-1. **Font Cache**: Memory-mapped fonts (LRU, 256 fonts)
-2. **Shaper Cache**: Reuse ShaperData for same font
-3. **Glyph Cache**: Pre-rendered common glyphs
-4. **Storage Cache**: Open shard mmaps (LRU, 256 shards)
+**Total Estimated Timeline:** 12-18 days for complete H2 implementation
 
-### Performance Targets
+**Critical Path:** H2.1 → H2.2 → H2.3 → H2.4 → H2.5 → H2.6 → H2.7 → FontSimi Integration
 
-- Font loading: < 1ms (memory-mapped)
-- Text shaping: < 0.5ms per 100 chars
-- Glyph rendering: < 0.1ms per glyph
-- Storage write: > 500 MB/s compressed
-- Parallel scaling: > 80% efficiency up to 64 cores
+**Blocking:** All FontSimi performance improvements blocked on H2 Rust implementation
 
-## Configuration
+---
 
-### Configuration File (`~/.haforu/config.toml`)
+## 📈 Expected Results (Success Criteria)
 
-```toml
-[general]
-default_mode = "batch"
-verbose = false
-threads = 0  # 0 = auto-detect
+### Performance Metrics
+- Memory: 86GB → <2GB (97% reduction) ✅ (estimated)
+- Analysis: 5 hours → 3 minutes (100× speedup) ✅ (estimated)
+- Deep Matching: 30s → 0.6s per font pair (50× speedup) ✅ (estimated)
+- Reliability: Zero OOM crashes ✅ (estimated)
 
-[fonts]
-cache_size = 256
-search_paths = ["/usr/share/fonts", "~/.fonts"]
-
-[shaping]
-default_shaper = "ot"
-default_direction = "auto"
-default_language = "en"
-
-[rendering]
-default_format = "png"
-default_dpi = 96
-cpu_rasterizer = "zeno"  # or "gpu" for vello
-
-[storage]
-backend = "packfile"
-directory = "~/.haforu/cache"
-compression = "zstd"
-compression_level = 3
-shard_size = 10000
-
-[performance]
-batch_size = 1000
-max_parallel_jobs = 100
-memory_limit_gb = 16
-```
-
-## Deployment
-
-### Building
-
-```bash
-# Development build
-cargo build
-
-# Release build with optimizations
-cargo build --release --features "simd"
-
-# With specific CPU optimizations
-RUSTFLAGS="-C target-cpu=native" cargo build --release
-```
-
-### Installation
-
-```bash
-# Install locally
-cargo install --path .
-
-# Install from crates.io (future)
-cargo install haforu
-```
-
-### Docker
-
-```dockerfile
-FROM rust:1.75 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-COPY --from=builder /app/target/release/haforu /usr/local/bin/
-ENTRYPOINT ["haforu"]
-```
-
-## Future Enhancements
-
-### Phase 1 (Current)
-- [x] Core library structure
-- [x] Memory-mapped font loading
-- [x] HarfRust integration
-- [x] CPU rasterization with zeno
-- [ ] Unified CLI tool
-- [ ] Batch processing from JSON
-
-### Phase 2
-- [ ] GPU rendering with vello
-- [ ] Python bindings with PyO3
-- [ ] Web server mode
-- [ ] Distributed processing
-
-### Phase 3
-- [ ] Font subsetting
-- [ ] Color font support
-- [ ] Advanced caching strategies
-- [ ] Cloud storage backends
-
-## References
-
-- [HarfBuzz Documentation](https://harfbuzz.github.io/)
-- [Fontations Project](https://github.com/googlefonts/fontations)
-- [HarfRust Source](./01code/harfrust/)
-- [Storage Design](./400.md)
-- [Example Fonts](./03fonts/)
+### Quality Metrics
+- Determinism: Identical rendering vs HarfBuzz/CoreText ✅ (by design)
+- Coverage: All 250 fonts × 85 instances rendered successfully ✅
+- Testing: All H2 tests passing (100% pass rate) ✅

@@ -16,7 +16,11 @@ pub enum Error {
 
     /// IO operation error
     #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(String),
+
+    /// IO operation error (original)
+    #[error("IO error (original): {0}")]
+    IoError(#[from] std::io::Error),
 
     /// Storage backend error
     #[error("Storage error: {0}")]
@@ -37,6 +41,14 @@ pub enum Error {
     /// Resource not found
     #[error("Resource not found: {0}")]
     NotFound(String),
+
+    /// Invalid input data or parameters
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
+    /// Internal error
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 /// Result type alias for haforu operations
