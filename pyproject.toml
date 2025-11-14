@@ -1,12 +1,12 @@
 # this_file: pyproject.toml
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.0,<2.0", "hatch-vcs>=0.4.0"]
 build-backend = "maturin"
 
 [project]
 name = "haforu"
-version = "2.0.0"
+dynamic = ["version"]
 description = "High-performance batch font renderer for FontSimi"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,6 +33,7 @@ keywords = ["font", "rendering", "batch", "typography"]
 
 dependencies = [
     "numpy>=1.20",
+    "fire>=0.5.0",
 ]
 
 [project.optional-dependencies]
@@ -40,11 +41,20 @@ dev = [
     "pytest>=7.0",
     "pytest-benchmark>=4.0",
     "pillow>=10.0",
+    "hatch>=1.9.0",
 ]
+# Platform-specific extras
+mac = []  # macOS-specific dependencies (universal2 wheel)
+windows = []  # Windows-specific dependencies
+linux = []  # Linux-specific dependencies (manylinux wheel)
+all = ["pillow>=10.0"]  # All optional dependencies
 
 [project.urls]
 Homepage = "https://github.com/fontsimi/haforu"
 Repository = "https://github.com/fontsimi/haforu"
+
+[project.scripts]
+haforu-py = "haforu.__main__:main"
 
 [tool.maturin]
 features = ["python"]
@@ -70,3 +80,14 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.hatch]
+version.source = "vcs"
+build.hooks.vcs.version-file = "python/haforu/_version.py"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../.." }
+
+[tool.hatch.build.hooks.vcs]
+version-file = "python/haforu/_version.py"

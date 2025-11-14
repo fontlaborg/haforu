@@ -88,6 +88,65 @@ enum Commands {
 
     /// Print version information
     Version,
+
+    /// Render text using HarfBuzz-compatible syntax
+    Render {
+        /// Font file path
+        #[arg(short = 'f', long = "font-file", alias = "font")]
+        font_file: Utf8PathBuf,
+
+        /// Font size in points
+        #[arg(short = 's', long = "font-size", alias = "size", default_value = "72")]
+        font_size: f32,
+
+        /// Text to render
+        #[arg(short = 't', long = "text")]
+        text: String,
+
+        /// Font variations (e.g., "wght=700,wdth=100")
+        #[arg(long = "variations", alias = "var")]
+        variations: Option<String>,
+
+        /// Output file (stdout if not specified)
+        #[arg(short = 'o', long = "output-file", alias = "output")]
+        output_file: Option<Utf8PathBuf>,
+
+        /// Output format (pgm, png, metrics)
+        #[arg(long = "format", default_value = "pgm")]
+        format: String,
+
+        /// Canvas width
+        #[arg(long = "width", default_value = "800")]
+        width: u32,
+
+        /// Canvas height
+        #[arg(long = "height", default_value = "200")]
+        height: u32,
+
+        /// Script tag (e.g., latn, arab, deva)
+        #[arg(long = "script")]
+        script: Option<String>,
+
+        /// Language tag (e.g., en, ar, hi)
+        #[arg(long = "language", alias = "lang")]
+        language: Option<String>,
+
+        /// Text direction (ltr, rtl, ttb, btt)
+        #[arg(long = "direction", alias = "dir", default_value = "ltr")]
+        direction: String,
+
+        /// OpenType features (e.g., "liga,kern,calt")
+        #[arg(long = "features", alias = "feat")]
+        features: Option<String>,
+
+        /// Show HarfBuzz-compatible help
+        #[arg(long = "help-harfbuzz", action = clap::ArgAction::SetTrue)]
+        help_harfbuzz: bool,
+
+        /// Enable verbose logging
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -145,12 +204,153 @@ fn main() -> anyhow::Result<()> {
             println!("haforu {}", env!("CARGO_PKG_VERSION"));
             println!("Rust font renderer for FontSimi integration");
         }
+        Commands::Render {
+            font_file,
+            font_size,
+            text,
+            variations,
+            output_file,
+            format,
+            width,
+            height,
+            script,
+            language,
+            direction,
+            features,
+            help_harfbuzz,
+            verbose,
+        } => {
+            if help_harfbuzz {
+                print_harfbuzz_help();
+                return Ok(());
+            }
+
+            init_logging(verbose);
+
+            // Parse variations from string format
+            let mut var_map = std::collections::HashMap::new();
+            if let Some(vars) = variations {
+                for pair in vars.split(',') {
+                    if let Some((key, val)) = pair.split_once('=') {
+                        if let Ok(value) = val.parse::<f32>() {
+                            var_map.insert(key.to_string(), value);
+                        }
+                    }
+                }
+            }
+
+            // Create a job from HarfBuzz-style arguments
+            let job = Job {
+                id: "render".to_string(),
+                font: haforu::batch::FontSpec {
+                    path: font_file,
+                    size: font_size,
+                    variations: if var_map.is_empty() { None } else { Some(var_map) },
+                    face_index: None,
+                },
+                text: haforu::batch::TextSpec {
+                    content: text,
+                    script,
+                    direction: Some(direction),
+                    language,
+                    features: features.map(|f| f.split(',').map(String::from).collect()),
+                },
+                rendering: haforu::batch::RenderSpec {
+                    format: Some(format.clone()),
+                    encoding: Some(if format == "metrics" { "json".to_string() } else { "base64".to_string() }),
+                    width: Some(width),
+                    height: Some(height),
+                },
+            };
+
+            // Process the job
+            let opts = ExecutionOptions::new(None, None);
+            let font_loader = Arc::new(FontLoader::new(1));
+            let result = process_job_with_options(&job, &font_loader, &opts);
+
+            // Output the result
+            if let Some(output_path) = output_file {
+                if format == "metrics" {
+                    // Write JSON metrics to file
+                    std::fs::write(&output_path, serde_json::to_string_pretty(&result)?)?;
+                    println!("Metrics written to: {}", output_path);
+                } else {
+                    // Decode and write image
+                    if result.status == "success" {
+                        if let Some(rendering) = result.rendering {
+                            if let Some(data) = rendering.data {
+                                let image_bytes = base64::decode(data)?;
+                                std::fs::write(&output_path, image_bytes)?;
+                                println!("Image written to: {}", output_path);
+                            }
+                        }
+                    } else {
+                        eprintln!("Render failed: {}", result.error.unwrap_or_default());
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                // Output to stdout
+                if format == "metrics" {
+                    println!("{}", serde_json::to_string_pretty(&result)?);
+                } else if result.status == "success" {
+                    if let Some(rendering) = result.rendering {
+                        if let Some(data) = rendering.data {
+                            let image_bytes = base64::decode(data)?;
+                            std::io::stdout().write_all(&image_bytes)?;
+                        }
+                    }
+                } else {
+                    eprintln!("Render failed: {}", result.error.unwrap_or_default());
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 
     Ok(())
 }
 
 /// Initialize logging based on verbosity.
+fn print_harfbuzz_help() {
+    println!("Haforu HarfBuzz-Compatible Mode");
+    println!("================================");
+    println!();
+    println!("Usage: haforu render [OPTIONS] --font-file <FONT_FILE> --text <TEXT>");
+    println!();
+    println!("This mode provides HarfBuzz-compatible command-line options for easier migration");
+    println!("from existing HarfBuzz-based workflows.");
+    println!();
+    println!("Common HarfBuzz-compatible options:");
+    println!("  -f, --font-file <PATH>      Font file to use");
+    println!("  -s, --font-size <SIZE>      Font size in points (default: 72)");
+    println!("  -t, --text <STRING>         Text to render");
+    println!("      --variations <VARS>     Font variations (e.g., 'wght=700,wdth=100')");
+    println!("  -o, --output-file <PATH>    Output file (stdout if not specified)");
+    println!("      --format <FORMAT>       Output format: pgm, png, metrics (default: pgm)");
+    println!("      --width <WIDTH>         Canvas width (default: 800)");
+    println!("      --height <HEIGHT>       Canvas height (default: 200)");
+    println!("      --script <SCRIPT>       Script tag (e.g., latn, arab, deva)");
+    println!("      --language <LANG>       Language tag (e.g., en, ar, hi)");
+    println!("      --direction <DIR>       Text direction: ltr, rtl, ttb, btt (default: ltr)");
+    println!("      --features <FEATURES>   OpenType features (e.g., 'liga,kern,calt')");
+    println!();
+    println!("Examples:");
+    println!("  # Basic rendering");
+    println!("  haforu render -f font.ttf -t 'Hello World' -o output.pgm");
+    println!();
+    println!("  # With variations");
+    println!("  haforu render -f font.ttf -t 'Text' --variations 'wght=700' -s 48");
+    println!();
+    println!("  # Metrics only");
+    println!("  haforu render -f font.ttf -t 'A' --format metrics");
+    println!();
+    println!("  # RTL text");
+    println!("  haforu render -f font.ttf -t 'مرحبا' --direction rtl --script arab --language ar");
+    println!();
+    println!("For more information, see: https://github.com/fontsimi/haforu");
+}
+
 fn init_logging(verbose: bool) {
     let level = if verbose { "debug" } else { "info" };
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))

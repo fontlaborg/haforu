@@ -32,24 +32,29 @@ src/
 
 ## Install
 
-### Python bindings (recommended for deep matching)
+### Quick Install
 
 ```bash
-uv pip install haforu
+# Python package (recommended)
+pip install haforu
+
+# Rust binary via Cargo
+cargo install haforu
 ```
 
-This installs the PyO3 module (`haforu.StreamingSession`, `haforu.process_jobs`, `haforu.is_available`) with universal2/manylinux wheels so no compiler is required.
+This installs both the native binary and Python bindings with universal2/manylinux wheels (no compiler required).
 
-### CLI binary
+**Platform-specific installations** and troubleshooting: See [INSTALL.md](INSTALL.md)
+
+### Environment Setup
 
 ```bash
-cargo install haforu
-# or build from source inside this repo:
-cargo build --release
+# Point to the binary location
+export HAFORU_BIN="$(which haforu)"
+
+# Or for local development
 export HAFORU_BIN="$PWD/target/release/haforu"
 ```
-
-`fontsimi` looks for `HAFORU_BIN` first; falling back to `target/release/haforu` works for local development.
 
 ## Features
 
@@ -96,6 +101,24 @@ Each input line is a single Job JSON, each output line is a JobResult.
 `haforu stream --max-fonts 256 --max-glyphs 2048` keeps both caches hot;
 pass `--max-glyphs 0` when you need deterministic uncached renders.
 
+### HarfBuzz-Compatible Render Mode
+
+Quick single-text rendering using HarfBuzz-style syntax:
+
+```bash
+# Basic rendering
+haforu render -f font.ttf -t "Hello World" -o output.pgm
+
+# With variations
+haforu render -f font.ttf -t "Text" --variations "wght=700,wdth=100" -s 48
+
+# Metrics only
+haforu render -f font.ttf -t "A" --format metrics
+
+# Get HarfBuzz help
+haforu render --help-harfbuzz
+```
+
 ### Metrics Mode
 
 Skip base64 blobs entirely by setting `rendering.format` to `"metrics"`. Haforu still rasterizes
@@ -103,6 +126,21 @@ the glyph but reuses the in-memory buffer to emit normalized `density` (pixel co
 `beam` (longest contiguous non-zero run) metrics under a new `metrics` field. The `rendering`
 object is omitted for these jobs and the `encoding` value is ignored. See
 `examples/python/metrics_demo.py` for an end-to-end Python demo.
+
+### Python CLI
+
+Use haforu from Python with Fire-based commands:
+
+```bash
+# Via module
+python -m haforu batch -input jobs.json -output results.jsonl
+
+# Via installed script
+haforu-py render_single --text "Hello" --font font.ttf --size 72
+
+# Multiple formats
+haforu-py metrics -input jobs.json -format csv
+```
 
 ### Smoke Test
 

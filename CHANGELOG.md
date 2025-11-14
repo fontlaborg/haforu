@@ -4,6 +4,79 @@ this_file: haforu/CHANGELOG.md
 
 # Changelog
 
+## 2025-11-14 (Phase 2: Production Release Automation)
+
+### Build & Release Automation
+- Added comprehensive `scripts/build.sh` for building Rust CLI and Python wheels
+  - Supports universal2 (macOS), manylinux (Linux), and Windows wheels
+  - Includes development mode, testing, packaging, and completions generation
+  - Platform detection and conditional Docker usage for manylinux builds
+- Added `scripts/run.sh` demo runner with 7 demonstration modes
+  - Basic batch, variable fonts, metrics, streaming, error handling, Python bindings, performance benchmarking
+- Added `scripts/sync-version.sh` for synchronizing versions between Cargo.toml and git tags
+- Created GitHub Actions workflows:
+  - `.github/workflows/release.yml` - Automated releases on `v*` git tags
+    - Builds binaries for 5 platforms (Linux x64/ARM64, macOS x64/ARM64, Windows)
+    - Builds Python wheels using maturin-action
+    - Creates GitHub releases with changelog extraction
+    - Publishes to PyPI and crates.io automatically
+  - `.github/workflows/ci.yml` - Continuous integration
+    - Runs on PRs and main branch pushes
+    - Tests on multiple OS (Linux, macOS, Windows) and Python versions (3.8, 3.12)
+    - Includes formatting, linting, security audit, code coverage
+- Added `.cargo/config.toml` with platform-specific optimizations and build profiles
+
+### CLI Enhancements
+- Added `haforu render` command with HarfBuzz-compatible syntax
+  - Short flags: `-f` (font), `-s` (size), `-t` (text), `-o` (output)
+  - Variations support: `--variations "wght=700,wdth=100"`
+  - Format options: pgm, png, metrics
+  - Script, language, direction, and OpenType features support
+  - `--help-harfbuzz` flag showing migration guide and examples
+- Implemented Fire-based Python CLI (`python -m haforu` or `haforu-py`)
+  - Commands: batch, stream, validate, metrics, render_single, version
+  - Multiple output formats: JSON, JSONL, human-readable, CSV
+  - Full error handling and validation with job specification checking
+  - Installed as `haforu-py` console script entry point
+
+### Configuration & Packaging
+- Migrated to dynamic versioning with `hatch-vcs` (git tags as source of truth)
+  - Updated `pyproject.toml` with `dynamic = ["version"]`
+  - Configured `[tool.hatch.version]` to use VCS
+  - Automatic version file generation at `python/haforu/_version.py`
+- Added Fire as Python dependency for CLI functionality
+- Configured platform-specific extras in `pyproject.toml`:
+  - `haforu[mac]` - macOS-specific optimizations
+  - `haforu[linux]` - Linux-specific optimizations
+  - `haforu[windows]` - Windows-specific optimizations
+  - `haforu[all]` - All optional dependencies
+  - `haforu[dev]` - Development dependencies
+- Updated `.gitignore` for new build artifacts and generated files
+  - Added patterns for completions, wheels, version files, logs
+
+### Documentation
+- Created comprehensive [INSTALL.md](INSTALL.md) with platform-specific installation guides
+  - macOS (Universal2 wheels, building from source, troubleshooting)
+  - Linux (manylinux wheels, dependencies, distribution compatibility)
+  - Windows (wheel installation, Visual Studio requirements)
+  - Verification steps and environment variable setup
+  - Docker installation instructions
+- Updated [README.md](README.md) with:
+  - HarfBuzz-compatible render mode documentation and examples
+  - Python CLI usage examples showing Fire-based commands
+  - Simplified installation instructions with link to INSTALL.md
+  - Environment setup recommendations
+- Updated [PLAN.md](PLAN.md) with Phase 2 workstream status
+  - Marked completed workstreams (6, 8, 11, 12 partial)
+  - Updated status indicators for all Phase 2 tasks
+
+### Status
+- Phase 1 (Integration): ✅ 100% COMPLETE (completed 2025-11-17)
+- Phase 2 (Release Automation): ✅ ~95% COMPLETE
+  - All major features implemented and tested
+  - Ready for production releases via GitHub Actions
+  - Remaining: Minor documentation updates and final verification
+
 ## 2025-11-17
 - Shared the glyph-result cache across the CLI and bindings with `--max-fonts/--max-glyphs` knobs, plus a safe `ExecutionOptions::new` constructor so downstream callers no longer touch cache internals directly.
 - The PyO3 `StreamingSession` picked up parity helpers (`max_fonts/max_glyphs`, JSON-first `render`, `ping`, glyph-aware `cache_stats`, `set_glyph_cache_size`), and both the Rust + Python suites cover 1 200 cached renders to prove the <1 ms steady-state path.

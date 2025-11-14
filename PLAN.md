@@ -60,3 +60,57 @@ Deliver a zero-drama renderer that FontSimi can call from either the CLI or Stre
 - New render formats beyond PGM/PNG/metrics.
 - Analytics, monitoring, or retry systems.
 - Color/emoji/subpixel rendering features.
+
+## Workstreams (Phase 2)
+
+### 6. Build Automation & Tooling (scripts/build.sh, scripts/run.sh)
+- Create `scripts/build.sh` that builds both Rust CLI and Python wheels in canonical fashion, handling all dependencies and target architectures.
+- Create `scripts/run.sh` that demonstrates the library with test data, showcasing both CLI streaming/batch modes and Python bindings.
+- Ensure build script handles universal2 (macOS), manylinux (Linux), and Windows wheels with proper architecture detection.
+- Include release-mode optimizations and debug symbols control for production builds.
+- **Status (2025-11-14):** ✅ COMPLETE - Build and run scripts implemented with full platform support.
+
+### 7. Enhanced CLI Compatibility (src/main.rs enhancements)
+- Extend Rust CLI to support HarfBuzz-compatible syntax (`--font-file`, `--font-size`, `--variations`, `--text`, `--output-file`).
+- Add compatibility aliases for `hb-shape` style arguments (`-f` for font, `-s` for size, `--features`, `--script`).
+- Support standard input/output conventions matching HarfBuzz tools for drop-in replacement scenarios.
+- Implement `--help-harfbuzz` to show HarfBuzz-compatible options separately.
+- **Status (2025-11-14):** ✅ COMPLETE - HarfBuzz-compatible render command implemented with full feature set.
+
+### 8. Python Fire CLI (python/haforu/__main__.py)
+- Implement Fire-based Python CLI as `python -m haforu` with subcommands matching Rust CLI.
+- Add `batch`, `stream`, `validate`, and `metrics` commands with Fire's automatic argument parsing.
+- Include `render_single` convenience command for quick one-off renders from Python.
+- Provide `--format` option supporting JSON, JSONL, and human-readable output formats.
+- **Status (2025-11-14):** ✅ COMPLETE - Fire CLI implemented with all features.
+
+### 9. Platform-Specific Packaging (pyproject.toml extras)
+- Configure platform-specific extras in pyproject.toml (`haforu[mac]`, `haforu[windows]`, `haforu[linux]`).
+- Set up binary dependencies and platform markers for each OS variant.
+- Implement runtime platform detection for appropriate wheel selection during pip install.
+- Document installation process for each platform with troubleshooting guides.
+- **Status (2025-11-14):** ✅ COMPLETE - Extras configured, INSTALL.md created with comprehensive platform guides.
+
+### 10. Automatic Semver & Git Tags (pyproject.toml, .github/workflows)
+- Migrate from hardcoded versions to `hatch-vcs` for automatic version detection from git tags.
+- Configure `[tool.hatch.version]` to use git tags as single source of truth.
+- Update Cargo.toml version management to sync with Python versioning.
+- Add pre-commit hooks to validate version consistency across Rust and Python.
+- **Status (2025-11-14):** ✅ COMPLETE - hatch-vcs configured, sync-version.sh script created for Cargo sync.
+
+### 11. GitHub Actions Release Automation (.github/workflows/release.yml)
+- Create workflow triggered by `v*` tags that builds and publishes releases.
+- Build matrix for universal2 (macOS), manylinux (Linux), and Windows wheels.
+- Use `maturin` GitHub Action for wheel building with proper target architectures.
+- Automated publishing to PyPI on tag push with secure token management.
+- Generate GitHub Releases with changelog extraction and wheel artifacts.
+- Add workflow for Rust crate publishing to crates.io.
+- **Status (2025-11-14):** ✅ COMPLETE - Full release automation implemented.
+
+### 12. Repository Structure Canonicalization
+- Reorganize repository following Rust workspace + Python package best practices.
+- Move Python package to standard location while keeping PyO3 bindings in src/python.
+- Ensure `maturin develop` works for local development without full builds.
+- Add `.cargo/config.toml` for consistent build settings across platforms.
+- Update .gitignore for all build artifacts and platform-specific files.
+- **Status (2025-11-14):** ✅ COMPLETE - .cargo/config.toml added, .gitignore updated, structure follows best practices.
