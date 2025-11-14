@@ -105,7 +105,7 @@ impl StreamingSession {
                 self.render_to_numpy(py, path, text, size, width, height, None, None, None, None)?;
         } else {
             // Touch the cache to ensure structures are allocated.
-            let _ = self.font_loader.lock().unwrap();
+            let _unused = self.font_loader.lock().unwrap();
         }
         Ok(true)
     }

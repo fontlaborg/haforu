@@ -1,7 +1,7 @@
 # WORK
 
-- Read `TODO.md` and `PLAN.md`
-- Fix build errors
-- Write tests
-- Run tests
-- Update documentation
+- [x] Read `TODO.md` and `PLAN.md`
+- [x] Fix build errors
+- [ ] Write tests
+- [ ] Run tests
+- [ ] Update documentation
