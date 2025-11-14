@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Render it
     let rasterizer = GlyphRasterizer::new();
-    let pixels = rasterizer.render_text(
+    let image = rasterizer.render_text(
         &font_instance,
         &shaped,
         800, // width
@@ -55,10 +55,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &font_path,
     )?;
 
-    println!("✓ Rendered {} pixels", pixels.len());
+    println!("✓ Rendered {} pixels", image.pixels().len());
 
     // Generate PGM
-    let pgm = ImageOutput::write_pgm_binary(&pixels, 800, 600)?;
+    let pgm = ImageOutput::write_pgm_binary(image.pixels(), 800, 600)?;
     println!("✓ Generated PGM ({} bytes)", pgm.len());
 
     // Encode to base64

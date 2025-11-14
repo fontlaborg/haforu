@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use image::{ImageBuffer, Luma};
-use std::io::{Read, Write};
+use std::io::Write;
 
 /// Image output format handler.
 pub struct ImageOutput;
@@ -89,7 +89,7 @@ impl ImageOutput {
     /// Decode PGM P5 format (for testing).
     #[cfg(test)]
     pub fn decode_pgm(data: &[u8]) -> Result<(Vec<u8>, u32, u32)> {
-        use std::io::{BufRead, BufReader};
+        use std::io::{BufRead, BufReader, Read};
 
         let mut reader = BufReader::new(data);
         let mut line = String::new();

@@ -5,8 +5,6 @@
 //! This module handles conversion of haforu types to/from Python objects.
 //! Error conversions are now handled in the `errors` module.
 
-use pyo3::prelude::*;
-
 // Re-export error conversion utilities for convenience
 pub use super::errors::ErrorConverter;
 

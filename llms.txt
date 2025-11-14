@@ -71,11 +71,11 @@ Project Structure:
 │   │       ├── 📁 haforu-2gduunm92qnfr
 │   │       │   └── 📁 s-hcy1gcry5i-1kn3hgi-47s1g60y00sejtn28ij3q9m1d
 │   │       ├── 📁 haforu-2ngfmmfp0ecd0
-│   │       │   └── 📁 s-hcybsomu0b-1du8flw-7c5vps64wsqbt4vvhtfumib1k
+│   │       │   └── 📁 s-hcyk5l6eim-17gwa1r-2hveclxn9gs13cho029q0kcyd
 │   │       ├── 📁 haforu-39mxm02gt8mll
-│   │       │   └── 📁 s-hcybsomu08-1xkvsuo-006nirz99uz461yy8s9m5o3zs
+│   │       │   └── 📁 s-hcyk5l6ee5-0zv9b4i-ayxj7q650gb0w0oysmtgc3k6z
 │   │       ├── 📁 haforu-3n5eeekmi7hrc
-│   │       │   └── 📁 s-hcybudxdk9-11ydnj1-3tv7qfptkeug6kmxua9gyazqb
+│   │       │   └── 📁 s-hcyk5lw73j-0k1dcfz-el5rtwgh91fn2nakx1y3two20
 │   │       ├── 📁 haforu2-0a3e5unqn675k
 │   │       │   └── 📁 s-hcvx2m2vr2-0yaw8jd-working
 │   │       ├── 📁 haforu2-0a5p6pxlpe7ci
@@ -97,7 +97,7 @@ Project Structure:
 │   │       ├── 📁 haforu2-3oclx7gtip557
 │   │       │   └── 📁 s-hcxgis6x72-1ma2z50-3m75nszr1rw3srm08yuxcgut7
 │   │       ├── 📁 smoke_test-0g6iwj0dhjg6k
-│   │       │   └── 📁 s-hcybsqzyn0-0magqo9-b1g8m6siwnn180sawrglnnnrw
+│   │       │   └── 📁 s-hcyk5lw4w5-1fr1run-8hw0fsyvboyexj5e8w5q8kcmk
 │   │       └── 📁 smoke_test-1gp0eej5cvryb
 │   │           └── 📁 s-hcxgis6whn-1sfvpmk-bn8h626ibutxhhn32tqrn11ut
 │   ├── 📁 flycheck1
@@ -2037,6 +2037,7 @@ fn calculate_pixel_delta(img1: &Image, img2: &Image) -> f64 {
     }
 }
 ```
+Status: ✅ Completed on 2025-11-14 via `Image::pixel_delta` + validation guards in `src/render.rs`.
 
 ### Phase 2: Coordinate Validation (Day 2)
 ```rust
@@ -2550,13 +2551,13 @@ this_file: haforu/TODO.md
 ## Phase 1: Fix Δpx=inf Bug (Day 1)
 
 ### Render Validation
-- [ ] Add empty image check in `src/render.rs` before pixel comparison
-- [ ] Implement `is_empty()` method for Image struct
-- [ ] Check dimensions are non-zero before calculating delta
-- [ ] Return 999999.0 for empty/invalid renders
-- [ ] Add nan/inf check after delta calculation
-- [ ] Clamp final delta to [0.0, 999999.0]
-- [ ] Test with edge cases (empty text, zero size)
+- [x] Add empty image check in `src/render.rs` before pixel comparison
+- [x] Implement `is_empty()` method for Image struct
+- [x] Check dimensions are non-zero before calculating delta
+- [x] Return 999999.0 for empty/invalid renders
+- [x] Add nan/inf check after delta calculation
+- [x] Clamp final delta to [0.0, 999999.0]
+- [x] Test with edge cases (empty text, zero size)
 
 ### Error Propagation
 - [ ] Add `status` field to JobResult struct
@@ -3262,6 +3263,9 @@ struct StreamingSession {
 # Language: rust
 
 mod tests;
+
+struct Image {
+}
 
 struct GlyphRasterizer {
 }

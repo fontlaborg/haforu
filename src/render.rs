@@ -15,6 +15,119 @@ use skrifa::MetadataProvider;
 use std::path::Path;
 use zeno::{Command, Mask, Transform};
 
+/// Fallback delta value reported when renders cannot be compared safely.
+pub const PIXEL_DELTA_FALLBACK: f64 = 999_999.0;
+
+/// Grayscale image wrapper used for validation and metrics.
+#[derive(Clone, Debug)]
+pub struct Image {
+    width: u32,
+    height: u32,
+    pixels: Vec<u8>,
+}
+
+impl Image {
+    /// Create a new image, validating dimensions and buffer size.
+    pub fn new(width: u32, height: u32, pixels: Vec<u8>) -> Result<Self> {
+        if width == 0 || height == 0 {
+            return Err(Error::InvalidRenderParams {
+                reason: "Image dimensions must be non-zero".to_string(),
+            });
+        }
+        let expected = (width as usize) * (height as usize);
+        if pixels.len() != expected {
+            return Err(Error::Internal(format!(
+                "Pixel data size mismatch: expected {} bytes, got {}",
+                expected,
+                pixels.len()
+            )));
+        }
+        Ok(Self {
+            width,
+            height,
+            pixels,
+        })
+    }
+
+    /// Access raw grayscale pixels.
+    pub fn pixels(&self) -> &[u8] {
+        &self.pixels
+    }
+
+    /// Consume the image and return the owned pixel buffer.
+    pub fn into_pixels(self) -> Vec<u8> {
+        self.pixels
+    }
+
+    /// Width in pixels.
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Height in pixels.
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    /// Total number of pixels.
+    fn len(&self) -> usize {
+        self.pixels.len()
+    }
+
+    /// Return true when every pixel is zero (blank render).
+    pub fn is_empty(&self) -> bool {
+        self.pixels.iter().all(|&px| px == 0)
+    }
+
+    /// Calculate tight bounding box of non-zero pixels.
+    pub fn calculate_bbox(&self) -> (u32, u32, u32, u32) {
+        let mut min_x = self.width;
+        let mut min_y = self.height;
+        let mut max_x = 0u32;
+        let mut max_y = 0u32;
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let idx = (y * self.width + x) as usize;
+                if self.pixels[idx] > 0 {
+                    min_x = min_x.min(x);
+                    min_y = min_y.min(y);
+                    max_x = max_x.max(x);
+                    max_y = max_y.max(y);
+                }
+            }
+        }
+
+        if min_x > max_x {
+            return (0, 0, 0, 0);
+        }
+
+        (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+    }
+
+    /// Compute normalized pixel delta with hard clamps to avoid infinities.
+    pub fn pixel_delta(&self, other: &Image) -> f64 {
+        if self.width != other.width || self.height != other.height {
+            return PIXEL_DELTA_FALLBACK;
+        }
+        if self.is_empty() || other.is_empty() {
+            return PIXEL_DELTA_FALLBACK;
+        }
+
+        let mut diff: u64 = 0;
+        for (lhs, rhs) in self.pixels.iter().zip(other.pixels.iter()) {
+            diff += lhs.abs_diff(*rhs) as u64;
+        }
+
+        let denom = (self.len() as u64 * 255).max(1);
+        let delta = diff as f64 / denom as f64;
+        if !delta.is_finite() {
+            return PIXEL_DELTA_FALLBACK;
+        }
+        delta.clamp(0.0, PIXEL_DELTA_FALLBACK)
+    }
+}
+
 /// Glyph rasterizer using zeno.
 pub struct GlyphRasterizer;
 
@@ -26,7 +139,7 @@ impl GlyphRasterizer {
 
     /// Render shaped text to a grayscale image.
     ///
-    /// Returns a vector of u8 pixels (grayscale, 0-255) in row-major order.
+    /// Returns a grayscale image wrapper (0-255) in row-major order.
     pub fn render_text(
         &self,
         font_instance: &FontInstance,
@@ -35,12 +148,12 @@ impl GlyphRasterizer {
         height: u32,
         tracking: f32,
         path: &Path,
-    ) -> Result<Vec<u8>> {
+    ) -> Result<Image> {
         // Create blank canvas
         let mut canvas = vec![0u8; (width * height) as usize];
 
         if shaped.glyphs.is_empty() {
-            return Ok(canvas);
+            return Image::new(width, height, canvas);
         }
 
         let font = font_instance.font_ref();
@@ -110,7 +223,7 @@ impl GlyphRasterizer {
             cursor_x += (glyph.x_advance as f32 + tracking) * scale;
         }
 
-        Ok(canvas)
+        Image::new(width, height, canvas)
     }
 
     /// Composite a single glyph onto the canvas.
@@ -159,33 +272,6 @@ impl GlyphRasterizer {
         }
 
         Ok(())
-    }
-
-    /// Calculate actual bounding box of rendered content.
-    pub fn calculate_bbox(pixels: &[u8], width: u32, height: u32) -> (u32, u32, u32, u32) {
-        let mut min_x = width;
-        let mut min_y = height;
-        let mut max_x = 0u32;
-        let mut max_y = 0u32;
-
-        for y in 0..height {
-            for x in 0..width {
-                let idx = (y * width + x) as usize;
-                if pixels[idx] > 0 {
-                    min_x = min_x.min(x);
-                    min_y = min_y.min(y);
-                    max_x = max_x.max(x);
-                    max_y = max_y.max(y);
-                }
-            }
-        }
-
-        if min_x > max_x {
-            // All pixels are zero (blank image)
-            return (0, 0, 0, 0);
-        }
-
-        (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
     }
 }
 
@@ -238,32 +324,70 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_calculate_bbox_empty() {
-        let pixels = vec![0u8; 100 * 50];
-        let bbox = GlyphRasterizer::calculate_bbox(&pixels, 100, 50);
-        assert_eq!(bbox, (0, 0, 0, 0));
+    fn image_rejects_invalid_dimensions() {
+        let result = Image::new(0, 10, vec![]);
+        assert!(result.is_err());
+
+        let result = Image::new(10, 10, vec![0u8; 5]);
+        assert!(result.is_err());
     }
 
     #[test]
-    fn test_calculate_bbox_single_pixel() {
-        let mut pixels = vec![0u8; 100 * 50];
-        pixels[25 * 100 + 50] = 255; // Pixel at (50, 25)
+    fn image_is_empty_detects_blank_canvas() {
+        let img = Image::new(4, 4, vec![0u8; 16]).unwrap();
+        assert!(img.is_empty());
 
-        let bbox = GlyphRasterizer::calculate_bbox(&pixels, 100, 50);
-        assert_eq!(bbox, (50, 25, 1, 1));
+        let mut pixels = vec![0u8; 16];
+        pixels[3] = 1;
+        let img = Image::new(4, 4, pixels).unwrap();
+        assert!(!img.is_empty());
     }
 
     #[test]
-    fn test_calculate_bbox_rectangle() {
+    fn calculate_bbox_handles_basic_shapes() {
         let mut pixels = vec![0u8; 100 * 50];
-        // Fill 10×5 rectangle starting at (20, 10)
+        assert_eq!(
+            Image::new(100, 50, pixels.clone())
+                .unwrap()
+                .calculate_bbox(),
+            (0, 0, 0, 0)
+        );
+
+        pixels[25 * 100 + 50] = 255;
+        assert_eq!(
+            Image::new(100, 50, pixels.clone())
+                .unwrap()
+                .calculate_bbox(),
+            (50, 25, 1, 1)
+        );
+
+        pixels.fill(0);
         for y in 10..15 {
             for x in 20..30 {
                 pixels[y * 100 + x] = 255;
             }
         }
+        assert_eq!(
+            Image::new(100, 50, pixels).unwrap().calculate_bbox(),
+            (20, 10, 10, 5)
+        );
+    }
 
-        let bbox = GlyphRasterizer::calculate_bbox(&pixels, 100, 50);
-        assert_eq!(bbox, (20, 10, 10, 5));
+    #[test]
+    fn pixel_delta_clamps_on_invalid_inputs() {
+        let img = Image::new(4, 4, vec![0u8; 16]).unwrap();
+        assert_eq!(img.pixel_delta(&img), PIXEL_DELTA_FALLBACK);
+
+        let other = Image::new(2, 8, vec![0u8; 16]).unwrap();
+        assert_eq!(img.pixel_delta(&other), PIXEL_DELTA_FALLBACK);
+    }
+
+    #[test]
+    fn pixel_delta_returns_normalized_difference() {
+        let left = Image::new(2, 2, vec![0, 0, 0, 255]).unwrap();
+        let right = Image::new(2, 2, vec![255, 0, 0, 255]).unwrap();
+        let delta = left.pixel_delta(&right);
+        assert!(delta > 0.0);
+        assert!(delta < 1.0);
     }
 }

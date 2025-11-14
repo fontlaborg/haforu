@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use super::errors::ErrorConverter;
 use crate::batch::Job;
 use crate::fonts::FontLoader;
 use crate::process_job;
@@ -52,7 +51,7 @@ pub struct StreamingSession {
 impl StreamingSession {
     #[new]
     #[pyo3(signature = (cache_size=512))]
-    fn new(cache_size: usize) -> PyResult<Self> {
+    pub fn new(cache_size: usize) -> PyResult<Self> {
         Ok(Self {
             font_loader: Arc::new(Mutex::new(FontLoader::new(cache_size))),
             closed: Arc::new(AtomicBool::new(false)),
@@ -217,9 +216,9 @@ impl StreamingSession {
         width: u32,
         height: u32,
         variations: Option<HashMap<String, f64>>,
-        script: Option<&str>,
-        direction: Option<&str>,
-        language: Option<&str>,
+        _script: Option<&str>,
+        _direction: Option<&str>,
+        _language: Option<&str>,
     ) -> PyResult<Bound<'py, PyArray2<u8>>> {
         self.ensure_open()?;
         // Convert font path to Utf8PathBuf
@@ -251,7 +250,7 @@ impl StreamingSession {
 
         // Rasterize
         let rasterizer = GlyphRasterizer::new();
-        let pixels = rasterizer
+        let image = rasterizer
             .render_text(
                 &font_instance,
                 &shaped,
@@ -264,8 +263,9 @@ impl StreamingSession {
 
         // Convert to 2D array: pixels is Vec<u8> of length width*height
         // numpy expects shape (height, width) in row-major order
-        let array_2d: Vec<Vec<u8>> = pixels
-            .chunks(width as usize)
+        let array_2d: Vec<Vec<u8>> = image
+            .pixels()
+            .chunks(image.width() as usize)
             .map(|row| row.to_vec())
             .collect();
 

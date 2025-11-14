@@ -17,7 +17,7 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use haforu::{FontLoader, TextShaper, GlyphRasterizer, ImageOutput};
+//! use haforu::{FontLoader, TextShaper, GlyphRasterizer, Image, ImageOutput};
 //! use std::collections::HashMap;
 //! use camino::Utf8Path;
 //!
@@ -33,10 +33,17 @@
 //!
 //! // Rasterize
 //! let rasterizer = GlyphRasterizer::new();
-//! let pixels = rasterizer.render_text(&font, &shaped, 3000, 1200, 0.0, Utf8Path::new("font.ttf").as_std_path())?;
+//! let image: Image = rasterizer.render_text(
+//!     &font,
+//!     &shaped,
+//!     3000,
+//!     1200,
+//!     0.0,
+//!     Utf8Path::new("font.ttf").as_std_path(),
+//! )?;
 //!
 //! // Generate PGM
-//! let pgm = ImageOutput::write_pgm_binary(&pixels, 3000, 1200)?;
+//! let pgm = ImageOutput::write_pgm_binary(image.pixels(), 3000, 1200)?;
 //! let base64 = ImageOutput::encode_base64(&pgm);
 //! # Ok::<(), haforu::Error>(())
 //! ```
@@ -58,7 +65,7 @@ pub use batch::{Job, JobResult, JobSpec, RenderingOutput, TimingInfo};
 pub use error::{Error, Result};
 pub use fonts::{CacheStats, FontInstance, FontLoader};
 pub use output::ImageOutput;
-pub use render::GlyphRasterizer;
+pub use render::{GlyphRasterizer, Image};
 pub use shaping::{ShapedText, TextShaper};
 
 /// Execution options for processing jobs.
@@ -117,7 +124,7 @@ pub fn process_job_with_options(
         }
         // Rasterize
         let rasterizer = GlyphRasterizer::new();
-        let pixels = rasterizer.render_text(
+        let image = rasterizer.render_text(
             &font_instance,
             &shaped,
             job.rendering.width,
@@ -127,18 +134,21 @@ pub fn process_job_with_options(
         )?;
 
         // Calculate bounding box
-        let bbox =
-            GlyphRasterizer::calculate_bbox(&pixels, job.rendering.width, job.rendering.height);
+        let bbox = image.calculate_bbox();
 
         if let Some(ref guard) = timeout_guard {
             guard.check("render")?;
         }
         // Generate output image
         let image_data = match job.rendering.format.as_str() {
-            "pgm" => {
-                ImageOutput::write_pgm_binary(&pixels, job.rendering.width, job.rendering.height)?
+            "pgm" => ImageOutput::write_pgm_binary(
+                image.pixels(),
+                job.rendering.width,
+                job.rendering.height,
+            )?,
+            "png" => {
+                ImageOutput::write_png(image.pixels(), job.rendering.width, job.rendering.height)?
             }
-            "png" => ImageOutput::write_png(&pixels, job.rendering.width, job.rendering.height)?,
             _ => {
                 return Err(Error::InvalidRenderParams {
                     reason: format!("Unsupported output format: {}", job.rendering.format),

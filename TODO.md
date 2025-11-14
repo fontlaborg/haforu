@@ -5,13 +5,13 @@ this_file: haforu/TODO.md
 ## Phase 1: Fix Δpx=inf Bug (Day 1)
 
 ### Render Validation
-- [ ] Add empty image check in `src/render.rs` before pixel comparison
-- [ ] Implement `is_empty()` method for Image struct
-- [ ] Check dimensions are non-zero before calculating delta
-- [ ] Return 999999.0 for empty/invalid renders
-- [ ] Add nan/inf check after delta calculation
-- [ ] Clamp final delta to [0.0, 999999.0]
-- [ ] Test with edge cases (empty text, zero size)
+- [x] Add empty image check in `src/render.rs` before pixel comparison
+- [x] Implement `is_empty()` method for Image struct
+- [x] Check dimensions are non-zero before calculating delta
+- [x] Return 999999.0 for empty/invalid renders
+- [x] Add nan/inf check after delta calculation
+- [x] Clamp final delta to [0.0, 999999.0]
+- [x] Test with edge cases (empty text, zero size)
 
 ### Error Propagation
 - [ ] Add `status` field to JobResult struct
