@@ -76,9 +76,15 @@ pub struct JobResult {
     /// Rendering output (only present on success)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rendering: Option<RenderingOutput>,
+    /// Metrics output (present when format == "metrics")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<MetricsOutput>,
     /// Error message (only present on error)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Sanitized font metadata (path + applied variations)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font: Option<FontResult>,
     /// Timing information
     pub timing: TimingInfo,
     /// Memory statistics (optional)
@@ -103,6 +109,15 @@ pub struct RenderingOutput {
     pub actual_bbox: (u32, u32, u32, u32),
 }
 
+/// Metrics output data for metrics-only jobs.
+#[derive(Debug, Clone, Serialize)]
+pub struct MetricsOutput {
+    /// Normalized pixel density [0.0, 1.0]
+    pub density: f64,
+    /// Longest contiguous non-zero run relative to canvas size [0.0, 1.0]
+    pub beam: f64,
+}
+
 /// Timing statistics for a job.
 #[derive(Debug, Clone, Serialize)]
 pub struct TimingInfo {
@@ -123,6 +138,16 @@ pub struct MemoryInfo {
     pub total_mb: f64,
 }
 
+/// Font metadata emitted with each job result so callers can inspect sanitization.
+#[derive(Debug, Clone, Serialize)]
+pub struct FontResult {
+    /// Absolute path used after sanitization
+    pub path: String,
+    /// Applied variation coordinates (after clamping/dropping)
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub variations: HashMap<String, f32>,
+}
+
 impl Default for TimingInfo {
     fn default() -> Self {
         Self {
@@ -140,7 +165,9 @@ impl JobResult {
             id: id.into(),
             status: "error".to_string(),
             rendering: None,
+            metrics: None,
             error: Some(message.into()),
+            font: None,
             timing: TimingInfo::default(),
             memory: None,
         }
@@ -150,6 +177,17 @@ impl JobResult {
 impl JobSpec {
     /// Validate job specification structure and parameters.
     pub fn validate(&self) -> Result<(), crate::error::Error> {
+        self.validate_header()?;
+
+        for job in &self.jobs {
+            job.validate()?;
+        }
+
+        Ok(())
+    }
+
+    /// Validate header-level constraints (version + job counts) without per-job validation.
+    pub fn validate_header(&self) -> Result<(), crate::error::Error> {
         use crate::error::Error;
         use crate::security::MAX_JOBS_PER_SPEC;
 
@@ -176,11 +214,6 @@ impl JobSpec {
                     MAX_JOBS_PER_SPEC
                 ),
             });
-        }
-
-        // Validate each job
-        for job in &self.jobs {
-            job.validate()?;
         }
 
         Ok(())
@@ -227,10 +260,13 @@ impl Job {
         validate_text_input(&self.text.content)?;
 
         // Validate rendering config
-        if self.rendering.format != "pgm" && self.rendering.format != "png" {
+        if self.rendering.format != "pgm"
+            && self.rendering.format != "png"
+            && self.rendering.format != "metrics"
+        {
             return Err(Error::InvalidRenderParams {
                 reason: format!(
-                    "Invalid output format '{}', expected 'pgm' or 'png'",
+                    "Invalid output format '{}', expected 'pgm', 'png', or 'metrics'",
                     self.rendering.format
                 ),
             });
@@ -256,6 +292,7 @@ impl Job {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     fn sample_job_json() -> &'static str {
         r#"{
@@ -325,7 +362,12 @@ mod tests {
                 height: 50,
                 actual_bbox: (10, 20, 80, 30),
             }),
+            metrics: None,
             error: None,
+            font: Some(FontResult {
+                path: "/fonts/test.ttf".to_string(),
+                variations: HashMap::from([(String::from("wght"), 650.0)]),
+            }),
             timing: TimingInfo {
                 shape_ms: 1.2,
                 render_ms: 3.4,
@@ -346,7 +388,9 @@ mod tests {
             id: "test1".to_string(),
             status: "error".to_string(),
             rendering: None,
+            metrics: None,
             error: Some("Font not found".to_string()),
+            font: None,
             timing: TimingInfo {
                 shape_ms: 0.0,
                 render_ms: 0.0,
@@ -359,5 +403,29 @@ mod tests {
         assert!(json.contains("\"status\":\"error\""));
         assert!(json.contains("\"error\""));
         assert!(!json.contains("\"rendering\""));
+    }
+
+    #[test]
+    fn test_serialize_job_result_metrics_only() {
+        let result = JobResult {
+            id: "metrics-1".to_string(),
+            status: "success".to_string(),
+            rendering: None,
+            metrics: Some(MetricsOutput {
+                density: 0.42,
+                beam: 0.15,
+            }),
+            error: None,
+            font: None,
+            timing: TimingInfo::default(),
+            memory: None,
+        };
+
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"metrics\""), "JSON: {json}");
+        assert!(
+            !json.contains("\"rendering\""),
+            "JSON should omit rendering"
+        );
     }
 }

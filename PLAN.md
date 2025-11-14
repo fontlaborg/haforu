@@ -14,29 +14,34 @@ Deliver a zero-drama renderer that FontSimi can call from either the CLI or Stre
 - Normalize error messaging so the CLI, PyO3 bindings, and smoke scripts log once but return actionable `status="error"` payloads with `error` text.
 - Provide helper constructors (e.g., `JobResult::error`) and thin wrappers inside Python bindings so fontsimi can rely on stable schema.
 - Extend regression coverage: CLI streaming unit tests, Python test suite, and `scripts/batch_smoke.sh` must all assert that invalid jobs return JSON results rather than silent drops.
+- **Status (2025-11-15):** ✅ Validation moved into `process_job_with_options`, `JobResult` now exports sanitized font metadata, Python/CLI tests cover invalid renders, and the smoke script enforces the JSON contract (invalid jobs emit `status="error"`).
 
 ### 2. Variation Coordinate Validation (src/fonts.rs)
 - Add `validate_coordinates()` with clamps for `wght` [100, 900] and `wdth` [50, 200], warn-and-drop unknown axes, and reuse standard axis metadata.
 - Wire validation into `FontLoader::load_font` so both CLI and Python bindings inherit the behavior.
 - Surface sanitized coordinates in the JSON/log output for debugging.
 - Add focused unit tests covering in-range, out-of-range, and unknown-axis cases plus an integration test that confirms `skrifa` receives sanitized values.
+- **Status (2025-11-15):** ✅ IBM Plex variable font fixture + new clamp/location tests prove the sanitizer feeds skrifa, and `JobResult.font` exposes the applied coordinates for downstream inspection.
 
 ### 3. Metrics-Only Output Mode (src/output.rs, src/main.rs, examples/python)
 - Introduce a `MetricsResult` struct and `--format metrics` flag that short-circuits image encoding and emits density + beam measurements as JSON.
 - Reuse the existing raster buffer to compute metrics without extra allocations; clamp runtime <0.2 ms/job.
 - Update CLI help, README, and Python bindings to describe the new format, and add an example in `examples/python/metrics_demo.py` that doubles as a smoke test.
 - Benchmark against the current image mode and record numbers in `WORK.md` + `CHANGELOG.md` once stable.
+- **Status (2025-11-16):** ✅ Metrics mode now returns `density`/`beam` JSON payloads, the smoke script asserts the schema, and docs/tests/examples cover the new workflow.
 
 ### 4. Streaming Session Reliability (src/render.rs, src/python/streaming.rs)
 - Implement cache knobs (`max_fonts`, `max_glyphs`), warm-up hooks, and microsecond `is_available()` checks so fontsimi can decide between CLI and in-process.
 - Add `StreamingSession::warm_up`, `ping`, and `close` behaviors that release descriptors and reset caches immediately.
 - Stress-test with >1 000 sequential renders to guarantee <1 ms steady-state latency and no RSS creep (document in WORK/CHANGELOG).
 - Ensure JSON schema parity between CLI and StreamingSession by sharing the output helper code.
+- **Status (2025-11-17):** ✅ Shared glyph-result cache now drives the CLI and PyO3 bindings (`--max-fonts/--max-glyphs`, `StreamingSession(max_fonts/max_glyphs, ping, cache_stats, set_glyph_cache_size)`), and the Rust/Python perf tests cover 1 200 cached renders (<1 ms steady state).
 
 ### 5. Distribution & Tooling (scripts/batch_smoke.sh, wheels)
 - Keep `scripts/batch_smoke.sh` + `jobs_smoke.json` green in ≤2 s to validate CLI contract before publishing.
 - Maintain universal2/manylinux wheels via `maturin` and document exact install + `HAFORU_BIN` instructions for fontsimi integration.
 - Update `PLAN.md`, `TODO.md`, `WORK.md`, and `CHANGELOG.md` every time the contract changes so downstream teams can sync quickly.
+- **Status (2025-11-17):** ✅ Smoke script now defaults the glyph cache and captures steady-state runs (~1.5 s) while README documents the `maturin` wheel commands plus the `HAFORU_BIN` workflow.
 
 ## Testing & Validation
 - **Unit**: Rust modules (batch, fonts, streaming) plus Python bindings each gain targeted tests for new helpers.

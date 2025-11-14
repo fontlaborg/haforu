@@ -126,6 +126,39 @@ impl Image {
         }
         delta.clamp(0.0, PIXEL_DELTA_FALLBACK)
     }
+
+    /// Compute normalized pixel density (0.0 - 1.0).
+    pub fn density(&self) -> f64 {
+        if self.len() == 0 {
+            return 0.0;
+        }
+        let sum: u64 = self.pixels.iter().map(|&px| px as u64).sum();
+        let denom = (self.len() as u64) * 255u64;
+        if denom == 0 {
+            return 0.0;
+        }
+        let density = sum as f64 / denom as f64;
+        density.clamp(0.0, 1.0)
+    }
+
+    /// Compute longest contiguous non-zero run ratio (0.0 - 1.0).
+    pub fn beam(&self) -> f64 {
+        if self.len() == 0 {
+            return 0.0;
+        }
+        let mut best = 0usize;
+        let mut current = 0usize;
+        for &px in &self.pixels {
+            if px > 0 {
+                current += 1;
+                best = best.max(current);
+            } else {
+                current = 0;
+            }
+        }
+        let ratio = best as f64 / self.len() as f64;
+        ratio.clamp(0.0, 1.0)
+    }
 }
 
 /// Glyph rasterizer using zeno.
@@ -389,5 +422,25 @@ mod tests {
         let delta = left.pixel_delta(&right);
         assert!(delta > 0.0);
         assert!(delta < 1.0);
+    }
+
+    #[test]
+    fn density_reports_lit_pixel_ratio() {
+        let img = Image::new(4, 1, vec![0, 0, 255, 255]).unwrap();
+        let density = img.density();
+        assert!((density - 0.5).abs() < 1e-6, "density={density}");
+
+        let blank = Image::new(2, 2, vec![0; 4]).unwrap();
+        assert_eq!(blank.density(), 0.0);
+    }
+
+    #[test]
+    fn beam_reports_longest_run_ratio() {
+        let img = Image::new(5, 1, vec![0, 255, 255, 0, 255]).unwrap();
+        let beam = img.beam();
+        assert!((beam - 0.4).abs() < 1e-6, "beam={beam}");
+
+        let blank = Image::new(3, 1, vec![0; 3]).unwrap();
+        assert_eq!(blank.beam(), 0.0);
     }
 }

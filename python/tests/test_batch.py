@@ -154,3 +154,78 @@ def test_process_jobs_result_format():
     # Will be "error" because font doesn't exist
     assert result["status"] in ["success", "error"]
     assert "timing" in result
+
+
+def test_process_jobs_invalid_rendering_yields_error_payload():
+    """Invalid rendering params should surface as JSON results, not raise."""
+    try:
+        import haforu
+    except ImportError:
+        pytest.skip("haforu Python bindings not installed")
+
+    spec = {
+        "version": "1.0",
+        "jobs": [
+            {
+                "id": "bad-canvas",
+                "font": {
+                    "path": "/nonexistent/font.ttf",
+                    "size": 1000,
+                    "variations": {},
+                },
+                "text": {"content": "a"},
+                "rendering": {
+                    "format": "pgm",
+                    "encoding": "base64",
+                    "width": 0,
+                    "height": 10,
+                },
+            }
+        ],
+    }
+
+    results = list(haforu.process_jobs(json.dumps(spec)))
+    assert len(results) == 1
+    payload = json.loads(results[0])
+    assert payload["id"] == "bad-canvas"
+    assert payload["status"] == "error"
+    assert "Canvas" in payload.get("error", "")
+
+
+def test_process_jobs_metrics_format_returns_metrics_payload():
+    """Metrics output should emit metrics field without rendering data."""
+    try:
+        import haforu
+    except ImportError:
+        pytest.skip("haforu Python bindings not installed")
+
+    spec = {
+        "version": "1.0",
+        "jobs": [
+            {
+                "id": "metrics-job",
+                "font": {
+                    "path": "testdata/fonts/Arial-Black.ttf",
+                    "size": 256,
+                    "variations": {},
+                },
+                "text": {"content": "A"},
+                "rendering": {
+                    "format": "metrics",
+                    "encoding": "json",
+                    "width": 64,
+                    "height": 64,
+                },
+            }
+        ],
+    }
+
+    results = list(haforu.process_jobs(json.dumps(spec)))
+    assert len(results) == 1
+    payload = json.loads(results[0])
+    assert payload["status"] == "success"
+    assert "metrics" in payload
+    assert "rendering" not in payload
+    metrics = payload["metrics"]
+    for key in ("density", "beam"):
+        assert 0.0 <= metrics[key] <= 1.0, f"{key} out of range"

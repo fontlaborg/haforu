@@ -119,6 +119,7 @@ impl ProcessJobsIterator {
                         id: job.id.clone(),
                         status: "error".to_string(),
                         rendering: None,
+                        metrics: None,
                         error: Some(format!("Failed to serialize result: {}", e)),
                         timing: crate::batch::TimingInfo {
                             shape_ms: 0.0,

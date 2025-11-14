@@ -78,6 +78,12 @@ echo '{
 }' | haforu batch
 ```
 
+Tune caches per workload:
+
+- `--max-fonts` (alias `--cache-size`) controls the FontLoader LRU entries.
+- `--max-glyphs` sizes the render-result cache (set `0` to disable reuse).
+- `--jobs` adjusts Rayon workers; `0` keeps the auto-detected default.
+
 ### Streaming Mode (H4)
 
 Keep process alive for continuous job processing:
@@ -87,6 +93,31 @@ haforu stream < jobs.jsonl > results.jsonl
 ```
 
 Each input line is a single Job JSON, each output line is a JobResult.
+`haforu stream --max-fonts 256 --max-glyphs 2048` keeps both caches hot;
+pass `--max-glyphs 0` when you need deterministic uncached renders.
+
+### Metrics Mode
+
+Skip base64 blobs entirely by setting `rendering.format` to `"metrics"`. Haforu still rasterizes
+the glyph but reuses the in-memory buffer to emit normalized `density` (pixel coverage) and
+`beam` (longest contiguous non-zero run) metrics under a new `metrics` field. The `rendering`
+object is omitted for these jobs and the `encoding` value is ignored. See
+`examples/python/metrics_demo.py` for an end-to-end Python demo.
+
+### Smoke Test
+
+`scripts/batch_smoke.sh` validates the CLI contract in ~2 s once the release
+binary exists (the very first run includes a `cargo build --release`, so expect
+~80 s of one-time compilation). Override knobs via `CACHE_SIZE`, `GLYPH_CACHE_SIZE`,
+and `JOB_THREADS`; point `HAFORU_BIN` at a prebuilt binary when running on CI:
+
+```bash
+export HAFORU_BIN="$PWD/target/release/haforu"
+./scripts/batch_smoke.sh
+```
+
+The script asserts both success/error payloads, enforces the metrics schema, and
+fails fast if a JSONL line is malformed.
 
 ## Job Specification Format
 
@@ -107,8 +138,8 @@ Each input line is a single Job JSON, each output line is a JobResult.
       "script": "Latn"
     },
     "rendering": {
-      "format": "pgm",
-      "encoding": "base64",
+      "format": "pgm",            // "pgm", "png", or "metrics"
+      "encoding": "base64",       // set to "json" for metrics jobs (ignored)
       "width": 3000,
       "height": 1200
     }
@@ -131,11 +162,32 @@ Each input line is a single Job JSON, each output line is a JobResult.
     "height": 1200,
     "actual_bbox": [450, 200, 1200, 800]
   },
+  "font": {
+    "path": "/path/to/font.ttf",
+    "variations": {"wght": 650.0}
+  },
   "timing": {
     "shape_ms": 1.2,
     "render_ms": 3.4,
     "total_ms": 5.0
   }
+}
+```
+
+**Success (metrics mode):**
+```json
+{
+  "id": "unique_job_id",
+  "status": "success",
+  "metrics": {
+    "density": 0.48,
+    "beam": 0.012
+  },
+  "font": {
+    "path": "/path/to/font.ttf",
+    "variations": {"wght": 650.0}
+  },
+  "timing": {"shape_ms": 1.1, "render_ms": 0.7, "total_ms": 2.0}
 }
 ```
 
@@ -148,6 +200,8 @@ Each input line is a single Job JSON, each output line is a JobResult.
   "timing": {"shape_ms": 0.0, "render_ms": 0.0, "total_ms": 0.1}
 }
 ```
+
+Every result optionally includes a `font` object with the sanitized path and variation coordinates actually used. The field is omitted when a job fails validation before loading a font. Jobs rendered with `format: "metrics"` also emit a `metrics` object (density + beam) and suppress the `rendering` blob entirely.
 
 ## CLI Usage
 
@@ -209,6 +263,20 @@ maturin develop --features python
 python -c "import haforu; print(haforu.__version__)"
 ```
 
+#### Wheel Builds
+
+Ship reproducible wheels with `maturin` (macOS universal2 + manylinux):
+
+```bash
+uv tool install maturin
+uv run maturin build --release --target universal2-apple-darwin --out wheels
+uv run maturin build --release --compatibility manylinux_2_28 --out wheels
+```
+
+Publish the resulting `.whl` files or install locally via
+`uv pip install wheels/haforu-<version>-<tag>.whl`. Remember to export
+`HAFORU_BIN` so fontsimi and the smoke script pick up the freshly built binary.
+
 #### Quick Start: Batch Mode
 
 ```python
@@ -237,8 +305,11 @@ for result_json in haforu.process_jobs(json.dumps(spec)):
 ```python
 import haforu
 
-# Create persistent session with font cache
-with haforu.StreamingSession(cache_size=512) as session:
+# Create persistent session with tunable caches
+with haforu.StreamingSession(max_fonts=512, max_glyphs=2048) as session:
+    session.ping()  # cheap liveness probe
+    stats = session.cache_stats()  # font_capacity, glyph_entries, glyph_hits, ...
+
     # Render single job
     job = {"id": "test", "font": {...}, "text": {...}, "rendering": {...}}
     result_json = session.render(json.dumps(job))
@@ -253,6 +324,7 @@ with haforu.StreamingSession(cache_size=512) as session:
         variations={"wght": 600.0}
     )
     # image is numpy.ndarray of shape (height, width), dtype uint8
+    session.set_glyph_cache_size(256)  # resize/disable reuse on the fly
 ```
 
 #### API Reference
@@ -266,20 +338,21 @@ Process a batch of rendering jobs in parallel. Returns iterator yielding JSONL r
 - **Raises**: `ValueError` (invalid JSON/spec), `RuntimeError` (font/rendering errors)
 - **Performance**: 100-150 jobs/sec on 8 cores
 
-**`haforu.StreamingSession(cache_size: int = 512)`**
+**`haforu.StreamingSession(cache_size: int | None = None, *, max_fonts: int | None = None, max_glyphs: int = 2048)`**
 
-Persistent rendering session with font cache for zero-overhead repeated rendering.
+Persistent rendering session with independent font + glyph caches for zero-overhead repeated rendering.
 
-- **`render(job_json: str) -> str`**: Render single job, return JSONL result
+- **`render(job_json: str) -> str`**: Render single job, always returning a JSONL result even for invalid specs (schema matches CLI/JSONL stream)
 - **`render_to_numpy(...) -> np.ndarray`**: Render directly to numpy array (zero-copy)
   - Args: `font_path, text, size, width, height, variations, script, direction, language`
   - Returns: 2D array of shape (height, width), dtype uint8, grayscale 0-255
   - Performance: 1-2ms per render (30-50× faster than CLI subprocess)
 - **`warm_up(font_path: str | None = None, *, text=\"Haforu\", size=600, width=128, height=128) -> bool`**:
   Ping the cache or proactively render a glyph so later renders stay within the 1-2 ms budget.
-- **`cache_stats() -> dict[str, int]`** and **`set_cache_size(cache_size: int) -> None`**:
-  Inspect or tune the LRU capacity at runtime (setting a new size resets the cache safely).
-- **`close()`**: Release font cache and resources
+- **`ping() -> bool`**: Microsecond liveness probe so fontsimi can avoid exception-driven health checks.
+- **`cache_stats() -> dict[str, int]`**, **`set_cache_size(cache_size: int)`**, **`set_glyph_cache_size(max_glyphs: int)`**:
+  Inspect or tune the caches at runtime. `cache_stats` now reports `font_*` plus `glyph_capacity`, `glyph_entries`, and `glyph_hits` for observability.
+- **`close()`**: Release caches and descriptors immediately
 - **Context manager**: Supports `with` statement for automatic cleanup
 - **`is_available()` (classmethod)**: Cheap probe fontsimi can call without importing heavy deps.
 
@@ -295,6 +368,7 @@ See `examples/python/` for complete examples:
 - **`streaming_demo.py`**: Persistent session with font caching
 - **`numpy_demo.py`**: Zero-copy numpy arrays for image analysis
 - **`error_handling_demo.py`**: Robust error handling patterns
+- **`metrics_demo.py`**: Request metrics-only JSON output
 
 #### Performance Comparison
 
@@ -305,6 +379,14 @@ See `examples/python/` for complete examples:
 | **Python Bindings** | **0ms** | **1-2ms** | **1-2ms** | Deep matching, ML pipelines |
 
 **Speedup**: Python bindings are 30-50× faster than CLI streaming for repeated renders.
+
+## Troubleshooting
+
+- `scripts/batch_smoke.sh` should complete in ≤2 s after the first release build. If it keeps rebuilding, export `HAFORU_BIN=target/release/haforu` so the script skips `cargo build --release`.
+- `haforu batch --max-fonts 0` disables the font cache and is almost never what you want; instead size the cache via `--max-fonts` and keep glyph reuse enabled with `--max-glyphs`.
+- When the Python binding raises `ImportError`, reinstall the wheel (`uv run maturin develop` or `uv pip install haforu`) and re-run `haforu.is_available()` before constructing a session.
+- High miss rates in streaming mode usually mean the glyph cache is undersized. Check `session.cache_stats()['glyph_entries']` / `['glyph_hits']` and bump `max_glyphs` or call `set_glyph_cache_size`.
+- If CLI renders cannot locate fonts, pass `--base-dir` or use absolute font paths; the JSON contract always reports the sanitized `font.path` so you can audit what haforu actually used.
 
 ## Testing
 
@@ -325,7 +407,7 @@ echo '{"version":"1.0","jobs":[{
   "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
 }]}' | ./target/release/haforu batch | jq .
 
-# 2-second JSONL smoke (uses testdata/jobs_smoke.jsonl)
+# 2-second JSONL smoke (uses scripts/jobs_smoke.jsonl)
 ./scripts/batch_smoke.sh
 ```
 

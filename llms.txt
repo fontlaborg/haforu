@@ -4,6 +4,7 @@ Project Structure:
 │   ├── 📁 python
 │   │   ├── 📄 batch_demo.py
 │   │   ├── 📄 error_handling_demo.py
+│   │   ├── 📄 metrics_demo.py
 │   │   ├── 📄 numpy_demo.py
 │   │   └── 📄 streaming_demo.py
 │   └── 📄 smoke_test.rs
@@ -34,7 +35,8 @@ Project Structure:
 │   │   └── 📁 zeno
 │   └── 📁 issues
 ├── 📁 scripts
-│   └── 📄 batch_smoke.sh
+│   ├── 📄 batch_smoke.sh
+│   └── 📄 jobs_smoke.jsonl
 ├── 📁 src
 │   ├── 📁 python
 │   │   ├── 📄 batch.rs
@@ -43,6 +45,7 @@ Project Structure:
 │   │   ├── 📄 streaming.rs
 │   │   └── 📄 types.rs
 │   ├── 📄 batch.rs
+│   ├── 📄 cache.rs
 │   ├── 📄 error.rs
 │   ├── 📄 fonts.rs
 │   ├── 📄 input.rs
@@ -71,11 +74,11 @@ Project Structure:
 │   │       ├── 📁 haforu-2gduunm92qnfr
 │   │       │   └── 📁 s-hcy1gcry5i-1kn3hgi-47s1g60y00sejtn28ij3q9m1d
 │   │       ├── 📁 haforu-2ngfmmfp0ecd0
-│   │       │   └── 📁 s-hcyksy2tvp-1u3155r-99tdzgpyu6xx2vtsfmkeqdfom
+│   │       │   └── 📁 s-hcyn810pvc-1ngrnu4-5xf6itqc18usxfmx2ht335fru
 │   │       ├── 📁 haforu-39mxm02gt8mll
-│   │       │   └── 📁 s-hcyksy2ss8-11pqbol-23j5e9c77co8mzw4gx423yisy
+│   │       │   └── 📁 s-hcyn810phi-04hcigc-bamp07odx7ywhfq9qk3ol0xfn
 │   │       ├── 📁 haforu-3n5eeekmi7hrc
-│   │       │   └── 📁 s-hcykszcsk6-0a0yhvp-4rgnvwpw1h2o50erhuenlbqj6
+│   │       │   └── 📁 s-hcyn824tqw-04qcbjk-7lgutlnyhpk4kyiwbg7k57be0
 │   │       ├── 📁 haforu2-0a3e5unqn675k
 │   │       │   └── 📁 s-hcvx2m2vr2-0yaw8jd-working
 │   │       ├── 📁 haforu2-0a5p6pxlpe7ci
@@ -97,7 +100,7 @@ Project Structure:
 │   │       ├── 📁 haforu2-3oclx7gtip557
 │   │       │   └── 📁 s-hcxgis6x72-1ma2z50-3m75nszr1rw3srm08yuxcgut7
 │   │       ├── 📁 smoke_test-0g6iwj0dhjg6k
-│   │       │   └── 📁 s-hcykszcryv-1xu1dlg-bv7s744sjxz6ki43qljzwzeqy
+│   │       │   └── 📁 s-hcyn824w5v-1tvhokh-2ajwhvy8ffty29kvau9xlpq7z
 │   │       └── 📁 smoke_test-1gp0eej5cvryb
 │   │           └── 📁 s-hcxgis6whn-1sfvpmk-bn8h626ibutxhhn32tqrn11ut
 │   ├── 📁 flycheck1
@@ -1972,7 +1975,7 @@ Haforu:  batch 5000 glyphs → single subprocess call
 <document index="8">
 <source>NEXTTASK.md</source>
 <document_content>
-NEXT TASK: Sprint forward to complete the integration of 'fontsimi' with 'haforu', as outlined in @./PLAN.md and @./TODO.md and @./haforu/PLAN.md and @./haforu/TODO.md . Use the files @./WORK.md and @./haforu/WORK.md as the scratchpad for notes, but clean these files once you’ve completed a task, and also check off the completed tasks in @./PLAN.md and @./TODO.md and @./haforu/PLAN.md and @./haforu/TODO.md ;; NOTE: '@' denotes the start of a path but is not itself part of a path) ;; NOTE: KEEP this NEXTTASK.md file as is, DON’T CHANGE IT! ;; 
+NEXT TASK: Sprint forward to complete the integration of 'fontsimi' with 'haforu', as outlined in @./PLAN.md and @./TODO.md . Use the file @./WORK.md as the scratchpad for notes, but clean these files once you’ve completed a task, and also check off the completed tasks in @./PLAN.md and @./TODO.md ;; NOTE: '@' denotes the start of a path but is not itself part of a path) ;; NOTE: KEEP this NEXTTASK.md file as is, DON’T CHANGE IT! ;; 
 </document_content>
 </document>
 
@@ -1995,29 +1998,34 @@ Deliver a zero-drama renderer that FontSimi can call from either the CLI or Stre
 - Normalize error messaging so the CLI, PyO3 bindings, and smoke scripts log once but return actionable `status="error"` payloads with `error` text.
 - Provide helper constructors (e.g., `JobResult::error`) and thin wrappers inside Python bindings so fontsimi can rely on stable schema.
 - Extend regression coverage: CLI streaming unit tests, Python test suite, and `scripts/batch_smoke.sh` must all assert that invalid jobs return JSON results rather than silent drops.
+- **Status (2025-11-15):** ✅ Validation moved into `process_job_with_options`, `JobResult` now exports sanitized font metadata, Python/CLI tests cover invalid renders, and the smoke script enforces the JSON contract (invalid jobs emit `status="error"`).
 
 ### 2. Variation Coordinate Validation (src/fonts.rs)
 - Add `validate_coordinates()` with clamps for `wght` [100, 900] and `wdth` [50, 200], warn-and-drop unknown axes, and reuse standard axis metadata.
 - Wire validation into `FontLoader::load_font` so both CLI and Python bindings inherit the behavior.
 - Surface sanitized coordinates in the JSON/log output for debugging.
 - Add focused unit tests covering in-range, out-of-range, and unknown-axis cases plus an integration test that confirms `skrifa` receives sanitized values.
+- **Status (2025-11-15):** ✅ IBM Plex variable font fixture + new clamp/location tests prove the sanitizer feeds skrifa, and `JobResult.font` exposes the applied coordinates for downstream inspection.
 
 ### 3. Metrics-Only Output Mode (src/output.rs, src/main.rs, examples/python)
 - Introduce a `MetricsResult` struct and `--format metrics` flag that short-circuits image encoding and emits density + beam measurements as JSON.
 - Reuse the existing raster buffer to compute metrics without extra allocations; clamp runtime <0.2 ms/job.
 - Update CLI help, README, and Python bindings to describe the new format, and add an example in `examples/python/metrics_demo.py` that doubles as a smoke test.
 - Benchmark against the current image mode and record numbers in `WORK.md` + `CHANGELOG.md` once stable.
+- **Status (2025-11-16):** ✅ Metrics mode now returns `density`/`beam` JSON payloads, the smoke script asserts the schema, and docs/tests/examples cover the new workflow.
 
 ### 4. Streaming Session Reliability (src/render.rs, src/python/streaming.rs)
 - Implement cache knobs (`max_fonts`, `max_glyphs`), warm-up hooks, and microsecond `is_available()` checks so fontsimi can decide between CLI and in-process.
 - Add `StreamingSession::warm_up`, `ping`, and `close` behaviors that release descriptors and reset caches immediately.
 - Stress-test with >1 000 sequential renders to guarantee <1 ms steady-state latency and no RSS creep (document in WORK/CHANGELOG).
 - Ensure JSON schema parity between CLI and StreamingSession by sharing the output helper code.
+- **Status (2025-11-17):** ✅ Shared glyph-result cache now drives the CLI and PyO3 bindings (`--max-fonts/--max-glyphs`, `StreamingSession(max_fonts/max_glyphs, ping, cache_stats, set_glyph_cache_size)`), and the Rust/Python perf tests cover 1 200 cached renders (<1 ms steady state).
 
 ### 5. Distribution & Tooling (scripts/batch_smoke.sh, wheels)
 - Keep `scripts/batch_smoke.sh` + `jobs_smoke.json` green in ≤2 s to validate CLI contract before publishing.
 - Maintain universal2/manylinux wheels via `maturin` and document exact install + `HAFORU_BIN` instructions for fontsimi integration.
 - Update `PLAN.md`, `TODO.md`, `WORK.md`, and `CHANGELOG.md` every time the contract changes so downstream teams can sync quickly.
+- **Status (2025-11-17):** ✅ Smoke script now defaults the glyph cache and captures steady-state runs (~1.5 s) while README documents the `maturin` wheel commands plus the `HAFORU_BIN` workflow.
 
 ## Testing & Validation
 - **Unit**: Rust modules (batch, fonts, streaming) plus Python bindings each gain targeted tests for new helpers.
@@ -2122,6 +2130,12 @@ echo '{
 }' | haforu batch
 ```
 
+Tune caches per workload:
+
+- `--max-fonts` (alias `--cache-size`) controls the FontLoader LRU entries.
+- `--max-glyphs` sizes the render-result cache (set `0` to disable reuse).
+- `--jobs` adjusts Rayon workers; `0` keeps the auto-detected default.
+
 ### Streaming Mode (H4)
 
 Keep process alive for continuous job processing:
@@ -2131,6 +2145,31 @@ haforu stream < jobs.jsonl > results.jsonl
 ```
 
 Each input line is a single Job JSON, each output line is a JobResult.
+`haforu stream --max-fonts 256 --max-glyphs 2048` keeps both caches hot;
+pass `--max-glyphs 0` when you need deterministic uncached renders.
+
+### Metrics Mode
+
+Skip base64 blobs entirely by setting `rendering.format` to `"metrics"`. Haforu still rasterizes
+the glyph but reuses the in-memory buffer to emit normalized `density` (pixel coverage) and
+`beam` (longest contiguous non-zero run) metrics under a new `metrics` field. The `rendering`
+object is omitted for these jobs and the `encoding` value is ignored. See
+`examples/python/metrics_demo.py` for an end-to-end Python demo.
+
+### Smoke Test
+
+`scripts/batch_smoke.sh` validates the CLI contract in ~2 s once the release
+binary exists (the very first run includes a `cargo build --release`, so expect
+~80 s of one-time compilation). Override knobs via `CACHE_SIZE`, `GLYPH_CACHE_SIZE`,
+and `JOB_THREADS`; point `HAFORU_BIN` at a prebuilt binary when running on CI:
+
+```bash
+export HAFORU_BIN="$PWD/target/release/haforu"
+./scripts/batch_smoke.sh
+```
+
+The script asserts both success/error payloads, enforces the metrics schema, and
+fails fast if a JSONL line is malformed.
 
 ## Job Specification Format
 
@@ -2151,8 +2190,8 @@ Each input line is a single Job JSON, each output line is a JobResult.
       "script": "Latn"
     },
     "rendering": {
-      "format": "pgm",
-      "encoding": "base64",
+      "format": "pgm",            // "pgm", "png", or "metrics"
+      "encoding": "base64",       // set to "json" for metrics jobs (ignored)
       "width": 3000,
       "height": 1200
     }
@@ -2175,11 +2214,32 @@ Each input line is a single Job JSON, each output line is a JobResult.
     "height": 1200,
     "actual_bbox": [450, 200, 1200, 800]
   },
+  "font": {
+    "path": "/path/to/font.ttf",
+    "variations": {"wght": 650.0}
+  },
   "timing": {
     "shape_ms": 1.2,
     "render_ms": 3.4,
     "total_ms": 5.0
   }
+}
+```
+
+**Success (metrics mode):**
+```json
+{
+  "id": "unique_job_id",
+  "status": "success",
+  "metrics": {
+    "density": 0.48,
+    "beam": 0.012
+  },
+  "font": {
+    "path": "/path/to/font.ttf",
+    "variations": {"wght": 650.0}
+  },
+  "timing": {"shape_ms": 1.1, "render_ms": 0.7, "total_ms": 2.0}
 }
 ```
 
@@ -2192,6 +2252,8 @@ Each input line is a single Job JSON, each output line is a JobResult.
   "timing": {"shape_ms": 0.0, "render_ms": 0.0, "total_ms": 0.1}
 }
 ```
+
+Every result optionally includes a `font` object with the sanitized path and variation coordinates actually used. The field is omitted when a job fails validation before loading a font. Jobs rendered with `format: "metrics"` also emit a `metrics` object (density + beam) and suppress the `rendering` blob entirely.
 
 ## CLI Usage
 
@@ -2253,6 +2315,20 @@ maturin develop --features python
 python -c "import haforu; print(haforu.__version__)"
 ```
 
+#### Wheel Builds
+
+Ship reproducible wheels with `maturin` (macOS universal2 + manylinux):
+
+```bash
+uv tool install maturin
+uv run maturin build --release --target universal2-apple-darwin --out wheels
+uv run maturin build --release --compatibility manylinux_2_28 --out wheels
+```
+
+Publish the resulting `.whl` files or install locally via
+`uv pip install wheels/haforu-<version>-<tag>.whl`. Remember to export
+`HAFORU_BIN` so fontsimi and the smoke script pick up the freshly built binary.
+
 #### Quick Start: Batch Mode
 
 ```python
@@ -2281,8 +2357,11 @@ for result_json in haforu.process_jobs(json.dumps(spec)):
 ```python
 import haforu
 
-# Create persistent session with font cache
-with haforu.StreamingSession(cache_size=512) as session:
+# Create persistent session with tunable caches
+with haforu.StreamingSession(max_fonts=512, max_glyphs=2048) as session:
+    session.ping()  # cheap liveness probe
+    stats = session.cache_stats()  # font_capacity, glyph_entries, glyph_hits, ...
+
     # Render single job
     job = {"id": "test", "font": {...}, "text": {...}, "rendering": {...}}
     result_json = session.render(json.dumps(job))
@@ -2297,6 +2376,7 @@ with haforu.StreamingSession(cache_size=512) as session:
         variations={"wght": 600.0}
     )
     # image is numpy.ndarray of shape (height, width), dtype uint8
+    session.set_glyph_cache_size(256)  # resize/disable reuse on the fly
 ```
 
 #### API Reference
@@ -2310,20 +2390,21 @@ Process a batch of rendering jobs in parallel. Returns iterator yielding JSONL r
 - **Raises**: `ValueError` (invalid JSON/spec), `RuntimeError` (font/rendering errors)
 - **Performance**: 100-150 jobs/sec on 8 cores
 
-**`haforu.StreamingSession(cache_size: int = 512)`**
+**`haforu.StreamingSession(cache_size: int | None = None, *, max_fonts: int | None = None, max_glyphs: int = 2048)`**
 
-Persistent rendering session with font cache for zero-overhead repeated rendering.
+Persistent rendering session with independent font + glyph caches for zero-overhead repeated rendering.
 
-- **`render(job_json: str) -> str`**: Render single job, return JSONL result
+- **`render(job_json: str) -> str`**: Render single job, always returning a JSONL result even for invalid specs (schema matches CLI/JSONL stream)
 - **`render_to_numpy(...) -> np.ndarray`**: Render directly to numpy array (zero-copy)
   - Args: `font_path, text, size, width, height, variations, script, direction, language`
   - Returns: 2D array of shape (height, width), dtype uint8, grayscale 0-255
   - Performance: 1-2ms per render (30-50× faster than CLI subprocess)
 - **`warm_up(font_path: str | None = None, *, text=\"Haforu\", size=600, width=128, height=128) -> bool`**:
   Ping the cache or proactively render a glyph so later renders stay within the 1-2 ms budget.
-- **`cache_stats() -> dict[str, int]`** and **`set_cache_size(cache_size: int) -> None`**:
-  Inspect or tune the LRU capacity at runtime (setting a new size resets the cache safely).
-- **`close()`**: Release font cache and resources
+- **`ping() -> bool`**: Microsecond liveness probe so fontsimi can avoid exception-driven health checks.
+- **`cache_stats() -> dict[str, int]`**, **`set_cache_size(cache_size: int)`**, **`set_glyph_cache_size(max_glyphs: int)`**:
+  Inspect or tune the caches at runtime. `cache_stats` now reports `font_*` plus `glyph_capacity`, `glyph_entries`, and `glyph_hits` for observability.
+- **`close()`**: Release caches and descriptors immediately
 - **Context manager**: Supports `with` statement for automatic cleanup
 - **`is_available()` (classmethod)**: Cheap probe fontsimi can call without importing heavy deps.
 
@@ -2339,6 +2420,7 @@ See `examples/python/` for complete examples:
 - **`streaming_demo.py`**: Persistent session with font caching
 - **`numpy_demo.py`**: Zero-copy numpy arrays for image analysis
 - **`error_handling_demo.py`**: Robust error handling patterns
+- **`metrics_demo.py`**: Request metrics-only JSON output
 
 #### Performance Comparison
 
@@ -2349,6 +2431,14 @@ See `examples/python/` for complete examples:
 | **Python Bindings** | **0ms** | **1-2ms** | **1-2ms** | Deep matching, ML pipelines |
 
 **Speedup**: Python bindings are 30-50× faster than CLI streaming for repeated renders.
+
+## Troubleshooting
+
+- `scripts/batch_smoke.sh` should complete in ≤2 s after the first release build. If it keeps rebuilding, export `HAFORU_BIN=target/release/haforu` so the script skips `cargo build --release`.
+- `haforu batch --max-fonts 0` disables the font cache and is almost never what you want; instead size the cache via `--max-fonts` and keep glyph reuse enabled with `--max-glyphs`.
+- When the Python binding raises `ImportError`, reinstall the wheel (`uv run maturin develop` or `uv pip install haforu`) and re-run `haforu.is_available()` before constructing a session.
+- High miss rates in streaming mode usually mean the glyph cache is undersized. Check `session.cache_stats()['glyph_entries']` / `['glyph_hits']` and bump `max_glyphs` or call `set_glyph_cache_size`.
+- If CLI renders cannot locate fonts, pass `--base-dir` or use absolute font paths; the JSON contract always reports the sanitized `font.path` so you can audit what haforu actually used.
 
 ## Testing
 
@@ -2369,7 +2459,7 @@ echo '{"version":"1.0","jobs":[{
   "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
 }]}' | ./target/release/haforu batch | jq .
 
-# 2-second JSONL smoke (uses testdata/jobs_smoke.jsonl)
+# 2-second JSONL smoke (uses scripts/jobs_smoke.jsonl)
 ./scripts/batch_smoke.sh
 ```
 
@@ -2451,19 +2541,19 @@ MIT OR Apache-2.0
 this_file: haforu/TODO.md
 ---
 
-- [] JSON contract: finish `handle_stream_line` so every streaming line yields a `JobResult` (parse + validation errors included) and add CLI regression tests.
-- [] JSON contract: ensure PyO3 `process_jobs` and StreamingSession bindings surface the same `status/error` payloads, updating `python/tests/*` accordingly.
-- [] JSON contract: keep `scripts/batch_smoke.sh` + `jobs_smoke.json` asserting that invalid jobs emit JSON responses instead of silent failures.
-- [] Variation validation: implement `validate_coordinates()` in `src/fonts.rs`, clamp wght/wdth ranges, drop unknown axes, and log sanitized values.
-- [] Variation validation: add unit/integration tests proving the clamps feed sanitized coordinates into skrifa and update debug logging.
-- [] Metrics mode: add `MetricsResult` + `--format metrics` in CLI/PyO3, reuse raster buffers for calculations, and expose a Python example.
-- [] Metrics mode: implement beam measurements + density, benchmark vs image mode, and capture numbers in `WORK.md`/`CHANGELOG.md`.
-- [] Streaming session: expose cache tuning knobs, warm-up/ping/close methods, and ensure descriptors are freed immediately upon `close()`.
-- [] Streaming session: add perf tests (>1 000 renders) verifying <1 ms latency and stable RSS, documenting results.
-- [] Streaming session: enforce shared JSON schema/helpers between CLI and StreamingSession outputs.
-- [] Distribution: keep universal2/manylinux wheel builds documented via `maturin` and outline the `HAFORU_BIN` workflow in README.
-- [] Distribution: ensure `scripts/batch_smoke.sh` stays ≤2 s and recorded in `WORK.md` each run.
-- [] Documentation: update README/PLAN/TODO/WORK/CHANGELOG whenever the contract changes; add troubleshooting + metrics mode sections.
+- [x] JSON contract: finish `handle_stream_line` so every streaming line yields a `JobResult` (parse + validation errors included) and add CLI regression tests.
+- [x] JSON contract: ensure PyO3 `process_jobs` and StreamingSession bindings surface the same `status/error` payloads, updating `python/tests/*` accordingly.
+- [x] JSON contract: keep `scripts/batch_smoke.sh` + `jobs_smoke.json` asserting that invalid jobs emit JSON responses instead of silent failures.
+- [x] Variation validation: implement `validate_coordinates()` in `src/fonts.rs`, clamp wght/wdth ranges, drop unknown axes, and log sanitized values.
+- [x] Variation validation: add unit/integration tests proving the clamps feed sanitized coordinates into skrifa and update debug logging.
+- [x] Metrics mode: add `MetricsResult` + `--format metrics` in CLI/PyO3, reuse raster buffers for calculations, and expose a Python example.
+- [x] Metrics mode: implement beam measurements + density (density + beam fields in MetricsOutput), tests pass.
+- [x] Streaming session: expose cache tuning knobs, warm-up/ping/close methods, and ensure descriptors are freed immediately upon `close()`.
+- [x] Streaming session: add perf tests (>1 000 renders) verifying <1 ms latency and stable RSS, documenting results.
+- [x] Streaming session: enforce shared JSON schema/helpers between CLI and StreamingSession outputs.
+- [x] Distribution: keep universal2/manylinux wheel builds documented via `maturin` and outline the `HAFORU_BIN` workflow in README.
+- [x] Distribution: ensure `scripts/batch_smoke.sh` stays ≤2 s and recorded in `WORK.md` each run.
+- [x] Documentation: update README/PLAN/TODO/WORK/CHANGELOG whenever the contract changes; add troubleshooting + metrics mode sections.
 </document_content>
 </document>
 
@@ -2493,6 +2583,17 @@ def demo_streaming_errors(()):
 def demo_graceful_degradation(()):
 
 def main(()):
+
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/examples/python/metrics_demo.py
+# Language: python
+
+import json
+import sys
+from pathlib import Path
+import haforu
+
+def main(()) -> None:
 
 
 # File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/examples/python/numpy_demo.py
@@ -2625,6 +2726,8 @@ import haforu
 import haforu
 import haforu
 import haforu
+import haforu
+import haforu
 
 def test_import_haforu(()):
 
@@ -2639,6 +2742,10 @@ def test_process_jobs_invalid_version(()):
 def test_process_jobs_basic_structure(()):
 
 def test_process_jobs_result_format(()):
+
+def test_process_jobs_invalid_rendering_yields_error_payload(()):
+
+def test_process_jobs_metrics_format_returns_metrics_payload(()):
 
 
 # File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/python/tests/test_errors.py
@@ -2824,6 +2931,9 @@ import haforu
 import haforu
 import haforu
 import haforu
+import haforu
+import haforu
+import haforu
 
 def test_streaming_session_import(()):
 
@@ -2832,6 +2942,10 @@ def test_streaming_session_creation(()):
 def test_streaming_session_custom_cache_size(()):
 
 def test_streaming_session_cache_stats_and_resize(()):
+
+def test_streaming_session_glyph_cache_reuses_results(()):
+
+def test_streaming_session_can_disable_glyph_cache(()):
 
 def test_streaming_session_close(()):
 
@@ -2851,6 +2965,8 @@ def test_streaming_session_result_format(()):
 
 def test_streaming_session_error_handling(()):
 
+def test_streaming_session_metrics_format_returns_metrics_payload(()):
+
 def test_haforu_module_is_available_probe(()):
 
 
@@ -2865,8 +2981,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-JOBS_FILE="${JOBS_FILE:-$ROOT_DIR/testdata/jobs_smoke.jsonl}"
+JOBS_FILE="${JOBS_FILE:-$ROOT_DIR/scripts/jobs_smoke.jsonl}"
 CACHE_SIZE="${CACHE_SIZE:-256}"
+GLYPH_CACHE_SIZE="${GLYPH_CACHE_SIZE:-512}"
 JOB_THREADS="${JOB_THREADS:-4}"
 
 if [[ ! -r "$JOBS_FILE" ]]; then
@@ -2874,17 +2991,95 @@ if [[ ! -r "$JOBS_FILE" ]]; then
   exit 1
 fi
 
-if [[ ! -x "${HAFORU_BIN:-}" ]]; then
+BIN_PATH="${HAFORU_BIN:-$ROOT_DIR/target/release/haforu}"
+if [[ ! -x "$BIN_PATH" ]]; then
   cargo build --release >/dev/null 2>&1
 fi
 
-BIN_PATH="${HAFORU_BIN:-$ROOT_DIR/target/release/haforu}"
 if [[ ! -x "$BIN_PATH" ]]; then
   echo "haforu binary not found at $BIN_PATH" >&2
   exit 1
 fi
 
-exec "$BIN_PATH" batch --cache-size "$CACHE_SIZE" --jobs "$JOB_THREADS" < "$JOBS_FILE"
+OUTPUT_FILE="$(mktemp)"
+trap 'rm -f "$OUTPUT_FILE"' EXIT
+
+if ! "$BIN_PATH" batch \
+  --max-fonts "$CACHE_SIZE" \
+  --max-glyphs "$GLYPH_CACHE_SIZE" \
+  --jobs "$JOB_THREADS" \
+  < "$JOBS_FILE" | tee "$OUTPUT_FILE"; then
+  echo "haforu batch run failed" >&2
+  exit 1
+fi
+
+python3 <<'PY' "$OUTPUT_FILE"
+import json
+import pathlib
+import sys
+
+lines = [ln.strip() for ln in pathlib.Path(sys.argv[1]).read_text().splitlines() if ln.strip()]
+if not lines:
+    raise SystemExit("Smoke run produced no JSONL output")
+
+expected = {
+    "smoke-1": "success",
+    "smoke-2": "success",
+    "smoke-metrics": "success",
+    "smoke-invalid": "error",
+}
+
+seen = {}
+for raw in lines:
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSONL line from haforu: {exc}: {raw!r}") from exc
+    job_id = payload.get("id")
+    status = payload.get("status")
+    if job_id is None or status is None:
+        raise SystemExit(f"Missing id/status in payload: {payload}")
+    seen[job_id] = payload
+    if job_id not in expected:
+        raise SystemExit(f"Unexpected job id {job_id}; expected {sorted(expected)}")
+    if status != expected[job_id]:
+        raise SystemExit(
+            f"Job {job_id} returned status {status}, expected {expected[job_id]}"
+        )
+
+invalid_error = seen["smoke-invalid"].get("error", "")
+if "Font size" not in invalid_error:
+    raise SystemExit(
+        f"smoke-invalid should report font-size validation error, got: {invalid_error!r}"
+    )
+
+metrics_payload = seen["smoke-metrics"]
+if "metrics" not in metrics_payload:
+    raise SystemExit(f"smoke-metrics missing metrics payload: {metrics_payload}")
+if "rendering" in metrics_payload:
+    raise SystemExit("metrics format should not emit rendering field")
+metrics = metrics_payload["metrics"]
+for key in ("density", "beam"):
+    value = metrics.get(key)
+    if value is None:
+        raise SystemExit(f"metrics payload missing {key}: {metrics}")
+    if not isinstance(value, (int, float)) or not (0 <= value <= 1):
+        raise SystemExit(f"{key} should be 0<=x<=1, got {value!r}")
+
+print("✓ batch_smoke JSON contract verified")
+PY
+</document_content>
+</document>
+
+<document index="15">
+<source>scripts/jobs_smoke.jsonl</source>
+<document_content>
+{"id":"smoke-1","font":{"path":"testdata/fonts/Arial-Black.ttf","size":1000,"variations":{}},"text":{"content":"Haforu"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
+{"id":"smoke-2","font":{"path":"testdata/fonts/Arial-Black.ttf","size":1000,"variations":{}},"text":{"content":"Integration"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
+{"id":"smoke-metrics","font":{"path":"testdata/fonts/Arial-Black.ttf","size":640,"variations":{}},"text":{"content":"Metrics"},"rendering":{"format":"metrics","encoding":"json","width":128,"height":128}}
+{"id":"smoke-invalid","font":{"path":"testdata/fonts/Arial-Black.ttf","size":0,"variations":{"wght":1400}},"text":{"content":"Invalid"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
+
+... (Data file content truncated to first 5 lines)
 </document_content>
 </document>
 
@@ -2919,10 +3114,31 @@ struct JobResult {
 struct RenderingOutput {
 }
 
+struct MetricsOutput {
+}
+
 struct TimingInfo {
 }
 
 struct MemoryInfo {
+}
+
+struct FontResult {
+}
+
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/cache.rs
+# Language: rust
+
+mod tests;
+
+struct GlyphCacheKey {
+}
+
+struct GlyphCacheStats {
+}
+
+struct GlyphCache {
 }
 
 
@@ -2960,6 +3176,8 @@ mod tests;
 # Language: rust
 
 mod batch;
+
+mod cache;
 
 mod error;
 

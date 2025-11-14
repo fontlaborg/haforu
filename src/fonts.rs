@@ -216,25 +216,39 @@ impl FontLoader {
         let mut clamped = HashMap::new();
         for (axis, value) in coordinates {
             if let Some((min, _default, max)) = axes.get(axis) {
-                let clamped_value = value.clamp(*min, *max);
+                // Prefer font-provided bounds, but apply well-known sane clamps
+                // for common axes as an additional safeguard.
+                let (hard_min, hard_max) = match axis.as_str() {
+                    "wght" => (100.0_f32, 900.0_f32),
+                    "wdth" => (50.0_f32, 200.0_f32),
+                    _ => (*min, *max),
+                };
+
+                // Combine clamps conservatively within the intersection of bounds
+                let eff_min = hard_min.max(*min);
+                let eff_max = hard_max.min(*max);
+                let clamped_value = value.clamp(eff_min, eff_max);
                 if (clamped_value - value).abs() > 0.001 {
                     log::warn!(
-                        "Coordinate for axis '{}' clamped from {} to {} (bounds: [{}, {}])",
+                        "Coordinate for axis '{}' clamped from {} to {} (bounds: [{}, {}], hard: [{}, {}])",
                         axis,
                         value,
                         clamped_value,
                         min,
-                        max
+                        max,
+                        hard_min,
+                        hard_max
                     );
                 }
                 clamped.insert(axis.clone(), clamped_value);
             } else {
-                let available: Vec<String> = axes.keys().cloned().collect();
-                return Err(Error::UnknownAxis {
-                    axis: axis.clone(),
-                    path: path.to_path_buf(),
-                    available,
-                });
+                // Axis not present in this font: warn-and-drop per integration contract.
+                log::warn!(
+                    "Unknown variation axis '{}' for font {} — dropping coordinate",
+                    axis,
+                    path.display()
+                );
+                // Intentionally do not include this axis in the resulting map.
             }
         }
 
@@ -316,5 +330,97 @@ mod tests {
             coordinates: vec![("wght".to_string(), 700.0f32.to_bits())],
         };
         assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn load_static_font_drops_unknown_axes() {
+        // Arial-Black.ttf in testdata is a static font; any coordinates should be ignored.
+        let loader = FontLoader::new(8);
+        let font_path = camino::Utf8PathBuf::from("testdata/fonts/Arial-Black.ttf");
+        // Provide a couple of coordinates including a common axis and a bogus one.
+        let mut coords = HashMap::new();
+        coords.insert("wght".to_string(), 700.0_f32);
+        coords.insert("ZZZZ".to_string(), 12.34_f32);
+
+        // Load should succeed and coordinates should be empty for static fonts
+        let inst = loader
+            .load_font(&font_path, &coords)
+            .expect("static font should load successfully");
+        assert!(
+            inst.coordinates().is_empty(),
+            "Static font must not retain variation coordinates"
+        );
+    }
+
+    #[test]
+    fn variable_font_clamps_and_drops_coordinates() {
+        let loader = FontLoader::new(16);
+        let font_path = camino::Utf8PathBuf::from("testdata/fonts/IBMPlexSans-VF.ttf");
+        let mut coords = HashMap::new();
+        coords.insert("wght".to_string(), 2500.0);
+        coords.insert("wdth".to_string(), 5.0);
+        coords.insert("ZZZZ".to_string(), 12.34);
+
+        let inst = loader
+            .load_font(&font_path, &coords)
+            .expect("variable font should load successfully");
+        let applied = inst.coordinates();
+        assert!(applied.contains_key("wght"));
+        assert!(applied.contains_key("wdth"));
+        assert!(
+            !applied.contains_key("ZZZZ"),
+            "Unknown coordinates must be dropped"
+        );
+
+        // Compare against actual axis bounds reported by skrifa to ensure clamps applied.
+        let mut axis_bounds = HashMap::new();
+        for axis in inst.font_ref().axes().iter() {
+            axis_bounds.insert(axis.tag().to_string(), (axis.min_value(), axis.max_value()));
+        }
+
+        let (wght_min, wght_max) = axis_bounds.get("wght").copied().expect("wght axis present");
+        let clamped_wght = *applied.get("wght").expect("wght applied");
+        assert!(
+            clamped_wght <= wght_max.min(900.0) + f32::EPSILON,
+            "wght must respect hard + font max"
+        );
+        assert!(
+            clamped_wght >= wght_min.max(100.0) - f32::EPSILON,
+            "wght must respect hard + font min"
+        );
+
+        let (wdth_min, wdth_max) = axis_bounds.get("wdth").copied().expect("wdth axis present");
+        let clamped_wdth = *applied.get("wdth").expect("wdth applied");
+        assert!(
+            clamped_wdth >= wdth_min.max(50.0) - f32::EPSILON,
+            "wdth must respect hard minimum"
+        );
+        assert!(
+            clamped_wdth <= wdth_max.min(200.0) + f32::EPSILON,
+            "wdth must respect hard maximum"
+        );
+    }
+
+    #[test]
+    fn location_reports_sanitized_coordinates() {
+        let loader = FontLoader::new(16);
+        let font_path = camino::Utf8PathBuf::from("testdata/fonts/IBMPlexSans-VF.ttf");
+        let mut coords = HashMap::new();
+        coords.insert("wdth".to_string(), 10.0);
+
+        let inst = loader
+            .load_font(&font_path, &coords)
+            .expect("variable font should load");
+        let expected = inst.coordinates().clone();
+        let mut location_map = HashMap::new();
+        for (tag, value) in inst.location() {
+            location_map.insert(tag.to_string(), value);
+        }
+
+        assert_eq!(
+            location_map.get("wdth"),
+            expected.get("wdth"),
+            "Streaming to skrifa must use sanitized values"
+        );
     }
 }

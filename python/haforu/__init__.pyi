@@ -53,11 +53,19 @@ class StreamingSession:
         """Cheap probe indicating whether StreamingSession can be constructed."""
         ...
 
-    def __init__(self, cache_size: int = 512) -> None:
+    def __init__(
+        self,
+        cache_size: int | None = None,
+        *,
+        max_fonts: int | None = None,
+        max_glyphs: int = 2048,
+    ) -> None:
         """Create a new streaming session.
 
         Args:
-            cache_size: Maximum number of fonts to keep in cache (default: 512)
+            cache_size: Deprecated alias for ``max_fonts`` (positional for backwards compatibility).
+            max_fonts: Maximum number of cached font instances (default: 512).
+            max_glyphs: Glyph/job cache capacity for cached renders (default: 2048).
         """
         ...
 
@@ -73,12 +81,20 @@ class StreamingSession:
         """Prime caches (optionally rendering a font) for faster subsequent renders."""
         ...
 
+    def ping(self) -> bool:
+        """Cheap liveness probe returning ``True`` while the session remains open."""
+        ...
+
     def cache_stats(self) -> dict[str, int]:
-        """Return cache capacity and current entry count."""
+        """Return cache capacity and current entry count for font and glyph caches."""
         ...
 
     def set_cache_size(self, cache_size: int) -> None:
         """Resize cache capacity (drops cached entries)."""
+        ...
+
+    def set_glyph_cache_size(self, max_glyphs: int) -> None:
+        """Resize glyph cache capacity (drops cached renders)."""
         ...
 
     def render(self, job_json: str) -> str:

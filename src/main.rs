@@ -32,8 +32,12 @@ enum Commands {
     /// Process a batch of rendering jobs from stdin (JSON)
     Batch {
         /// Font cache size (number of font instances)
-        #[arg(long, default_value = "512")]
-        cache_size: usize,
+        #[arg(long = "max-fonts", default_value = "512", alias = "cache-size")]
+        max_fonts: usize,
+
+        /// Glyph cache entries retained across renders (0 disables)
+        #[arg(long = "max-glyphs", default_value = "2048")]
+        max_glyphs: usize,
 
         /// Number of parallel worker threads (0 = auto)
         #[arg(long = "jobs", default_value = "0", alias = "workers")]
@@ -55,8 +59,12 @@ enum Commands {
     /// Process jobs from stdin in streaming mode (JSONL input)
     Stream {
         /// Font cache size (number of font instances)
-        #[arg(long, default_value = "512")]
-        cache_size: usize,
+        #[arg(long = "max-fonts", default_value = "512", alias = "cache-size")]
+        max_fonts: usize,
+
+        /// Glyph cache entries retained across renders (0 disables)
+        #[arg(long = "max-glyphs", default_value = "2048")]
+        max_glyphs: usize,
 
         /// Enable verbose logging
         #[arg(short, long)]
@@ -87,39 +95,47 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Batch {
-            cache_size,
+            max_fonts,
+            max_glyphs,
             jobs,
             verbose,
             base_dir,
             timeout_ms,
         } => {
             init_logging(verbose);
-            let opts = ExecutionOptions {
+            let mut opts = ExecutionOptions::new(
                 base_dir,
-                timeout_ms: if timeout_ms == 0 {
+                if timeout_ms == 0 {
                     None
                 } else {
                     Some(timeout_ms)
                 },
-            };
-            run_batch_mode(cache_size, jobs, &opts)?;
+            );
+            if max_glyphs > 0 {
+                opts.set_glyph_cache_capacity(max_glyphs);
+            }
+            run_batch_mode(max_fonts, jobs, &opts)?;
         }
         Commands::Stream {
-            cache_size,
+            max_fonts,
+            max_glyphs,
             verbose,
             base_dir,
             timeout_ms,
         } => {
             init_logging(verbose);
-            let opts = ExecutionOptions {
+            let mut opts = ExecutionOptions::new(
                 base_dir,
-                timeout_ms: if timeout_ms == 0 {
+                if timeout_ms == 0 {
                     None
                 } else {
                     Some(timeout_ms)
                 },
-            };
-            run_streaming_mode(cache_size, &opts)?;
+            );
+            if max_glyphs > 0 {
+                opts.set_glyph_cache_capacity(max_glyphs);
+            }
+            run_streaming_mode(max_fonts, &opts)?;
         }
         Commands::Validate { input } => {
             init_logging(false);
@@ -143,14 +159,12 @@ fn init_logging(verbose: bool) {
 }
 
 /// Run in batch mode: read entire JobSpec from stdin, process in parallel, output JSONL.
-fn run_batch_mode(
-    cache_size: usize,
-    workers: usize,
-    opts: &ExecutionOptions,
-) -> anyhow::Result<()> {
+fn run_batch_mode(max_fonts: usize, workers: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+    let glyph_cache = opts.glyph_cache_capacity();
     log::info!(
-        "Starting batch mode (cache_size={}, jobs={})",
-        cache_size,
+        "Starting batch mode (max_fonts={}, glyph_cache={}, jobs={})",
+        max_fonts,
+        glyph_cache,
         workers
     );
 
@@ -163,14 +177,19 @@ fn run_batch_mode(
     let jobs = input::parse_jobs_payload(&payload)?;
     log::info!("Loaded {} jobs from stdin", jobs.len());
 
-    process_jobs_parallel(jobs, cache_size, workers, opts)
+    process_jobs_parallel(jobs, max_fonts, workers, opts)
 }
 
 /// Run in streaming mode: read jobs line-by-line (JSONL), output results immediately.
-fn run_streaming_mode(cache_size: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
-    log::info!("Starting streaming mode (cache_size={})", cache_size);
+fn run_streaming_mode(max_fonts: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+    let glyph_cache = opts.glyph_cache_capacity();
+    log::info!(
+        "Starting streaming mode (max_fonts={}, glyph_cache={})",
+        max_fonts,
+        glyph_cache
+    );
 
-    let font_loader = FontLoader::new(cache_size);
+    let font_loader = FontLoader::new(max_fonts);
 
     let stdin = io::stdin();
     let stdout = io::stdout();
@@ -242,7 +261,7 @@ fn handle_stream_line(
 
 fn process_jobs_parallel(
     jobs: Vec<Job>,
-    cache_size: usize,
+    max_fonts: usize,
     workers: usize,
     opts: &ExecutionOptions,
 ) -> anyhow::Result<()> {
@@ -257,7 +276,7 @@ fn process_jobs_parallel(
             .ok();
     }
 
-    let font_loader = Arc::new(FontLoader::new(cache_size));
+    let font_loader = Arc::new(FontLoader::new(max_fonts));
     let opts = Arc::new(opts.clone());
     let total = jobs.len();
 

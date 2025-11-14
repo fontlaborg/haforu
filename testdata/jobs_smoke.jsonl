@@ -1,2 +1,0 @@
-{"id":"smoke-1","font":{"path":"testdata/fonts/Arial-Black.ttf","size":1000,"variations":{}},"text":{"content":"Haforu"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
-{"id":"smoke-2","font":{"path":"testdata/fonts/Arial-Black.ttf","size":1000,"variations":{}},"text":{"content":"Integration"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}

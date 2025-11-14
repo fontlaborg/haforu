@@ -9,14 +9,15 @@ use numpy::PyArray2;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyType};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crate::batch::Job;
+use crate::batch::{Job, JobResult};
+use crate::cache::GlyphCache;
 use crate::fonts::FontLoader;
-use crate::process_job;
-use crate::{GlyphRasterizer, TextShaper};
+use crate::{process_job_with_options, ExecutionOptions, GlyphRasterizer, TextShaper};
 use camino::Utf8PathBuf;
 
 /// Persistent rendering session with font cache.
@@ -44,23 +45,26 @@ use camino::Utf8PathBuf;
 #[pyclass]
 pub struct StreamingSession {
     font_loader: Arc<Mutex<FontLoader>>,
+    glyph_cache: Option<GlyphCache>,
     closed: Arc<AtomicBool>,
 }
 
 #[pymethods]
 impl StreamingSession {
     #[new]
-    #[pyo3(signature = (cache_size=512))]
-    pub fn new(cache_size: usize) -> PyResult<Self> {
-        Ok(Self {
-            font_loader: Arc::new(Mutex::new(FontLoader::new(cache_size))),
-            closed: Arc::new(AtomicBool::new(false)),
-        })
+    #[pyo3(signature = (cache_size=None, *, max_fonts=None, max_glyphs=2048))]
+    pub fn new(
+        cache_size: Option<usize>,
+        max_fonts: Option<usize>,
+        max_glyphs: usize,
+    ) -> PyResult<Self> {
+        let font_capacity = max_fonts.or(cache_size).unwrap_or(512);
+        Self::build(font_capacity, max_glyphs)
     }
 
     #[classmethod]
     fn is_available(_cls: &Bound<'_, PyType>) -> bool {
-        StreamingSession::new(1).is_ok()
+        StreamingSession::build(1, 4).is_ok()
     }
 
     fn ensure_open(&self) -> PyResult<()> {
@@ -104,13 +108,29 @@ impl StreamingSession {
         Ok(true)
     }
 
+    /// Cheap liveness probe so callers can avoid exception handling.
+    fn ping(&self) -> PyResult<bool> {
+        self.ensure_open()?;
+        Ok(true)
+    }
+
     /// Return cache statistics for observability.
     fn cache_stats(&self) -> PyResult<HashMap<&'static str, usize>> {
         let loader = self.font_loader.lock().unwrap();
         let stats = loader.stats();
+        let glyph_stats = self
+            .glyph_cache
+            .as_ref()
+            .map(|cache| cache.stats())
+            .unwrap_or_default();
         Ok(HashMap::from([
             ("capacity", stats.capacity),
             ("entries", stats.entries),
+            ("font_capacity", stats.capacity),
+            ("font_entries", stats.entries),
+            ("glyph_capacity", glyph_stats.capacity),
+            ("glyph_entries", glyph_stats.entries),
+            ("glyph_hits", glyph_stats.hits as usize),
         ]))
     }
 
@@ -122,6 +142,22 @@ impl StreamingSession {
         self.ensure_open()?;
         let loader = self.font_loader.lock().unwrap();
         loader.set_capacity(cache_size);
+        Ok(())
+    }
+
+    /// Resize glyph-result cache (drops cached renders).
+    fn set_glyph_cache_size(&mut self, max_glyphs: usize) -> PyResult<()> {
+        self.ensure_open()?;
+        if max_glyphs == 0 {
+            self.glyph_cache = None;
+            return Ok(());
+        }
+        match self.glyph_cache.as_ref() {
+            Some(cache) => cache.set_capacity(max_glyphs),
+            None => {
+                self.glyph_cache = GlyphCache::new(max_glyphs);
+            }
+        }
         Ok(())
     }
 
@@ -154,17 +190,19 @@ impl StreamingSession {
     /// ```
     fn render(&self, job_json: &str) -> PyResult<String> {
         self.ensure_open()?;
-        // Parse job
-        let job: Job = serde_json::from_str(job_json)
-            .map_err(|e| PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+        let job = match parse_stream_job(job_json) {
+            Ok(job) => job,
+            Err(err_result) => return serialize_job_result(err_result),
+        };
 
-        // Process job with font loader
-        let font_loader = self.font_loader.lock().unwrap();
-        let result = process_job(&job, &font_loader);
+        let result = {
+            let loader = self.font_loader.lock().unwrap();
+            let mut opts = ExecutionOptions::default();
+            opts.glyph_cache = self.glyph_cache.clone();
+            process_job_with_options(&job, &loader, &opts)
+        };
 
-        // Serialize result
-        serde_json::to_string(&result)
-            .map_err(|e| PyValueError::new_err(format!("Failed to serialize result: {}", e)))
+        serialize_job_result(result)
     }
 
     /// Render text directly to numpy array (zero-copy).
@@ -232,10 +270,12 @@ impl StreamingSession {
             .collect();
 
         // Load font with variations
-        let font_loader = self.font_loader.lock().unwrap();
-        let font_instance = font_loader
-            .load_font(&font_path_buf, &variations_f32)
-            .map_err(|e| PyRuntimeError::new_err(format!("Font loading failed: {}", e)))?;
+        let font_instance = {
+            let loader = self.font_loader.lock().unwrap();
+            loader
+                .load_font(&font_path_buf, &variations_f32)
+                .map_err(|e| PyRuntimeError::new_err(format!("Font loading failed: {}", e)))?
+        };
 
         // Shape text
         let shaper = TextShaper::new();
@@ -282,6 +322,9 @@ impl StreamingSession {
         if let Ok(loader) = self.font_loader.lock() {
             loader.clear();
         }
+        if let Some(cache) = self.glyph_cache.as_ref() {
+            cache.clear();
+        }
     }
 
     fn __enter__(slf: PyRef<Self>) -> PyRef<Self> {
@@ -300,15 +343,70 @@ impl StreamingSession {
     }
 }
 
+impl Drop for StreamingSession {
+    fn drop(&mut self) {
+        self.close();
+    }
+}
+
+impl StreamingSession {
+    fn build(max_fonts: usize, max_glyphs: usize) -> PyResult<Self> {
+        if max_fonts == 0 {
+            return Err(PyValueError::new_err(
+                "max_fonts/cache_size must be at least 1",
+            ));
+        }
+        let glyph_cache = GlyphCache::new(max_glyphs);
+        Ok(Self {
+            font_loader: Arc::new(Mutex::new(FontLoader::new(max_fonts))),
+            glyph_cache,
+            closed: Arc::new(AtomicBool::new(false)),
+        })
+    }
+}
+
+fn parse_stream_job(job_json: &str) -> Result<Job, JobResult> {
+    let trimmed = job_json.trim();
+    if trimmed.is_empty() {
+        return Err(JobResult::error("stream-empty", "Job payload is empty"));
+    }
+
+    let fallback_id = "stream-invalid".to_string();
+    let parsed_value: Value = serde_json::from_str(trimmed)
+        .map_err(|err| JobResult::error(fallback_id.clone(), format!("Invalid JSON: {err}")))?;
+
+    let job_id = parsed_value
+        .get("id")
+        .and_then(|value| value.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| fallback_id.clone());
+
+    let job: Job = serde_json::from_value(parsed_value)
+        .map_err(|err| JobResult::error(job_id.clone(), format!("Invalid job JSON: {err}")))?;
+
+    if let Err(err) = job.validate() {
+        return Err(JobResult::error(job.id.clone(), err.to_string()));
+    }
+
+    Ok(job)
+}
+
+fn serialize_job_result(result: JobResult) -> PyResult<String> {
+    serde_json::to_string(&result)
+        .map_err(|e| PyValueError::new_err(format!("Failed to serialize result: {}", e)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use std::time::Instant;
 
     #[test]
     fn test_streaming_session_creation() {
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| {
-            let session = StreamingSession::new(512).unwrap();
+            let session = StreamingSession::build(512, 8).unwrap();
             assert!(Arc::strong_count(&session.font_loader) >= 1);
         });
     }
@@ -317,10 +415,51 @@ mod tests {
     fn test_invalid_json() {
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|_py| {
-            let session = StreamingSession::new(512).unwrap();
-            let result = session.render("not valid json");
-            assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("Invalid JSON"));
+            let session = StreamingSession::build(512, 8).unwrap();
+            let result = session.render("not valid json").unwrap();
+            let payload: serde_json::Value = serde_json::from_str(&result).unwrap();
+            assert_eq!(
+                payload.get("status").and_then(|v| v.as_str()),
+                Some("error")
+            );
+        });
+    }
+
+    #[test]
+    fn cached_metrics_renders_stay_under_one_millisecond() {
+        pyo3::prepare_freethreaded_python();
+        Python::with_gil(|_py| {
+            let session = StreamingSession::build(128, 256).unwrap();
+            let mut job = json!({
+                "id": "perf-0",
+                "font": {
+                    "path": "testdata/fonts/Arial-Black.ttf",
+                    "size": 256,
+                    "variations": {}
+                },
+                "text": {"content": "H"},
+                "rendering": {
+                    "format": "metrics",
+                    "encoding": "json",
+                    "width": 64,
+                    "height": 64
+                }
+            });
+
+            let iterations = 1200;
+            let start = Instant::now();
+            for idx in 0..iterations {
+                job["id"] = format!("perf-{idx}").into();
+                let job_json = serde_json::to_string(&job).unwrap();
+                let payload = session.render(&job_json).unwrap();
+                let parsed: serde_json::Value = serde_json::from_str(&payload).unwrap();
+                assert_eq!(
+                    parsed.get("status").and_then(|v| v.as_str()),
+                    Some("success")
+                );
+            }
+            let avg_ms = start.elapsed().as_secs_f64() * 1000.0 / iterations as f64;
+            assert!(avg_ms < 1.0, "expected <1ms average, got {avg_ms:.4}ms");
         });
     }
 }

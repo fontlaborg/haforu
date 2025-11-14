@@ -18,7 +18,7 @@ pub fn parse_jobs_payload(payload: &str) -> Result<Vec<Job>> {
 
     if trimmed.starts_with('{') {
         if let Ok(spec) = serde_json::from_str::<JobSpec>(trimmed) {
-            spec.validate()?;
+            spec.validate_header()?;
             return Ok(spec.jobs);
         }
     }
@@ -31,7 +31,6 @@ pub fn parse_jobs_payload(payload: &str) -> Result<Vec<Job>> {
         }
         let job: Job = serde_json::from_str(line)
             .map_err(|e| anyhow!("Line {}: invalid JSON: {}", idx + 1, e))?;
-        job.validate()?;
         jobs.push(job);
         if jobs.len() > MAX_JOBS_PER_SPEC {
             bail!("Too many jobs ({}), max {}", jobs.len(), MAX_JOBS_PER_SPEC);
@@ -81,5 +80,13 @@ mod tests {
     fn reject_empty_payload() {
         let err = parse_jobs_payload(" \n\t").unwrap_err();
         assert!(err.to_string().contains("No jobs"));
+    }
+
+    #[test]
+    fn jsonl_invalid_job_is_deferred_to_processor() {
+        let jsonl = r#"{"id":"bad","font":{"path":"/tmp/font.ttf","size":0,"variations":{}},"text":{"content":"a"},"rendering":{"format":"pgm","encoding":"base64","width":0,"height":10}}"#;
+        let jobs = parse_jobs_payload(jsonl).expect("invalid jobs should still parse");
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].id, "bad");
     }
 }
