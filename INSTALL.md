@@ -48,12 +48,14 @@ Requirements:
 git clone https://github.com/fontsimi/haforu.git
 cd haforu
 
-# Build everything
-./scripts/build.sh all
+# Canonical build + tests + smoke
+./scripts/build.sh
 
-# Install Python package in development mode
-source .venv/bin/activate
-maturin develop --release --features python
+# (Optional) Demo the JSONL contract
+./scripts/run.sh smoke
+
+# (Optional) Install the freshly built wheel
+uv pip install target/artifacts/latest/wheels/*.whl
 ```
 
 #### Platform-Specific Extras
@@ -109,10 +111,13 @@ sudo dnf install -y gcc gcc-c++ pkg-config python3-devel
 # Clone and build
 git clone https://github.com/fontsimi/haforu.git
 cd haforu
-./scripts/build.sh all
+./scripts/build.sh
 
-# Install
-pip install target/wheels/*.whl
+# Verify contract quickly
+./scripts/run.sh smoke
+
+# Install the generated wheel(s)
+pip install target/artifacts/latest/wheels/*.whl
 ```
 
 #### Platform-Specific Extras
@@ -159,11 +164,11 @@ Requirements:
 git clone https://github.com/fontsimi/haforu.git
 cd haforu
 
-# Build (using PowerShell)
-.\scripts\build.ps1 all  # Or use build.sh in Git Bash
+# Build (Git Bash)
+bash scripts/build.sh
 
 # Install
-pip install target/wheels/*.whl
+pip install target/artifacts/latest/wheels/*.whl
 ```
 
 #### Platform-Specific Extras

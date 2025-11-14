@@ -1,8 +1,6 @@
 # this_file: .cargo/config.toml
 
 [build]
-# Number of parallel jobs, defaults to # of CPUs
-jobs = 0
 # Incremental compilation
 incremental = true
 # Default target directory
@@ -136,10 +134,3 @@ MACOSX_DEPLOYMENT_TARGET = "10.12"
 # Registry configuration
 [registries.crates-io]
 protocol = "sparse"
-
-[source.crates-io]
-replace-with = "vendored-sources"
-
-[source.vendored-sources]
-# Uncomment to use vendored dependencies
-# directory = "vendor"

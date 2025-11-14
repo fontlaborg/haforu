@@ -114,3 +114,42 @@ Deliver a zero-drama renderer that FontSimi can call from either the CLI or Stre
 - Add `.cargo/config.toml` for consistent build settings across platforms.
 - Update .gitignore for all build artifacts and platform-specific files.
 - **Status (2025-11-14):** ✅ COMPLETE - .cargo/config.toml added, .gitignore updated, structure follows best practices.
+
+## Phase 3: Release Hardening & Tooling Parity
+
+### 13. Canonical Build/Run Automation (`build.sh`, `run.sh`)
+- Inspect the current `scripts/` contents (missing build/run orchestration per `llms.txt`) and design a single `./build.sh` that can build the Rust CLI, PyO3 bindings, and Python wheels with consistent artifact layout.
+- Implement OS/arch detection, release-vs-dev flags, cache reuse, and hooks for generating universal2/manylinux wheels plus Windows MSVC builds; integrate smoke tests so the script fails fast when binaries regress.
+- Create `./run.sh` that shells the CLI + Python bindings against bundled fixtures (batch JSON, streaming demo, metrics demo) to validate the install footprint in <1 min and produce sample outputs for docs.
+- Document usage in README/INSTALL plus inline script comments, and track timing/results in WORK.md for every release candidate.
+- **Status (2025-11-18):** ✅ COMPLETE — `scripts/build.sh` now emits timestamped artifacts, wheels, tests, and smoke logs via `uvx` (with per-platform targets) while `scripts/run.sh` replays the JSONL fixtures (batch/metrics/stream + optional Python demo) and both scripts are documented in README + INSTALL.
+
+### 14. Rust CLI Efficiency & Feature Parity
+- Audit `src/main.rs` to ensure the CLI exposes batch, stream, render, and diagnostics commands with HarfBuzz-compatible flags plus cache-tuning knobs; fill gaps surfaced during the `llms.txt` review.
+- Profile hot paths (argument parsing, job dispatch, JSONL streaming) and add benchmarks/regression tests so we can quantify improvements; fold in structured logging for release debugging without hurting latency.
+- Produce documentation updates (+examples) showing CLI usage parity with FontSimi expectations, including streaming JSON contracts and failure guidance.
+- **Status (2025-11-18):** ⏳ NOT STARTED — CLI exists but lacks documented performance targets/tests ensuring “efficient powerful” behavior FontSimi relies on.
+
+### 15. Python Fire CLI Parity
+- Reconfirm the Fire-based CLI under `python/haforu` exposes the same subcommands/flags as the Rust CLI, including advanced render settings, cache knobs, and metrics streaming.
+- Harden argument validation, streaming/batch wrappers, and output formatting so `haforu-py` can stand in for the Rust binary in CI; add regression tests plus usage docs tied to FontSimi workflows.
+- Ensure packaging installs console entry points (e.g., `haforu-py`) and that `python -m haforu --help` stays fast even when the native module is missing.
+- **Status (2025-11-18):** ⏳ NOT STARTED — Fire CLI scaffolding exists but needs parity review + test automation to guarantee “efficient powerful” behavior.
+
+### 16. Repository Canonicalization
+- Compare the current layout (Rust crate at root, PyO3 bindings under `src/python`, Python package under `python/`) with canonical Rust workspace + PyO3 + hatch project guidance; document deviations and clean up paths/modules accordingly.
+- Introduce or update `.cargo/config.toml`, `pyproject.toml`, and tooling metadata so both ecosystems follow best practices (e.g., workspace members, lint/test configs, `this_file` annotations).
+- Ensure docs (`README`, `ARCHITECTURE`, `PLAN`, `INSTALL`) reflect the canonical layout and reference updated scripts/configs; keep repo length manageable (<200 lines per file where possible).
+- **Status (2025-11-18):** ⏳ NOT STARTED — directories are serviceable but lack the canonical multi-language scaffolding and documentation cross-links FontSimi expects.
+
+### 17. Local & GitHub Actions Build Reliability
+- Define a reproducible build pipeline spanning `cargo`, `maturin`, and Hatch so contributors can build/test locally (macOS/Linux/Windows) using `./build.sh` plus documented prerequisites.
+- Update or add GitHub Actions workflows to mirror the local pipeline, ensuring release artifacts (Rust binaries, wheels) are produced deterministically with cache-friendly steps and smoke-test gates.
+- Capture artifact layout, cache keys, and release promotion steps inside PLAN/TODO, and keep WORK.md logging CI runs for transparency.
+- **Status (2025-11-18):** ⏳ NOT STARTED — CI currently runs basic tests but lacks the canonical release-oriented pipeline tied to the new scripts.
+
+### 18. Automatic SemVer & Tag-Driven Releases
+- Adopt Hatch VCS (Python) and cargo-vcs tagging for Rust so both crates derive their versions from git tags; wire this into `pyproject.toml`, `Cargo.toml`, and helper scripts.
+- Teach GitHub Actions to watch for `vX.Y.Z` tags, run the canonical build, update changelogs, create GitHub Releases, and push artifacts to PyPI/crates.io automatically.
+- Add validation tooling (pre-commit or script) that asserts the working tree is clean, tests pass, and the changelog is updated before allowing a tag push, preventing release drift.
+- **Status (2025-11-18):** ⏳ NOT STARTED — current tooling doesn’t yet source its version strictly from tags or auto-publish on tag push.

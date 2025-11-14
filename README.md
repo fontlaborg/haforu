@@ -271,6 +271,29 @@ haforu stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
 
 ## Building
 
+### Canonical Build & Demo Scripts
+
+The `scripts/` directory now hosts the end-to-end workflow expected by FontSimi:
+
+- `./scripts/build.sh` builds the Rust CLI (`--bin haforu`), produces wheels for the
+  current platform (universal2 on macOS, manylinux on Linux, Windows wheels when running
+  on Windows), runs `cargo test`, `uvx hatch test`, and executes the JSONL smoke suite.
+  Artifacts live under `target/artifacts/<timestamp>/` with a `latest` symlink plus
+  `summary.txt`/`timings.txt` for reproducibility. Example invocations:
+
+  ```bash
+  ./scripts/build.sh               # release build + wheels + tests + smoke
+  ./scripts/build.sh --skip-wheels # re-use cached wheels when iterating on Rust only
+  ./scripts/build.sh --profile dev --skip-tests --skip-smoke
+  ```
+
+- `./scripts/run.sh smoke` streams the bundled fixtures through the batch, metrics, and
+  streaming commands (re-using `scripts/jobs_smoke.jsonl`). It prints condensed summaries
+  and logs the raw output under `target/run-log/`. Add `python` to the mode to demo the
+  PyO3 `StreamingSession` once a wheel is installed.
+
+These scripts are the fastest way to validate a tree before publishing artifacts.
+
 ### Development Build
 
 ```bash

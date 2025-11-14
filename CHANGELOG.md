@@ -4,6 +4,19 @@ this_file: haforu/CHANGELOG.md
 
 # Changelog
 
+## 2025-11-18 (Phase 3: Build Automation Kickoff)
+
+### Scripts & Tooling
+- Replaced `scripts/build.sh` with a cross-platform harness that builds the release CLI, generates platform-appropriate wheels via `uvx maturin`, captures artifacts under `target/artifacts/<timestamp>/`, and runs `cargo test`, `uvx hatch test`, plus `scripts/batch_smoke.sh` (timings recorded per run).
+- Added `scripts/run.sh` to stream the bundled smoke fixtures through batch, metrics-only, and streaming modes (with an optional Python StreamingSession demo) so contributors can validate the JSONL contract in under a minute; logs now land under `target/run-log/`.
+- Cleaned `.cargo/config.toml` (removed the `jobs = 0` trap and the incomplete vendored source stanza) so the default Cargo workflow no longer aborts before the build even starts.
+
+### Documentation
+- README and INSTALL now describe how to drive the new build/run scripts, where artifacts end up, and how to install the freshly built wheels via `target/artifacts/latest/`.
+
+### Tests
+- `bash scripts/build.sh` *(fails)*: the pipeline now surfaces the pre-existing `src/main.rs` compile errors (`haforu::batch::FontSpec/TextSpec/RenderSpec` no longer exist and `rendering.data` is treated as `Option<String>`). Fixing that regression is outside this change but the failure mode is captured for follow-up.
+
 ## 2025-11-14 (Phase 2: Production Release Automation)
 
 ### Build & Release Automation
