@@ -11,11 +11,22 @@ def is_available() -> bool:
     """Return True when haforu bindings and dependencies are ready."""
     ...
 
-def process_jobs(spec_json: str) -> Iterator[str]:
+def process_jobs(
+    spec_json: str,
+    *,
+    max_fonts: int | None = ...,
+    max_glyphs: int | None = ...,
+    timeout_ms: int | None = ...,
+    base_dir: str | None = ...,
+) -> Iterator[str]:
     """Process a batch of rendering jobs in parallel.
 
     Args:
         spec_json: JSON string containing JobSpec with jobs array
+        max_fonts: Optional override for font cache capacity
+        max_glyphs: Optional override for glyph cache capacity (0 disables cache)
+        timeout_ms: Optional per-job timeout (milliseconds)
+        base_dir: Restrict font paths to this directory
 
     Returns:
         Iterator yielding JSONL result strings (one per completed job)

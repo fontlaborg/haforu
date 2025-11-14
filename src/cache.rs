@@ -118,7 +118,6 @@ impl GlyphCache {
             }
         }
     }
-
 }
 
 #[cfg(test)]

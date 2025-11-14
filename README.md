@@ -88,6 +88,7 @@ Tune caches per workload:
 - `--max-fonts` (alias `--cache-size`) controls the FontLoader LRU entries.
 - `--max-glyphs` sizes the render-result cache (set `0` to disable reuse).
 - `--jobs` adjusts Rayon workers; `0` keeps the auto-detected default.
+- `--stats` emits a JSON summary to `stderr` so you can track throughput/regressions.
 
 ### Streaming Mode (H4)
 
@@ -100,6 +101,17 @@ haforu stream < jobs.jsonl > results.jsonl
 Each input line is a single Job JSON, each output line is a JobResult.
 `haforu stream --max-fonts 256 --max-glyphs 2048` keeps both caches hot;
 pass `--max-glyphs 0` when you need deterministic uncached renders.
+
+### Diagnostics
+
+Inspect the CLI environment and defaults:
+
+```bash
+haforu diagnostics
+haforu diagnostics --format json
+```
+
+The Python CLI mirrors these commands via `python -m haforu diagnostics`.
 
 ### HarfBuzz-Compatible Render Mode
 
@@ -140,7 +152,10 @@ haforu-py render_single --text "Hello" --font font.ttf --size 72
 
 # Multiple formats
 haforu-py metrics -input jobs.json -format csv
+haforu-py render --font font.ttf --text "Hello" --format metrics --direction rtl
 ```
+
+Run `python -m haforu diagnostics --format json` to inspect the Python CLI defaults and environment (mirrors the Rust `haforu diagnostics` command).
 
 ### Smoke Test
 
@@ -156,6 +171,13 @@ export HAFORU_BIN="$PWD/target/release/haforu"
 
 The script asserts both success/error payloads, enforces the metrics schema, and
 fails fast if a JSONL line is malformed.
+
+## Build & Release Pipeline
+
+- `scripts/build.sh` drives reproducible builds (Rust CLI, wheels, tests, smoke runs) and snapshots artifacts under `target/artifacts/<timestamp>/`.
+- `scripts/run.sh` replays the bundled fixtures (batch/stream/metrics) in under a minute so you can verify JSON contracts locally.
+- GitHub Actions mirrors the same steps via `ci.yml` (per-OS smoke + tests) and `release.yml` (tagged releases publish binaries + wheels).
+- Version numbers come from git tags via `hatch-vcs` + `scripts/sync-version.sh`, and `release.yml` only triggers on `vX.Y.Z` tags.
 
 ## Job Specification Format
 

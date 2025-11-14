@@ -4,6 +4,25 @@ this_file: haforu/CHANGELOG.md
 
 # Changelog
 
+## 2025-11-19 (Phase 3: CLI + Python Parity)
+
+### CLI & Engine
+- Restored `src/main.rs` against the current job schema (`FontConfig/TextConfig/RenderingConfig`), added `haforu diagnostics`, structured logging (`--log-format text|json`), and a `--stats` flag for batch/streaming throughput JSON.
+- Shared cache knobs across batch/stream/render (glyph cache now exposed via stats reports) and expanded HarfBuzz shaping to honor script/direction/language/features.
+- Added integration tests for `haforu batch --stats`, `haforu stream --stats`, and `haforu diagnostics`, plus a Criterion bench (`benches/cli.rs`) that exercises a metrics job.
+
+### Python Bindings & CLI
+- Extended `haforu.process_jobs()` with `max_fonts`, `max_glyphs`, `timeout_ms`, and `base_dir` parameters (used by the Fire CLI), and ported the iterator to Rayon so Python matches Rust throughput.
+- Reworked `python -m haforu` to mirror the Rust commands (`batch`, `stream`, `render`, `diagnostics`), including variations parsing, feature flags, and JSON output fixes.
+- Updated type stubs and docs to reflect the shared CLI surface.
+
+### Docs & Tooling
+- Added `DEPENDENCIES.md`, expanded README with `--stats`, `haforu diagnostics`, and build/release pipeline notes.
+
+### Tests
+- `cargo test`
+- `uvx hatch test` *(skipped — native module unavailable in this env)*
+
 ## 2025-11-18 (Phase 3: Build Automation Kickoff)
 
 ### Scripts & Tooling

@@ -290,7 +290,12 @@ impl StreamingSession {
             features: &tmp_features,
         };
         let shaped = shaper
-            .shape_with_request(&font_instance, &request, size as f32, font_path_buf.as_std_path())
+            .shape_with_request(
+                &font_instance,
+                &request,
+                size as f32,
+                font_path_buf.as_std_path(),
+            )
             .map_err(|e| PyRuntimeError::new_err(format!("Text shaping failed: {}", e)))?;
 
         // Rasterize

@@ -10,7 +10,9 @@ allowing users to render fonts via `python -m haforu`.
 from __future__ import annotations
 
 import json
+import os
 import sys
+import base64
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -48,6 +50,8 @@ class HaforuCLI:
         input: Optional[str] = None,
         max_fonts: int = 512,
         max_glyphs: int = 2048,
+        timeout_ms: int = 0,
+        base_dir: Optional[str] = None,
         output: Optional[str] = None,
         format: str = "jsonl",
     ) -> None:
@@ -57,26 +61,26 @@ class HaforuCLI:
             input: Input JSON file (reads from stdin if not provided)
             max_fonts: Maximum number of fonts to cache
             max_glyphs: Maximum number of glyphs to cache
+            timeout_ms: Per-job timeout (0 disables)
+            base_dir: Restrict font paths to this directory
             output: Output file (writes to stdout if not provided)
             format: Output format (jsonl, json, or human)
         """
-        # Read input
-        if input:
-            with open(input, "r") as f:
-                job_spec = json.load(f)
-        else:
-            if self.verbose:
-                print("Reading from stdin...", file=sys.stderr)
-            job_spec = json.load(sys.stdin)
+        job_spec = self._load_json(input)
 
-        # Process jobs
         try:
-            results = haforu.process_jobs(job_spec)
-        except Exception as e:
-            print(f"Error processing jobs: {e}", file=sys.stderr)
+            iterator = haforu.process_jobs(
+                json.dumps(job_spec),
+                max_fonts=max_fonts,
+                max_glyphs=max_glyphs,
+                timeout_ms=timeout_ms if timeout_ms > 0 else None,
+                base_dir=base_dir,
+            )
+            results = list(iterator)
+        except Exception as exc:  # pragma: no cover - surfaces native errors
+            print(f"Error processing jobs: {exc}", file=sys.stderr)
             sys.exit(1)
 
-        # Format and output results
         self._output_results(results, output, format)
 
     def stream(
@@ -97,9 +101,7 @@ class HaforuCLI:
             format: Output format (jsonl, json, or human)
         """
         # Create streaming session
-        session = haforu.StreamingSession(
-            max_fonts=max_fonts, max_glyphs=max_glyphs
-        )
+        session = haforu.StreamingSession(max_fonts=max_fonts, max_glyphs=max_glyphs)
         session.warm_up()
 
         if self.verbose:
@@ -160,6 +162,96 @@ class HaforuCLI:
         if format != "jsonl":
             self._output_results([json.dumps(r) for r in results], output, format)
 
+    def render(
+        self,
+        text: str,
+        font: str,
+        size: int = 72,
+        width: int = 800,
+        height: int = 200,
+        variations: Optional[str] = None,
+        format: str = "pgm",
+        output: Optional[str] = None,
+        script: Optional[str] = None,
+        language: Optional[str] = None,
+        direction: str = "ltr",
+        features: Optional[str] = None,
+    ) -> None:
+        """Render a single text string (convenience command).
+
+        Args:
+            text: Text to render
+            font: Path to font file
+            size: Font size in points
+            width: Canvas width in pixels
+            height: Canvas height in pixels
+            variations: Font variations (JSON or "wght=700,wdth=80")
+            format: Output format (pgm, png, or metrics)
+            output: Output file for the image (stdout if not provided)
+            script: Script hint (e.g., "Latn")
+            language: Language tag (e.g., "en")
+            direction: Text direction ("ltr", "rtl", etc.)
+            features: OpenType feature string ("liga=0,kern")
+        """
+        variations_dict = self._parse_variations(variations)
+        feature_list = [
+            item.strip() for item in (features or "").split(",") if item and item.strip()
+        ]
+
+        job = {
+            "id": "render",
+            "font": {
+                "path": font,
+                "size": size,
+                "variations": variations_dict,
+            },
+            "text": {
+                "content": text,
+                "script": script,
+                "language": language,
+                "direction": direction,
+                "features": feature_list,
+            },
+            "rendering": {
+                "format": format,
+                "encoding": "json" if format == "metrics" else "base64",
+                "width": width,
+                "height": height,
+            },
+        }
+
+        payload = {"version": "1.0", "jobs": [job]}
+        iterator = haforu.process_jobs(json.dumps(payload))
+        results = list(iterator)
+        if not results:
+            print("Error: No results returned", file=sys.stderr)
+            sys.exit(1)
+
+        result = json.loads(results[0])
+        if result.get("status") == "error":
+            print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+            sys.exit(1)
+
+        if format == "metrics":
+            metrics = result.get("metrics", {})
+            print(f"Density: {metrics.get('density', 0):.4f}")
+            print(f"Beam: {metrics.get('beam', 0):.4f}")
+            return
+
+        rendering = result.get("rendering", {})
+        data = rendering.get("data")
+        if not data:
+            print("Error: No image data returned", file=sys.stderr)
+            sys.exit(1)
+
+        image_bytes = base64.b64decode(data)
+        if output:
+            with open(output, "wb") as handle:
+                handle.write(image_bytes)
+            print(f"Image saved to: {output}")
+        else:
+            sys.stdout.buffer.write(image_bytes)
+
     def render_single(
         self,
         text: str,
@@ -172,87 +264,19 @@ class HaforuCLI:
         output: Optional[str] = None,
         metrics_only: bool = False,
     ) -> None:
-        """Render a single text string (convenience command).
-
-        Args:
-            text: Text to render
-            font: Path to font file
-            size: Font size in points
-            width: Canvas width in pixels
-            height: Canvas height in pixels
-            variations: Font variations as JSON string (e.g. '{"wght": 700}')
-            format: Output format (pgm, png, or metrics)
-            output: Output file for the image (stdout if not provided)
-            metrics_only: Only compute metrics without rendering
-        """
-        # Parse variations
-        var_dict = {}
-        if variations:
-            try:
-                var_dict = json.loads(variations)
-            except json.JSONDecodeError:
-                print(f"Error: Invalid variations JSON: {variations}", file=sys.stderr)
-                sys.exit(1)
-
-        # Create job
-        job = {
-            "id": "single",
-            "font": {
-                "path": font,
-                "size": size,
-            },
-            "text": {
-                "content": text,
-            },
-            "rendering": {
-                "format": "metrics" if metrics_only else format,
-                "encoding": "base64" if not metrics_only else None,
-                "width": width,
-                "height": height,
-            },
-        }
-
-        if var_dict:
-            job["font"]["variations"] = var_dict
-
-        # Process job
-        job_spec = {"version": "1.0", "jobs": [job]}
-        results = haforu.process_jobs(job_spec)
-
-        if not results:
-            print("Error: No results returned", file=sys.stderr)
-            sys.exit(1)
-
-        result = json.loads(results[0])
-
-        if result.get("status") == "error":
-            print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
-            sys.exit(1)
-
-        # Output result
-        if metrics_only:
-            metrics = result.get("metrics", {})
-            print(f"Density: {metrics.get('density', 0):.4f}")
-            print(f"Beam: {metrics.get('beam', 0):.4f}")
-        else:
-            # Decode and save image
-            import base64
-
-            rendering = result.get("rendering", {})
-            data = rendering.get("data", "")
-
-            if not data:
-                print("Error: No image data returned", file=sys.stderr)
-                sys.exit(1)
-
-            image_bytes = base64.b64decode(data)
-
-            if output:
-                with open(output, "wb") as f:
-                    f.write(image_bytes)
-                print(f"Image saved to: {output}")
-            else:
-                sys.stdout.buffer.write(image_bytes)
+        """Deprecated alias for :meth:`render`."""
+        if metrics_only and format != "metrics":
+            format = "metrics"
+        self.render(
+            text=text,
+            font=font,
+            size=size,
+            width=width,
+            height=height,
+            variations=variations,
+            format=format,
+            output=output,
+        )
 
     def validate(self, input: Optional[str] = None) -> None:
         """Validate a JSON job specification.
@@ -326,7 +350,7 @@ class HaforuCLI:
                 job["rendering"]["format"] = "metrics"
 
         # Process jobs
-        results = haforu.process_jobs(job_spec)
+        results = haforu.process_jobs(json.dumps(job_spec))
 
         # Extract metrics
         metrics_data = []
@@ -365,10 +389,10 @@ class HaforuCLI:
                 print("id,density,beam,error", file=output_file)
                 for item in metrics_data:
                     if "error" in item:
-                        print(f'{item["id"]},,,,{item["error"]}', file=output_file)
+                        print(f"{item['id']},,,,{item['error']}", file=output_file)
                     else:
                         print(
-                            f'{item["id"]},{item["density"]:.4f},{item["beam"]:.4f},',
+                            f"{item['id']},{item['density']:.4f},{item['beam']:.4f},",
                             file=output_file,
                         )
         finally:
@@ -380,6 +404,25 @@ class HaforuCLI:
         print(f"haforu {haforu.__version__}")
         print("Python font renderer (Fire CLI)")
         print(f"Available: {haforu.is_available()}")
+
+    def diagnostics(self, format: str = "text") -> None:
+        """Print CLI diagnostics similar to the Rust binary."""
+        report = {
+            "status": "ok",
+            "cli_version": haforu.__version__,
+            "cpu_count": os.cpu_count() or 1,
+            "default_max_fonts": 512,
+            "default_max_glyphs": 2048,
+        }
+        if format == "json":
+            print(json.dumps(report, indent=2))
+            return
+        print(f"haforu {report['cli_version']}")
+        print(f"Status       : {report['status']}")
+        print(f"CPU threads  : {report['cpu_count']}")
+        print(
+            "Cache defaults: fonts={default_max_fonts} glyphs={default_max_glyphs}".format(**report)
+        )
 
     def _validate_job(self, job: dict, index: int) -> List[str]:
         """Validate a single job object.
@@ -425,9 +468,7 @@ class HaforuCLI:
 
         return errors
 
-    def _output_results(
-        self, results: List[str], output: Optional[str], format: str
-    ) -> None:
+    def _output_results(self, results: List[str], output: Optional[str], format: str) -> None:
         """Output results in the specified format.
 
         Args:
@@ -482,6 +523,44 @@ class HaforuCLI:
         finally:
             if output:
                 output_file.close()
+
+    def _load_json(self, path: Optional[str]) -> Dict[str, Any]:
+        """Load JSON from a file or stdin."""
+        if path:
+            with open(path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        if self.verbose:
+            print("Reading from stdin...", file=sys.stderr)
+        return json.load(sys.stdin)
+
+    def _parse_variations(self, raw: Optional[str]) -> Dict[str, float]:
+        """Parse variation coordinates from CLI input."""
+        if not raw:
+            return {}
+        text = raw.strip()
+        if not text:
+            return {}
+        if text.startswith("{"):
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError as exc:  # pragma: no cover - user error
+                print(f"Invalid variations JSON: {exc}", file=sys.stderr)
+                sys.exit(1)
+            return {k: float(v) for k, v in data.items()}
+        coords: Dict[str, float] = {}
+        for token in text.split(","):
+            if "=" not in token:
+                continue
+            axis, value = token.split("=", 1)
+            axis = axis.strip()
+            if not axis:
+                continue
+            try:
+                coords[axis] = float(value)
+            except ValueError:
+                print(f"Invalid variation value: {token}", file=sys.stderr)
+                sys.exit(1)
+        return coords
 
 
 def main():

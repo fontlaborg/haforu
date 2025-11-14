@@ -14,7 +14,7 @@ pub mod types;
 
 #[pyfunction]
 fn is_available() -> bool {
-    streaming::StreamingSession::new(1).is_ok()
+    streaming::StreamingSession::new(None, Some(1), 4).is_ok()
 }
 
 /// Python module definition.

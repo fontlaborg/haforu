@@ -91,10 +91,7 @@ pub struct ExecutionOptions {
 
 impl ExecutionOptions {
     /// Convenience constructor to avoid exposing glyph cache internals.
-    pub fn new(
-        base_dir: Option<camino::Utf8PathBuf>,
-        timeout_ms: Option<u64>,
-    ) -> Self {
+    pub fn new(base_dir: Option<camino::Utf8PathBuf>, timeout_ms: Option<u64>) -> Self {
         Self {
             base_dir,
             timeout_ms,

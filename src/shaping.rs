@@ -226,10 +226,7 @@ impl TextShaper {
         {
             buffer = buffer.set_language(language);
         }
-        if request.script.is_none()
-            || request.direction.is_none()
-            || request.language.is_none()
-        {
+        if request.script.is_none() || request.direction.is_none() || request.language.is_none() {
             buffer = buffer.guess_segment_properties();
         }
 
@@ -353,7 +350,11 @@ fn build_features(features: &[String]) -> Vec<Feature> {
             while chars.len() < 4 {
                 chars.push(' ');
             }
-            Some(Feature::new(Tag::new(chars[0], chars[1], chars[2], chars[3]), value, ..))
+            Some(Feature::new(
+                Tag::new(chars[0], chars[1], chars[2], chars[3]),
+                value,
+                ..,
+            ))
         })
         .collect()
 }

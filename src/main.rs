@@ -17,7 +17,6 @@ use haforu::{
 use rayon::{current_num_threads, prelude::*};
 use serde::Serialize;
 use serde_json::json;
-use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
@@ -649,7 +648,7 @@ fn process_jobs_parallel(
         worker_threads: if workers > 0 {
             workers
         } else {
-            rayon::current_num_threads()
+            current_num_threads()
         },
     })
 }
@@ -706,7 +705,10 @@ fn run_diagnostics(format: DiagnosticsFormat) -> anyhow::Result<()> {
             println!("haforu {}", report.cli_version);
             println!("Status       : {}", report.status);
             println!("CPU threads  : {}", report.cpu_count);
-            println!("Cache defaults: fonts={} glyphs={}", report.default_max_fonts, report.default_max_glyphs);
+            println!(
+                "Cache defaults: fonts={} glyphs={}",
+                report.default_max_fonts, report.default_max_glyphs
+            );
             println!(
                 "Security      : max_jobs_per_spec={} max_json_size={} bytes (~{} MiB)",
                 report.max_jobs_per_spec,

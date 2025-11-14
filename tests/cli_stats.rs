@@ -1,10 +1,7 @@
 // this_file: tests/cli_stats.rs
 
-use assert_cmd::prelude::*;
 use serde_json::{json, Value};
-use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
 
 fn fixture_font() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/fonts/Arial-Black.ttf")
@@ -47,23 +44,13 @@ fn parse_stats(stderr: &str) -> Value {
 #[test]
 fn batch_stats_flag_emits_summary_json() {
     let spec = metrics_job_spec("batch-stats");
-    let mut cmd = Command::cargo_bin("haforu").expect("binary built");
+    let mut cmd = assert_cmd::cargo::cargo_bin_cmd!("haforu");
     cmd.arg("batch")
         .arg("--stats")
         .arg("--max-fonts")
-        .arg("4")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
+        .arg("4");
 
-    {
-        let mut stdin = cmd.stdin.take().expect("stdin captured");
-        stdin
-            .write_all(spec.as_bytes())
-            .expect("spec written to stdin");
-    }
-
-    let output = cmd.output().expect("command should run");
+    let output = cmd.write_stdin(spec).output().expect("command should run");
     assert!(
         output.status.success(),
         "CLI should exit successfully: {:?}",
@@ -109,21 +96,12 @@ fn streaming_stats_reports_processed_and_errors() {
     });
     let payload = format!("{}\n{}\n", ok_job, bad_job);
 
-    let mut cmd = Command::cargo_bin("haforu").expect("binary built");
-    cmd.arg("stream")
-        .arg("--stats")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-
-    {
-        let mut stdin = cmd.stdin.take().expect("stdin captured");
-        stdin
-            .write_all(payload.as_bytes())
-            .expect("jsonl payload written");
-    }
-
-    let output = cmd.output().expect("command should run");
+    let mut cmd = assert_cmd::cargo::cargo_bin_cmd!("haforu");
+    cmd.arg("stream").arg("--stats");
+    let output = cmd
+        .write_stdin(payload)
+        .output()
+        .expect("command should run");
     assert!(
         output.status.success(),
         "stream command should exit successfully: {:?}",
@@ -159,8 +137,7 @@ fn streaming_stats_reports_processed_and_errors() {
 
 #[test]
 fn diagnostics_command_outputs_json_report() {
-    let output = Command::cargo_bin("haforu")
-        .expect("binary built")
+    let output = assert_cmd::cargo::cargo_bin_cmd!("haforu")
         .arg("diagnostics")
         .arg("--format")
         .arg("json")
