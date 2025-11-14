@@ -51,6 +51,15 @@ pub struct TextConfig {
     /// Optional script hint (e.g., "Latn", "Cyrl")
     #[serde(default)]
     pub script: Option<String>,
+    /// Requested text direction (ltr, rtl, ttb, btt)
+    #[serde(default)]
+    pub direction: Option<String>,
+    /// Requested language hint (e.g., "en", "ar")
+    #[serde(default)]
+    pub language: Option<String>,
+    /// OpenType feature toggles (e.g., ["liga=0", "kern"])
+    #[serde(default)]
+    pub features: Vec<String>,
 }
 
 /// Rendering parameters for a job.
@@ -258,6 +267,52 @@ impl Job {
 
         // Additional text validation to prevent control chars, etc.
         validate_text_input(&self.text.content)?;
+
+        if let Some(direction) = self.text.direction.as_deref() {
+            let dir = direction.to_lowercase();
+            let valid = matches!(dir.as_str(), "ltr" | "rtl" | "ttb" | "btt");
+            if !valid {
+                return Err(Error::InvalidJobSpec {
+                    reason: format!(
+                        "Unsupported text direction '{}', expected ltr/rtl/ttb/btt",
+                        direction
+                    ),
+                });
+            }
+        }
+
+        if let Some(language) = self.text.language.as_deref() {
+            if language.len() > 32 {
+                return Err(Error::InvalidJobSpec {
+                    reason: format!("Language tag '{}' is too long", language),
+                });
+            }
+            if !language
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
+                return Err(Error::InvalidJobSpec {
+                    reason: format!("Language tag '{}' contains invalid characters", language),
+                });
+            }
+        }
+
+        if self.text.features.len() > 64 {
+            return Err(Error::InvalidJobSpec {
+                reason: format!(
+                    "Too many OpenType features supplied ({} > 64)",
+                    self.text.features.len()
+                ),
+            });
+        }
+
+        for feature in &self.text.features {
+            if feature.trim().is_empty() {
+                return Err(Error::InvalidJobSpec {
+                    reason: "OpenType feature entries must be non-empty".to_string(),
+                });
+            }
+        }
 
         // Validate rendering config
         if self.rendering.format != "pgm"

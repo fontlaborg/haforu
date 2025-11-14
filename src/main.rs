@@ -5,23 +5,38 @@
 //! Reads JSON job specifications from stdin, processes rendering jobs,
 //! and outputs JSONL results to stdout.
 
+use base64::engine::general_purpose::STANDARD as BASE64_ENGINE;
+use base64::Engine;
 use camino::Utf8PathBuf;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use haforu::security;
 use haforu::{
-    batch::Job, process_job_with_options, ExecutionOptions, FontLoader, JobResult, JobSpec,
+    batch::{FontConfig, Job, JobResult, JobSpec, RenderingConfig, TextConfig},
+    process_job_with_options, ExecutionOptions, FontLoader,
 };
-use rayon::prelude::*;
+use rayon::{current_num_threads, prelude::*};
+use serde::Serialize;
+use serde_json::json;
+use std::collections::HashMap;
 use std::io::{self, BufRead, Read, Write};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
+use std::time::Instant;
 
 mod input;
+
+const DEFAULT_MAX_FONTS: usize = 512;
+const DEFAULT_MAX_GLYPHS: usize = 2048;
+const STATS_PREFIX: &str = "HAFORU_STATS";
 
 /// Haforu: High-performance batch font renderer
 #[derive(Parser)]
 #[command(name = "haforu")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// Global log output format
+    #[arg(long = "log-format", value_enum, default_value_t = LogFormat::Text, global = true)]
+    log_format: LogFormat,
     /// Subcommand to execute
     #[command(subcommand)]
     command: Commands,
@@ -32,11 +47,11 @@ enum Commands {
     /// Process a batch of rendering jobs from stdin (JSON)
     Batch {
         /// Font cache size (number of font instances)
-        #[arg(long = "max-fonts", default_value = "512", alias = "cache-size")]
+        #[arg(long = "max-fonts", default_value_t = DEFAULT_MAX_FONTS, alias = "cache-size")]
         max_fonts: usize,
 
         /// Glyph cache entries retained across renders (0 disables)
-        #[arg(long = "max-glyphs", default_value = "2048")]
+        #[arg(long = "max-glyphs", default_value_t = DEFAULT_MAX_GLYPHS)]
         max_glyphs: usize,
 
         /// Number of parallel worker threads (0 = auto)
@@ -54,16 +69,20 @@ enum Commands {
         /// Per-job timeout in milliseconds (0 disables)
         #[arg(long, default_value = "0")]
         timeout_ms: u64,
+
+        /// Emit throughput + error stats to stderr as JSON
+        #[arg(long)]
+        stats: bool,
     },
 
     /// Process jobs from stdin in streaming mode (JSONL input)
     Stream {
         /// Font cache size (number of font instances)
-        #[arg(long = "max-fonts", default_value = "512", alias = "cache-size")]
+        #[arg(long = "max-fonts", default_value_t = DEFAULT_MAX_FONTS, alias = "cache-size")]
         max_fonts: usize,
 
         /// Glyph cache entries retained across renders (0 disables)
-        #[arg(long = "max-glyphs", default_value = "2048")]
+        #[arg(long = "max-glyphs", default_value_t = DEFAULT_MAX_GLYPHS)]
         max_glyphs: usize,
 
         /// Enable verbose logging
@@ -77,6 +96,10 @@ enum Commands {
         /// Per-job timeout in milliseconds (0 disables)
         #[arg(long, default_value = "0")]
         timeout_ms: u64,
+
+        /// Emit throughput + error stats to stderr as JSON
+        #[arg(long)]
+        stats: bool,
     },
 
     /// Validate a JSON job specification from a file (or stdin if omitted)
@@ -88,6 +111,13 @@ enum Commands {
 
     /// Print version information
     Version,
+
+    /// Print CLI diagnostics and defaults
+    Diagnostics {
+        /// Output format (text or JSON)
+        #[arg(long = "format", value_enum, default_value_t = DiagnosticsFormat::Text)]
+        format: DiagnosticsFormat,
+    },
 
     /// Render text using HarfBuzz-compatible syntax
     Render {
@@ -149,6 +179,18 @@ enum Commands {
     },
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum LogFormat {
+    Text,
+    Json,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DiagnosticsFormat {
+    Text,
+    Json,
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -160,8 +202,9 @@ fn main() -> anyhow::Result<()> {
             verbose,
             base_dir,
             timeout_ms,
+            stats,
         } => {
-            init_logging(verbose);
+            init_logging(verbose, cli.log_format);
             let mut opts = ExecutionOptions::new(
                 base_dir,
                 if timeout_ms == 0 {
@@ -173,7 +216,7 @@ fn main() -> anyhow::Result<()> {
             if max_glyphs > 0 {
                 opts.set_glyph_cache_capacity(max_glyphs);
             }
-            run_batch_mode(max_fonts, jobs, &opts)?;
+            run_batch_mode(max_fonts, jobs, &opts, stats)?;
         }
         Commands::Stream {
             max_fonts,
@@ -181,8 +224,9 @@ fn main() -> anyhow::Result<()> {
             verbose,
             base_dir,
             timeout_ms,
+            stats,
         } => {
-            init_logging(verbose);
+            init_logging(verbose, cli.log_format);
             let mut opts = ExecutionOptions::new(
                 base_dir,
                 if timeout_ms == 0 {
@@ -194,15 +238,18 @@ fn main() -> anyhow::Result<()> {
             if max_glyphs > 0 {
                 opts.set_glyph_cache_capacity(max_glyphs);
             }
-            run_streaming_mode(max_fonts, &opts)?;
+            run_streaming_mode(max_fonts, &opts, stats)?;
         }
         Commands::Validate { input } => {
-            init_logging(false);
+            init_logging(false, cli.log_format);
             run_validate(input)?;
         }
         Commands::Version => {
             println!("haforu {}", env!("CARGO_PKG_VERSION"));
             println!("Rust font renderer for FontSimi integration");
+        }
+        Commands::Diagnostics { format } => {
+            run_diagnostics(format)?;
         }
         Commands::Render {
             font_file,
@@ -225,7 +272,7 @@ fn main() -> anyhow::Result<()> {
                 return Ok(());
             }
 
-            init_logging(verbose);
+            init_logging(verbose, cli.log_format);
 
             // Parse variations from string format
             let mut var_map = std::collections::HashMap::new();
@@ -239,27 +286,40 @@ fn main() -> anyhow::Result<()> {
                 }
             }
 
-            // Create a job from HarfBuzz-style arguments
+            let mut feature_list = Vec::new();
+            if let Some(list) = features {
+                for item in list.split(',') {
+                    let trimmed = item.trim();
+                    if !trimmed.is_empty() {
+                        feature_list.push(trimmed.to_string());
+                    }
+                }
+            }
+            let font_size_u32 = font_size.max(1.0).round() as u32;
+
             let job = Job {
                 id: "render".to_string(),
-                font: haforu::batch::FontSpec {
+                font: FontConfig {
                     path: font_file,
-                    size: font_size,
-                    variations: if var_map.is_empty() { None } else { Some(var_map) },
-                    face_index: None,
+                    size: font_size_u32,
+                    variations: var_map,
                 },
-                text: haforu::batch::TextSpec {
+                text: TextConfig {
                     content: text,
                     script,
                     direction: Some(direction),
                     language,
-                    features: features.map(|f| f.split(',').map(String::from).collect()),
+                    features: feature_list,
                 },
-                rendering: haforu::batch::RenderSpec {
-                    format: Some(format.clone()),
-                    encoding: Some(if format == "metrics" { "json".to_string() } else { "base64".to_string() }),
-                    width: Some(width),
-                    height: Some(height),
+                rendering: RenderingConfig {
+                    format: format.clone(),
+                    encoding: if format == "metrics" {
+                        "json".to_string()
+                    } else {
+                        "base64".to_string()
+                    },
+                    width,
+                    height,
                 },
             };
 
@@ -275,14 +335,11 @@ fn main() -> anyhow::Result<()> {
                     std::fs::write(&output_path, serde_json::to_string_pretty(&result)?)?;
                     println!("Metrics written to: {}", output_path);
                 } else {
-                    // Decode and write image
                     if result.status == "success" {
                         if let Some(rendering) = result.rendering {
-                            if let Some(data) = rendering.data {
-                                let image_bytes = base64::decode(data)?;
-                                std::fs::write(&output_path, image_bytes)?;
-                                println!("Image written to: {}", output_path);
-                            }
+                            let image_bytes = BASE64_ENGINE.decode(rendering.data)?;
+                            std::fs::write(&output_path, image_bytes)?;
+                            println!("Image written to: {}", output_path);
                         }
                     } else {
                         eprintln!("Render failed: {}", result.error.unwrap_or_default());
@@ -295,10 +352,8 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", serde_json::to_string_pretty(&result)?);
                 } else if result.status == "success" {
                     if let Some(rendering) = result.rendering {
-                        if let Some(data) = rendering.data {
-                            let image_bytes = base64::decode(data)?;
-                            std::io::stdout().write_all(&image_bytes)?;
-                        }
+                        let image_bytes = BASE64_ENGINE.decode(rendering.data)?;
+                        std::io::stdout().write_all(&image_bytes)?;
                     }
                 } else {
                     eprintln!("Render failed: {}", result.error.unwrap_or_default());
@@ -351,15 +406,37 @@ fn print_harfbuzz_help() {
     println!("For more information, see: https://github.com/fontsimi/haforu");
 }
 
-fn init_logging(verbose: bool) {
+fn init_logging(verbose: bool, log_format: LogFormat) {
     let level = if verbose { "debug" } else { "info" };
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
-        .format_timestamp_millis()
-        .init();
+    let mut builder =
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level));
+    match log_format {
+        LogFormat::Text => {
+            builder.format_timestamp_millis();
+        }
+        LogFormat::Json => {
+            builder.format(|buf, record| {
+                let ts = buf.timestamp_millis().to_string();
+                let payload = json!({
+                    "ts": ts,
+                    "level": record.level().to_string(),
+                    "target": record.target(),
+                    "message": record.args().to_string(),
+                });
+                writeln!(buf, "{payload}")
+            });
+        }
+    }
+    let _ = builder.try_init();
 }
 
 /// Run in batch mode: read entire JobSpec from stdin, process in parallel, output JSONL.
-fn run_batch_mode(max_fonts: usize, workers: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+fn run_batch_mode(
+    max_fonts: usize,
+    workers: usize,
+    opts: &ExecutionOptions,
+    stats: bool,
+) -> anyhow::Result<()> {
     let glyph_cache = opts.glyph_cache_capacity();
     log::info!(
         "Starting batch mode (max_fonts={}, glyph_cache={}, jobs={})",
@@ -377,11 +454,40 @@ fn run_batch_mode(max_fonts: usize, workers: usize, opts: &ExecutionOptions) -> 
     let jobs = input::parse_jobs_payload(&payload)?;
     log::info!("Loaded {} jobs from stdin", jobs.len());
 
-    process_jobs_parallel(jobs, max_fonts, workers, opts)
+    let started = Instant::now();
+    let summary = process_jobs_parallel(jobs, max_fonts, workers, opts)?;
+    let elapsed = started.elapsed();
+    log::info!(
+        "Batch complete: {} jobs ({} success, {} errors) in {:.2?}",
+        summary.total,
+        summary.successes,
+        summary.errors,
+        elapsed
+    );
+
+    if stats {
+        let report = BatchStatsReport {
+            kind: "batch",
+            jobs: summary.total,
+            successes: summary.successes,
+            errors: summary.errors,
+            duration_ms: elapsed.as_millis(),
+            jobs_per_sec: throughput(summary.total, elapsed),
+            worker_threads: summary.worker_threads,
+            glyph_cache,
+        };
+        emit_stats(&report)?;
+    }
+
+    Ok(())
 }
 
 /// Run in streaming mode: read jobs line-by-line (JSONL), output results immediately.
-fn run_streaming_mode(max_fonts: usize, opts: &ExecutionOptions) -> anyhow::Result<()> {
+fn run_streaming_mode(
+    max_fonts: usize,
+    opts: &ExecutionOptions,
+    stats: bool,
+) -> anyhow::Result<()> {
     let glyph_cache = opts.glyph_cache_capacity();
     log::info!(
         "Starting streaming mode (max_fonts={}, glyph_cache={})",
@@ -394,11 +500,19 @@ fn run_streaming_mode(max_fonts: usize, opts: &ExecutionOptions) -> anyhow::Resu
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut stdout_handle = stdout.lock();
+    let mut counters = StreamCounters::default();
+    let started = Instant::now();
 
     for (line_no, line) in stdin.lock().lines().enumerate() {
         let line = line?;
 
         if let Some(result) = handle_stream_line(&line, line_no, &font_loader, opts) {
+            counters.processed += 1;
+            if result.status == "success" {
+                counters.successes += 1;
+            } else {
+                counters.errors += 1;
+            }
             let json = serde_json::to_string(&result)?;
             writeln!(stdout_handle, "{}", json)?;
             stdout_handle.flush()?;
@@ -409,7 +523,25 @@ fn run_streaming_mode(max_fonts: usize, opts: &ExecutionOptions) -> anyhow::Resu
         }
     }
 
-    log::info!("Streaming mode complete");
+    let elapsed = started.elapsed();
+    log::info!(
+        "Streaming mode complete: {} processed ({} success, {} errors)",
+        counters.processed,
+        counters.successes,
+        counters.errors
+    );
+    if stats {
+        let report = StreamStatsReport {
+            kind: "stream",
+            processed: counters.processed,
+            successes: counters.successes,
+            errors: counters.errors,
+            duration_ms: elapsed.as_millis(),
+            jobs_per_sec: throughput(counters.processed, elapsed),
+            glyph_cache,
+        };
+        emit_stats(&report)?;
+    }
 
     Ok(())
 }
@@ -464,7 +596,7 @@ fn process_jobs_parallel(
     max_fonts: usize,
     workers: usize,
     opts: &ExecutionOptions,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<BatchRunSummary> {
     if jobs.is_empty() {
         anyhow::bail!("No jobs supplied");
     }
@@ -479,6 +611,8 @@ fn process_jobs_parallel(
     let font_loader = Arc::new(FontLoader::new(max_fonts));
     let opts = Arc::new(opts.clone());
     let total = jobs.len();
+    let successes = Arc::new(AtomicUsize::new(0));
+    let errors = Arc::new(AtomicUsize::new(0));
 
     let (tx, rx) = mpsc::channel();
 
@@ -496,6 +630,11 @@ fn process_jobs_parallel(
         let loader = Arc::clone(&font_loader);
         let opts = Arc::clone(&opts);
         let result = process_job_with_options(&job, loader.as_ref(), opts.as_ref());
+        if result.status == "success" {
+            successes.fetch_add(1, Ordering::Relaxed);
+        } else {
+            errors.fetch_add(1, Ordering::Relaxed);
+        }
         let _ = tx.send(result);
     });
 
@@ -503,7 +642,16 @@ fn process_jobs_parallel(
     output_handle.join().expect("Output thread panicked");
 
     log::info!("Batch processing complete ({} jobs)", total);
-    Ok(())
+    Ok(BatchRunSummary {
+        total,
+        successes: successes.load(Ordering::Relaxed),
+        errors: errors.load(Ordering::Relaxed),
+        worker_threads: if workers > 0 {
+            workers
+        } else {
+            rayon::current_num_threads()
+        },
+    })
 }
 
 /// Validate a JSON spec from file or stdin and print summary.
@@ -522,6 +670,107 @@ fn run_validate(input: Option<Utf8PathBuf>) -> anyhow::Result<()> {
     println!("✓ Valid job specification");
     println!("  Version: {}", spec.version);
     println!("  Jobs: {}", spec.jobs.len());
+    Ok(())
+}
+
+#[derive(Serialize)]
+struct DiagnosticsReport {
+    status: &'static str,
+    cli_version: &'static str,
+    cpu_count: usize,
+    default_max_fonts: usize,
+    default_max_glyphs: usize,
+    max_jobs_per_spec: usize,
+    max_json_bytes: usize,
+}
+
+fn run_diagnostics(format: DiagnosticsFormat) -> anyhow::Result<()> {
+    let cpu_count = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    let report = DiagnosticsReport {
+        status: "ok",
+        cli_version: env!("CARGO_PKG_VERSION"),
+        cpu_count,
+        default_max_fonts: DEFAULT_MAX_FONTS,
+        default_max_glyphs: DEFAULT_MAX_GLYPHS,
+        max_jobs_per_spec: security::MAX_JOBS_PER_SPEC,
+        max_json_bytes: security::MAX_JSON_SIZE,
+    };
+
+    match format {
+        DiagnosticsFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        DiagnosticsFormat::Text => {
+            println!("haforu {}", report.cli_version);
+            println!("Status       : {}", report.status);
+            println!("CPU threads  : {}", report.cpu_count);
+            println!("Cache defaults: fonts={} glyphs={}", report.default_max_fonts, report.default_max_glyphs);
+            println!(
+                "Security      : max_jobs_per_spec={} max_json_size={} bytes (~{} MiB)",
+                report.max_jobs_per_spec,
+                report.max_json_bytes,
+                report.max_json_bytes / (1024 * 1024)
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+struct BatchStatsReport {
+    kind: &'static str,
+    jobs: usize,
+    successes: usize,
+    errors: usize,
+    duration_ms: u128,
+    jobs_per_sec: f64,
+    worker_threads: usize,
+    glyph_cache: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct StreamStatsReport {
+    kind: &'static str,
+    processed: usize,
+    successes: usize,
+    errors: usize,
+    duration_ms: u128,
+    jobs_per_sec: f64,
+    glyph_cache: usize,
+}
+
+#[derive(Default)]
+struct StreamCounters {
+    processed: usize,
+    successes: usize,
+    errors: usize,
+}
+
+struct BatchRunSummary {
+    total: usize,
+    successes: usize,
+    errors: usize,
+    worker_threads: usize,
+}
+
+fn throughput(count: usize, duration: std::time::Duration) -> f64 {
+    if count == 0 {
+        return 0.0;
+    }
+    let secs = duration.as_secs_f64();
+    if secs <= f64::EPSILON {
+        count as f64
+    } else {
+        count as f64 / secs
+    }
+}
+
+fn emit_stats<T: Serialize>(stats: &T) -> anyhow::Result<()> {
+    let payload = serde_json::to_string(stats)?;
+    eprintln!("{STATS_PREFIX} {payload}");
     Ok(())
 }
 

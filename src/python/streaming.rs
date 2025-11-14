@@ -17,7 +17,9 @@ use std::sync::{Arc, Mutex};
 use crate::batch::{Job, JobResult};
 use crate::cache::GlyphCache;
 use crate::fonts::FontLoader;
-use crate::{process_job_with_options, ExecutionOptions, GlyphRasterizer, TextShaper};
+use crate::{
+    process_job_with_options, ExecutionOptions, GlyphRasterizer, ShapeRequest, TextShaper,
+};
 use camino::Utf8PathBuf;
 
 /// Persistent rendering session with font cache.
@@ -254,9 +256,9 @@ impl StreamingSession {
         width: u32,
         height: u32,
         variations: Option<HashMap<String, f64>>,
-        _script: Option<&str>,
-        _direction: Option<&str>,
-        _language: Option<&str>,
+        script: Option<&str>,
+        direction: Option<&str>,
+        language: Option<&str>,
     ) -> PyResult<Bound<'py, PyArray2<u8>>> {
         self.ensure_open()?;
         // Convert font path to Utf8PathBuf
@@ -279,13 +281,16 @@ impl StreamingSession {
 
         // Shape text
         let shaper = TextShaper::new();
+        let tmp_features: [String; 0] = [];
+        let request = ShapeRequest {
+            text,
+            script,
+            direction,
+            language,
+            features: &tmp_features,
+        };
         let shaped = shaper
-            .shape(
-                &font_instance,
-                text,
-                size as f32,
-                font_path_buf.as_std_path(),
-            )
+            .shape_with_request(&font_instance, &request, size as f32, font_path_buf.as_std_path())
             .map_err(|e| PyRuntimeError::new_err(format!("Text shaping failed: {}", e)))?;
 
         // Rasterize

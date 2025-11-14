@@ -5,11 +5,15 @@
 //! This module shapes text into positioned glyphs, handling complex scripts,
 //! ligatures, kerning, and other OpenType features.
 
+use crate::batch::TextConfig;
 use crate::error::{Error, Result};
 use crate::fonts::FontInstance;
-use harfbuzz_rs::{Direction, Face, Font as HbFont, GlyphBuffer, UnicodeBuffer};
+use harfbuzz_rs::{
+    Direction, Face, Feature, Font as HbFont, GlyphBuffer, Language, Tag, UnicodeBuffer,
+};
 use read_fonts::TableProvider;
 use std::path::Path;
+use std::str::FromStr;
 
 /// Shaped text with positioned glyphs.
 #[derive(Debug, Clone)]
@@ -35,6 +39,32 @@ pub struct ShapedGlyph {
     pub y_offset: i32,
 }
 
+/// Input parameters for shaping text.
+pub struct ShapeRequest<'a> {
+    /// Literal text to shape.
+    pub text: &'a str,
+    /// Script hint (e.g., Latn, Arab).
+    pub script: Option<&'a str>,
+    /// Direction hint (ltr, rtl, ttb, btt).
+    pub direction: Option<&'a str>,
+    /// Language hint (BCP-47 tag).
+    pub language: Option<&'a str>,
+    /// OpenType features to force on/off.
+    pub features: &'a [String],
+}
+
+impl<'a> From<&'a TextConfig> for ShapeRequest<'a> {
+    fn from(config: &'a TextConfig) -> Self {
+        Self {
+            text: &config.content,
+            script: config.script.as_deref(),
+            direction: config.direction.as_deref(),
+            language: config.language.as_deref(),
+            features: &config.features,
+        }
+    }
+}
+
 /// Text shaper using HarfBuzz.
 pub struct TextShaper;
 
@@ -54,21 +84,46 @@ impl TextShaper {
         font_size: f32,
         path: &Path,
     ) -> Result<ShapedText> {
-        // Handle empty string
-        if text.is_empty() {
+        let empty: [String; 0] = [];
+        let request = ShapeRequest {
+            text,
+            script: None,
+            direction: None,
+            language: None,
+            features: &empty,
+        };
+        self.shape_with_request(font_instance, &request, font_size, path)
+    }
+
+    /// Shape text using the provided request (script/direction/language/features aware).
+    pub fn shape_with_request(
+        &self,
+        font_instance: &FontInstance,
+        request: &ShapeRequest<'_>,
+        font_size: f32,
+        path: &Path,
+    ) -> Result<ShapedText> {
+        if request.text.is_empty() {
             return Ok(ShapedText {
                 glyphs: vec![],
                 font_size,
             });
         }
 
-        // Fast path for single character (common case for FontSimi)
-        if text.chars().count() == 1 {
-            return self.shape_single_char(font_instance, text, font_size, path);
+        let advanced = request.script.is_some()
+            || request.direction.is_some()
+            || request.language.is_some()
+            || request
+                .features
+                .iter()
+                .any(|entry| !entry.trim().is_empty());
+
+        if !advanced && request.text.chars().count() == 1 {
+            return self.shape_single_char(font_instance, request.text, font_size, path);
         }
 
         // Full shaping path
-        self.shape_harfbuzz(font_instance, text, font_size, path)
+        self.shape_harfbuzz(font_instance, request, font_size, path)
     }
 
     /// Fast path: shape single character without HarfBuzz overhead.
@@ -120,7 +175,7 @@ impl TextShaper {
     fn shape_harfbuzz(
         &self,
         font_instance: &FontInstance,
-        text: &str,
+        request: &ShapeRequest<'_>,
         font_size: f32,
         path: &Path,
     ) -> Result<ShapedText> {
@@ -158,13 +213,30 @@ impl TextShaper {
         }
 
         // Create buffer and add text (chain methods since they take ownership)
-        let buffer = UnicodeBuffer::new()
-            .add_str(text)
-            .set_direction(Direction::Ltr)
-            .guess_segment_properties();
+        let mut buffer = UnicodeBuffer::new().add_str(request.text);
+        if let Some(dir) = request.direction.and_then(parse_direction) {
+            buffer = buffer.set_direction(dir);
+        }
+        if let Some(script) = request.script.and_then(parse_script) {
+            buffer = buffer.set_script(script);
+        }
+        if let Some(language) = request
+            .language
+            .and_then(|lang| Language::from_str(lang).ok())
+        {
+            buffer = buffer.set_language(language);
+        }
+        if request.script.is_none()
+            || request.direction.is_none()
+            || request.language.is_none()
+        {
+            buffer = buffer.guess_segment_properties();
+        }
+
+        let features = build_features(request.features);
 
         // Shape
-        let glyph_buffer: GlyphBuffer = harfbuzz_rs::shape(&hb_font, buffer, &[]);
+        let glyph_buffer: GlyphBuffer = harfbuzz_rs::shape(&hb_font, buffer, &features);
 
         // Extract glyph positions
         let glyph_infos = glyph_buffer.get_glyph_infos();
@@ -172,7 +244,7 @@ impl TextShaper {
 
         if glyph_infos.is_empty() {
             return Err(Error::ShapingFailed {
-                text: text.to_string(),
+                text: request.text.to_string(),
                 path: path.to_path_buf(),
                 reason: "HarfBuzz returned zero glyphs".to_string(),
             });
@@ -226,6 +298,64 @@ impl ShapedText {
 
         (min_x, min_y, max_x - min_x, max_y - min_y)
     }
+}
+
+fn parse_direction(label: &str) -> Option<Direction> {
+    match label.to_ascii_lowercase().as_str() {
+        "ltr" => Some(Direction::Ltr),
+        "rtl" => Some(Direction::Rtl),
+        "ttb" => Some(Direction::Ttb),
+        "btt" => Some(Direction::Btt),
+        _ => {
+            log::warn!(
+                "Ignoring unsupported direction '{}'; falling back to HarfBuzz heuristics",
+                label
+            );
+            None
+        }
+    }
+}
+
+fn parse_script(label: &str) -> Option<Tag> {
+    let trimmed = label.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    match Tag::from_str(trimmed) {
+        Ok(tag) => Some(tag),
+        Err(_) => {
+            log::warn!(
+                "Ignoring invalid script tag '{}'; expected ISO15924 (four letters)",
+                label
+            );
+            None
+        }
+    }
+}
+
+fn build_features(features: &[String]) -> Vec<Feature> {
+    features
+        .iter()
+        .filter_map(|entry| {
+            let trimmed = entry.trim();
+            if trimmed.is_empty() {
+                return None;
+            }
+            let (tag_part, value_part) = trimmed
+                .split_once('=')
+                .map(|(tag, value)| (tag.trim(), value.trim()))
+                .unwrap_or((trimmed, "1"));
+            let value = value_part.parse::<u32>().unwrap_or(1);
+            let mut chars: Vec<char> = tag_part.chars().collect();
+            if chars.len() > 4 {
+                chars.truncate(4);
+            }
+            while chars.len() < 4 {
+                chars.push(' ');
+            }
+            Some(Feature::new(Tag::new(chars[0], chars[1], chars[2], chars[3]), value, ..))
+        })
+        .collect()
 }
 
 impl Default for TextShaper {

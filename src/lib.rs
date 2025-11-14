@@ -70,7 +70,7 @@ pub use error::{Error, Result};
 pub use fonts::{CacheStats, FontInstance, FontLoader};
 pub use output::ImageOutput;
 pub use render::{GlyphRasterizer, Image};
-pub use shaping::{ShapedText, TextShaper};
+pub use shaping::{ShapeRequest, ShapedText, TextShaper};
 
 #[derive(Clone, Debug)]
 pub(crate) enum JobPayload {
@@ -194,9 +194,10 @@ pub fn process_job_with_options(
         }
 
         let shaper = TextShaper::new();
-        let shaped = shaper.shape(
+        let shape_request = ShapeRequest::from(&job.text);
+        let shaped = shaper.shape_with_request(
             &font_instance,
-            &job.text.content,
+            &shape_request,
             job.font.size as f32,
             font_path.as_std_path(),
         )?;
@@ -387,6 +388,9 @@ mod tests {
             text: TextConfig {
                 content: "A".to_string(),
                 script: Some("Latn".to_string()),
+                direction: None,
+                language: None,
+                features: Vec::new(),
             },
             rendering: RenderingConfig {
                 format: "pgm".to_string(),
@@ -421,6 +425,9 @@ mod tests {
             text: TextConfig {
                 content: "A".to_string(),
                 script: Some("Latn".to_string()),
+                direction: None,
+                language: None,
+                features: Vec::new(),
             },
             rendering: RenderingConfig {
                 format: "pgm".to_string(),
@@ -464,6 +471,9 @@ mod tests {
             text: TextConfig {
                 content: "A".to_string(),
                 script: Some("Latn".to_string()),
+                direction: None,
+                language: None,
+                features: Vec::new(),
             },
             rendering: RenderingConfig {
                 format: "metrics".to_string(),
@@ -504,6 +514,9 @@ mod tests {
             text: TextConfig {
                 content: "C".to_string(),
                 script: Some("Latn".to_string()),
+                direction: None,
+                language: None,
+                features: Vec::new(),
             },
             rendering: RenderingConfig {
                 format: "pgm".to_string(),

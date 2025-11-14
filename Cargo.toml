@@ -69,6 +69,9 @@ numpy = { version = "0.22", optional = true }
 tempfile = "3.10"
 approx = "0.5"
 insta = "1.39"
+assert_cmd = "2.0"
+predicates = "3.1"
+criterion = "0.5"
 
 [features]
 default = []
