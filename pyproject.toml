@@ -52,7 +52,7 @@ python-source = "python"
 module-name = "haforu._haforu"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["python/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

@@ -123,6 +123,30 @@ pub struct MemoryInfo {
     pub total_mb: f64,
 }
 
+impl Default for TimingInfo {
+    fn default() -> Self {
+        Self {
+            shape_ms: 0.0,
+            render_ms: 0.0,
+            total_ms: 0.0,
+        }
+    }
+}
+
+impl JobResult {
+    /// Convenience constructor for emitting error results in streaming/CLI paths.
+    pub fn error(id: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            status: "error".to_string(),
+            rendering: None,
+            error: Some(message.into()),
+            timing: TimingInfo::default(),
+            memory: None,
+        }
+    }
+}
+
 impl JobSpec {
     /// Validate job specification structure and parameters.
     pub fn validate(&self) -> Result<(), crate::error::Error> {

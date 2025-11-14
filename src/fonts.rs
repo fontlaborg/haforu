@@ -13,6 +13,7 @@ use read_fonts::{types::Tag, FileRef, FontRef};
 use skrifa::MetadataProvider;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::ErrorKind;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -123,21 +124,27 @@ impl FontLoader {
     /// Internal implementation: load font from disk and apply variations.
     fn load_font_impl(path: &Utf8Path, coordinates: &HashMap<String, f32>) -> Result<FontInstance> {
         // Memory-map the font file
-        let file = File::open(path.as_std_path()).map_err(|e| Error::Mmap {
-            path: path.as_std_path().to_path_buf(),
-            source: e,
+        let std_path = path.as_std_path();
+        let file = File::open(std_path).map_err(|e| match e.kind() {
+            ErrorKind::NotFound => Error::FontNotFound {
+                path: std_path.to_path_buf(),
+            },
+            _ => Error::Mmap {
+                path: std_path.to_path_buf(),
+                source: e,
+            },
         })?;
 
         // Pre-check file size against limit
         let meta = file.metadata().map_err(|e| Error::Mmap {
-            path: path.as_std_path().to_path_buf(),
+            path: std_path.to_path_buf(),
             source: e,
         })?;
         crate::security::validate_font_size(meta.len())?;
 
         let mmap = unsafe {
             Mmap::map(&file).map_err(|e| Error::Mmap {
-                path: path.as_std_path().to_path_buf(),
+                path: std_path.to_path_buf(),
                 source: e,
             })?
         };

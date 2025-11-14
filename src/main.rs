@@ -8,7 +8,9 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use haforu::security;
-use haforu::{batch::Job, process_job_with_options, ExecutionOptions, FontLoader, JobSpec};
+use haforu::{
+    batch::Job, process_job_with_options, ExecutionOptions, FontLoader, JobResult, JobSpec,
+};
 use rayon::prelude::*;
 use std::io::{self, BufRead, Read, Write};
 use std::sync::{mpsc, Arc};
@@ -177,40 +179,65 @@ fn run_streaming_mode(cache_size: usize, opts: &ExecutionOptions) -> anyhow::Res
     for (line_no, line) in stdin.lock().lines().enumerate() {
         let line = line?;
 
-        if line.trim().is_empty() {
-            continue;
-        }
+        if let Some(result) = handle_stream_line(&line, line_no, &font_loader, opts) {
+            let json = serde_json::to_string(&result)?;
+            writeln!(stdout_handle, "{}", json)?;
+            stdout_handle.flush()?;
 
-        // Parse job
-        let job: Result<haforu::Job, _> = serde_json::from_str(&line);
-        let job = match job {
-            Ok(j) => j,
-            Err(e) => {
-                log::error!("Line {}: Invalid JSON: {}", line_no + 1, e);
-                continue;
+            if result.status == "success" {
+                log::debug!("Processed job {} (id={})", line_no + 1, result.id);
             }
-        };
-
-        // Validate job
-        if let Err(e) = job.validate() {
-            log::error!("Line {}: Invalid job: {}", line_no + 1, e);
-            continue;
         }
-
-        // Process job
-        let result = process_job_with_options(&job, &font_loader, opts);
-
-        // Output result
-        let json = serde_json::to_string(&result)?;
-        writeln!(stdout_handle, "{}", json)?;
-        stdout_handle.flush()?;
-
-        log::debug!("Processed job {} (id={})", line_no + 1, job.id);
     }
 
     log::info!("Streaming mode complete");
 
     Ok(())
+}
+
+fn handle_stream_line(
+    line: &str,
+    line_no: usize,
+    font_loader: &FontLoader,
+    opts: &ExecutionOptions,
+) -> Option<JobResult> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let fallback_id = format!("line-{}", line_no + 1);
+    let parsed_value = match serde_json::from_str::<serde_json::Value>(trimmed) {
+        Ok(value) => value,
+        Err(err) => {
+            log::error!("Line {}: Invalid JSON: {}", line_no + 1, err);
+            return Some(JobResult::error(
+                fallback_id,
+                format!("Invalid JSON: {err}"),
+            ));
+        }
+    };
+
+    let job_id = parsed_value
+        .get("id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| fallback_id.clone());
+
+    let job: Job = match serde_json::from_value(parsed_value) {
+        Ok(job) => job,
+        Err(err) => {
+            log::error!("Line {}: Invalid job JSON: {}", line_no + 1, err);
+            return Some(JobResult::error(job_id, format!("Invalid job JSON: {err}")));
+        }
+    };
+
+    if let Err(err) = job.validate() {
+        log::error!("Line {}: Invalid job: {}", line_no + 1, err);
+        return Some(JobResult::error(job.id.clone(), err.to_string()));
+    }
+
+    Some(process_job_with_options(&job, font_loader, opts))
 }
 
 fn process_jobs_parallel(
@@ -277,4 +304,69 @@ fn run_validate(input: Option<Utf8PathBuf>) -> anyhow::Result<()> {
     println!("  Version: {}", spec.version);
     println!("  Jobs: {}", spec.jobs.len());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use haforu::{GlyphRasterizer, TextShaper};
+
+    #[test]
+    fn test_module_structure() {
+        let _ = haforu::batch::JobSpec {
+            version: "1.0".to_string(),
+            jobs: vec![],
+        };
+        let _ = FontLoader::new(512);
+        let _ = TextShaper::new();
+        let _ = GlyphRasterizer::new();
+    }
+
+    #[test]
+    fn handle_stream_line_skips_blank_lines() {
+        let loader = FontLoader::new(4);
+        let opts = ExecutionOptions::default();
+        assert!(handle_stream_line("   ", 0, &loader, &opts).is_none());
+    }
+
+    #[test]
+    fn handle_stream_line_returns_error_for_invalid_json() {
+        let loader = FontLoader::new(4);
+        let opts = ExecutionOptions::default();
+        let result = handle_stream_line("{not valid}", 0, &loader, &opts)
+            .expect("Invalid JSON should emit an error result");
+        assert_eq!(result.id, "line-1");
+        assert_eq!(result.status, "error");
+        let msg = result.error.unwrap_or_default();
+        assert!(msg.contains("Invalid JSON"), "message: {msg}");
+    }
+
+    #[test]
+    fn handle_stream_line_validates_job_structure() {
+        let loader = FontLoader::new(4);
+        let opts = ExecutionOptions::default();
+        let json = r#"{"id":"abc","font":{"path":"/tmp/missing.ttf","size":0,"variations":{}},"text":{"content":""},"rendering":{"format":"pgm","encoding":"base64","width":0,"height":0}}"#;
+        let result = handle_stream_line(json, 2, &loader, &opts)
+            .expect("Invalid job should emit an error result");
+        assert_eq!(result.id, "abc");
+        assert_eq!(result.status, "error");
+        let msg = result.error.unwrap_or_default();
+        assert!(
+            msg.contains("Invalid render") || msg.contains("Invalid job"),
+            "message: {msg}"
+        );
+    }
+
+    #[test]
+    fn handle_stream_line_reports_font_errors() {
+        let loader = FontLoader::new(4);
+        let opts = ExecutionOptions::default();
+        let json = r#"{"id":"font-miss","font":{"path":"/tmp/definitely-missing.ttf","size":1000,"variations":{}},"text":{"content":"A"},"rendering":{"format":"pgm","encoding":"base64","width":10,"height":10}}"#;
+        let result = handle_stream_line(json, 5, &loader, &opts)
+            .expect("Missing font should surface as error result");
+        assert_eq!(result.id, "font-miss");
+        assert_eq!(result.status, "error");
+        let msg = result.error.unwrap_or_default();
+        assert!(msg.contains("Font file not found"), "message: {msg}");
+    }
 }

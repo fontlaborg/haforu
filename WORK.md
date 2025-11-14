@@ -1,7 +1,27 @@
 this_file: haforu/WORK.md
 ---
 
-# 2025-11-14 /work Iteration
+# 2025-11-14 Plan Refresh + Error Propagation
+
+## Scope
+- Review `llms.txt` snapshot plus NEXTTASK instructions.
+- Re-align `PLAN.md` and `TODO.md` to focus on FontSimi integration deliverables.
+- Continue JSON contract work: wire streaming error emission + supporting tests and configs.
+
+## Notes
+- Replaced plan content with workstreams (JSON contract, variation validation, metrics mode, streaming session, distribution) and removed completed Δpx items per directive.
+- Flattened TODO list into actionable `- []` items mirroring the new plan for easier tracking.
+- Began `handle_stream_line` refactor + introduced `JobResult::error` helper; still need to finish logic/tests and update Python bindings + docs.
+- Added hatch-facing `tests/` wrappers so `uvx hatch test` runs (currently skips because bindings are not built in this env).
+
+## Test Log
+- `cargo test` ✅ (Rust unit + CLI streaming tests)
+- `uvx hatch test` ✅ (all Python tests skipped pending compiled extension)
+
+## Next
+- Finish streaming error propagation implementation + add unit tests.
+- Update Python bindings/tests, then rerun `uvx hatch test`, `cargo test`, and smoke scripts.
+- Record results back here and clean entry once NEXTTASK is complete.
 
 ## Scope
 - Address Phase 1 items from `TODO.md`: add render validation guardrails so Δpx never returns `inf`.
