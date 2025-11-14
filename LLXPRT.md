@@ -1,63 +1,153 @@
 ---
-this_file: haforu/CLAUDE.md
+this_file: CLAUDE.md
 ---
 
-# Haforu Builder Notes
+# Haforu Development Guide
 
-IMPORTANT: When you're working, REGULARLY remind me & yourself which folder you're working in and what project you're working on.
+**Working on:** Haforu font renderer at `/Users/adam/Developer/vcs/github.fontlaborg/haforu`
 
-## Repository Structure
-- `src/` — Rust core (`fonts.rs`, `render.rs`, `shaping.rs`, `batch.rs`, `streaming.rs`, `output.rs`). Keep modules tiny; everything funnels into deterministic JSONL output.
-- `python/` — PyO3 bindings (`haforu/__init__.py`, stubs, tests). Only expose `StreamingSession`, `warm_up`, cache stats, and fast availability probes.
-- `examples/python/` — smoke demos (batch, streaming, numpy). Update only when API truly changes.
-- `scripts/` — `batch_smoke.sh` plus `jobs_smoke.json` for CLI validation in ~2 s.
-- `testdata/fonts/` — minimal fixtures for shaping/raster tests.
+## Core Mission
 
-## Mission
-Deliver a zero-drama renderer that feeds fontsimi's analyzer and deep matcher at full speed: stdin JSONL → stdout JSONL for CLI, plus warmed StreamingSession for Python. Anything not required for that goal gets cut.
+Fast, deterministic font rendering for CLI and Python. That's it.
 
-## Current Priorities (from PLAN.md)
-1. **JSON Contract & Error Surfacing**: Every stdin line produces serialized `JobResult` even on failure; normalize error messaging across CLI/PyO3/smoke scripts.
-2. **Variation Coordinate Validation**: Clamp `wght` [100, 900] and `wdth` [50, 200], warn-and-drop unknown axes, wire into `FontLoader::load_font`.
-3. **Metrics-Only Output Mode**: `--format metrics` flag emits density + beam measurements as JSON, runtime <0.2 ms/job.
-4. **StreamingSession Reliability**: Cache knobs (`max_fonts`, `max_glyphs`), warm-up hooks, microsecond `is_available()` checks, <1 ms steady-state latency.
-5. **Distribution & Tooling**: Keep `scripts/batch_smoke.sh` green in ≤2 s, maintain universal2/manylinux wheels via `maturin`, document `HAFORU_BIN` workflow.
+- **Input:** Font path + text + rendering params (size, variations, canvas dimensions)
+- **Output:** Rendered glyph as PGM/PNG/metrics JSON
+- **Interfaces:** Rust CLI + Python bindings
+- **Performance:** Sub-millisecond warmed rendering, parallel batch processing
 
-## Phase 3 Workstreams
-- **Rust CLI Efficiency**: Audit `src/main.rs` for batch/stream/render/diagnostics commands with HarfBuzz-compatible flags plus cache-tuning knobs; profile hot paths, add benchmarks/regression tests.
-- **Python Fire CLI Parity**: Reconfirm Fire CLI exposes same subcommands/flags as Rust CLI; harden argument validation, add regression tests.
-- **Repository Canonicalization**: Compare layout with canonical Rust workspace + PyO3 + hatch guidance; update `.cargo/config.toml`, `pyproject.toml`, docs.
-- **Build Reliability**: Define reproducible build pipeline spanning `cargo`, `maturin`, Hatch; update GitHub Actions workflows with cache-friendly steps and smoke-test gates.
-- **Automatic SemVer**: Adopt Hatch VCS + cargo-vcs tagging; wire GitHub Actions to watch `vX.Y.Z` tags, run canonical build, push to PyPI/crates.io.
+## Project Structure
 
-## Working Methods
-- **Keep it small**: Short functions, flat modules, explicit data paths. If a helper doesn't reduce latency, delete it.
-- **Measure constantly**: Use `cargo run --release -- batch < jobs_smoke.json` and note jobs/sec + RSS. No enterprise benchmarking rigs.
-- **Tight test loop**: Rely on lightweight Rust unit tests + bundled smoke scripts. Only add new tests when a bug slips through or a contract changes.
-- **Shared vocabulary**: Mirror helper names (`warm_up`, `ping`, `is_available`) with fontsimi so integration code stays trivial.
-- **Error handling = guidance**: Fail fast with concise JSON errors (id + message). Don't add retry loops or backoff systems.
+```
+src/
+├── main.rs         # CLI (batch, stream, render commands)
+├── lib.rs          # Public API
+├── batch.rs        # Job specs and results
+├── fonts.rs        # Font loading + LRU cache
+├── shaping.rs      # HarfBuzz text shaping
+├── render.rs       # Zeno rasterization
+├── output.rs       # PGM/PNG/metrics encoding
+└── error.rs        # Error types
 
-## Testing Stack
-- `cargo test --lib render` for raster correctness.
-- `cargo test streaming::tests::smoke` for JSONL path.
-- `examples/python/*.py` doubles as sanity checks for bindings.
-- `scripts/batch_smoke.sh` (runs haforu CLI on bundled `jobs_smoke.json`, expects success in ~2 s). Share elapsed times in WORK.md when relevant.
+python/
+├── haforu/         # PyO3 bindings
+│   ├── __init__.py     # StreamingSession API
+│   └── __main__.py     # Fire-based CLI wrapper
+└── tests/          # Python test suite
+```
 
-## Integration Checklist with fontsimi
-1. Maintain `haforu::is_available()` so fontsimi can choose bindings vs CLI instantly.
-2. Guarantee StreamingSession warm-up/ping exists and is cheap; fontsimi calls it before deep optimization.
-3. Document CLI env requirements (fonts, HB data, HAFORU_BIN) so fontsimi can surface actionable errors.
-4. Keep JSON schema versioned; bump `version` field only when absolutely necessary and update fontsimi in lockstep.
-5. Any change affecting analyzer batching or deep renders must be reflected in `PLAN.md`, `TODO.md`, and `WORK.md` here and in fontsimi.
+## What We Do
 
-## Daily Workflow
-1. Read `PLAN.md` + `TODO.md`, jot intent in `WORK.md` (clear after completion).
-2. Implement only the next bottleneck fix. Avoid parallel tasking.
-3. Run `cargo test` for touched modules and smoke scripts (CLI + python) to confirm latency hasn't regressed.
-4. Update docs (PLAN/TODO/CHANGELOG) immediately; keep this CLAUDE file current.
+1. **CLI Tool** - Read jobs from stdin (JSON batch or JSONL stream), render glyphs in parallel, output JSONL results
+2. **Python Bindings** - Persistent `StreamingSession` for sub-ms rendering with font caching
+3. **Three Output Modes:**
+   - `pgm` - Grayscale image (Netpbm format)
+   - `png` - PNG image
+   - `metrics` - Just density + beam measurements (10× faster)
 
-## Mindset
-- No enterprise scaffolding: no analytics, metrics dashboards, or exhaustive validation passes.
-- Prefer deleting flags and configs; hard-code sane defaults that favor speed.
-- Push expensive work into Rust; keep Python bindings thin wrappers.
-- Every change should remove latency, memory, or integration friction. If it doesn't, don't ship it.
+## What We Don't Do
+
+- No complex build systems or release automation
+- No repository structure bikeshedding
+- No analytics, monitoring, or telemetry
+- No elaborate caching strategies beyond simple LRU
+- No retry logic, circuit breakers, or resilience patterns
+- No extensive validation beyond basics
+
+## Development Workflow
+
+### Before Starting Work
+
+1. Read `PLAN.md` - What needs to be done
+2. Read `TODO.md` - Flat task list
+3. Update `WORK.md` - Note what you're working on
+
+### Making Changes
+
+1. **Keep it simple** - If it doesn't improve performance or fix a bug, don't add it
+2. **Test locally:**
+   ```bash
+   cargo test                    # Rust unit tests
+   cargo run --release -- batch < scripts/jobs_smoke.jsonl  # CLI smoke test
+   ```
+3. **Python changes:**
+   ```bash
+   uv pip install -e .           # Install dev build
+   python -m pytest python/tests # Python tests
+   ```
+
+### After Changes
+
+1. Update `WORK.md` with what you did
+2. Update `CHANGELOG.md` with user-visible changes
+3. Check off items in `TODO.md` and `PLAN.md`
+
+## Code Principles
+
+- **Flat modules** - No deep abstraction hierarchies
+- **Explicit data flow** - Job → Load font → Shape text → Render → Output
+- **Fast paths** - Memory-mapped fonts, LRU caches, parallel processing
+- **Deterministic errors** - Every failed job returns JSON with `status: "error"`
+- **Zero-copy where possible** - memmap2 for fonts, direct numpy arrays in Python
+
+## Testing
+
+- **Unit tests** - Rust modules test their core logic
+- **Smoke tests** - `scripts/jobs_smoke.jsonl` validates CLI contract
+- **Python tests** - `python/tests/` validates bindings and error handling
+
+## Performance Targets
+
+- Single render: <10ms cold, <2ms warm (Python bindings)
+- Batch (1000 jobs): <10s on 8 cores
+- Streaming: <1ms per job (warmed cache)
+- Metrics mode: <0.2ms per job
+
+## Common Tasks
+
+### Build CLI
+```bash
+cargo build --release
+export HAFORU_BIN="$PWD/target/release/haforu"
+```
+
+### Build Python Wheels
+```bash
+uv tool install maturin
+uv run maturin develop          # Dev install
+uv run maturin build --release  # Build wheel
+```
+
+### Run Smoke Tests
+```bash
+./scripts/batch_smoke.sh        # CLI validation (~2s)
+python -m pytest python/tests   # Python tests
+```
+
+### Profile Performance
+```bash
+# CLI hot paths
+./scripts/profile-cli.sh
+
+# Python bindings
+python examples/python/streaming_demo.py
+```
+
+## Integration with FontSimi
+
+This renderer exists to serve fontsimi's font matching pipeline:
+
+1. **Batch Analysis** - Process thousands of glyphs via CLI streaming
+2. **Deep Matching** - Use Python `StreamingSession` for <1ms repeated renders
+3. **Metrics Mode** - Skip image encoding for similarity scoring
+
+## Anti-Patterns to Avoid
+
+- Adding commands that aren't about rendering glyphs
+- Creating abstraction layers "for future extensibility"
+- Adding configuration for configuration's sake
+- Building "production-ready" infrastructure (it's a tool, not a service)
+- Implementing features nobody asked for
+
+## Golden Rule
+
+**If it doesn't make rendering faster or more reliable, don't add it.**

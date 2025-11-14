@@ -4,6 +4,93 @@ this_file: haforu/CHANGELOG.md
 
 # Changelog
 
+## 2025-11-14 (Documentation Cleanup & Simplification)
+
+### Project Refocus
+- **Removed enterprise bloat** - Eliminated Phase 3 tasks focused on repository structure, build automation, and release tooling
+- **Simplified core mission** - Focus on fast font rendering with CLI and Python interfaces only
+- **Rewritten CLAUDE.md** - Concise development guide (154 lines, was 64 but clearer and more focused)
+- **Rewritten PLAN.md** - Core functionality improvements only (95 lines, was 106)
+- **Rewritten TODO.md** - Flat task list with 54 actionable items (was 56 with project overhead)
+- **Rewritten README.md** - Essential documentation only (278 lines, was 595 - 53% reduction)
+- **Cleaned WORK.md** - Removed historical logs, simple current work tracker
+
+### Out of Scope (Explicitly Removed)
+- Repository canonicalization and structure bikeshedding
+- Automatic SemVer and tag-driven release automation
+- Complex GitHub Actions workflows
+- Build reliability "infrastructure"
+- Enterprise patterns and "production-ready" features
+
+### Current Focus Areas
+1. Error handling consistency across CLI and Python
+2. Variation coordinate validation and clamping
+3. Metrics mode reliability verification
+4. Python StreamingSession stress testing
+5. Cross-platform build verification
+
+## 2025-11-14 (Phase 3: CLI Profiling, Performance Testing & Parity Verification)
+
+### Performance Profiling & Regression Testing
+- Created `scripts/profile-cli.sh` - comprehensive CLI hot path profiling using hyperfine
+  - Argument parsing overhead: ~6.4-6.7ms baseline (dominated by binary startup)
+  - JSON batch parsing: Excellent scaling (1-100 jobs in 6.7-8.3ms)
+  - JSONL streaming: Linear scaling up to 1000 lines (~9.8ms), theoretical max ~100k jobs/sec
+  - End-to-end rendering: Metrics mode 5.9ms, PGM mode 7.4ms (~25% faster as expected)
+- Created `scripts/regression-test.sh` - automated performance regression detection
+  - Tests 4 critical hot paths against baseline thresholds
+  - Exit code 0/1 for CI integration
+  - Color-coded pass/fail output with actionable guidance
+- Added `[[bench]]` configuration to Cargo.toml for criterion benchmarks
+- Identified serde_core version conflict in criterion benchmarks (low priority - CLI profiling works fine)
+
+### Python Fire CLI Parity Verification
+- Created `scripts/test-cli-parity.sh` - comprehensive CLI parity testing
+  - Tests command availability (13 commands across both CLIs)
+  - Tests functional equivalence (version, diagnostics, validate, batch, stream, render, cache knobs)
+  - All 20 tests passing ✅
+- Verified Python Fire CLI fully mirrors Rust CLI functionality
+  - Both CLIs can be used interchangeably
+  - Python CLI includes additional `metrics` command for convenience
+  - All cache knobs, render modes, and streaming modes work identically
+
+### Documentation
+- Created comprehensive `docs/CLI-USAGE.md` (500+ lines)
+  - Complete command reference for all 6 commands (batch, stream, render, validate, diagnostics, version)
+  - JSON contract specification with full field reference tables
+  - Streaming JSONL format explanation and examples
+  - Error handling patterns and categories with bash examples
+  - Performance tuning guide (cache configuration, parallelism, metrics-only mode)
+  - 5 comprehensive real-world examples (batch processing, variable fonts, pipelines, font comparison)
+- Updated README.md with CLI quick reference section and link to full documentation
+- Updated WORK.md with complete profiling results, parity verification, and Phase 3 completion summary
+- Updated TODO.md marking all Phase 3 CLI documentation and testing tasks complete
+
+## 2025-11-14 (Phase 3: Build & Test Infrastructure Complete)
+
+### Build System
+- All Rust tests pass: 49 tests across lib, main, and cli_stats
+- All Python tests pass: 65 tests covering batch, errors, numpy, and streaming
+- Build completes successfully via `uv pip install -e .` and `./build.sh`
+
+### Test Fixes
+- Fixed `test_streaming_invalid_json`: Updated to expect error JobResult instead of ValueError exception (aligns with PLAN.md error handling contract)
+- Fixed `test_exception_in_context_manager`: Same as above - errors return JobResults, not exceptions
+- Fixed `test_streaming_session_multiple_renders`: Updated to use real test font from `testdata/fonts/Arial-Black.ttf` instead of nonexistent path
+
+### Scripts & Tooling
+- Added `./run.sh` root-level wrapper for smoke tests
+- `./build.sh` provides simple interface to build system
+- `scripts/build.sh` offers comprehensive build with wheels, tests, smoke checks, timings
+- `scripts/run.sh` provides multi-mode testing (smoke/batch/metrics/stream/python/all)
+- Fixed bug in `scripts/run.sh` line 78-79: swapped `label` and `path` argument order in summarize_jobs function
+
+### Performance
+Smoke test suite (`./run.sh smoke`):
+- Batch mode: 4 jobs (3 success, 1 error) in 2ms
+- Metrics mode: 1 job in 838µs
+- Stream mode: 4 jobs (3 success, 1 error) in ~2.5ms
+
 ## 2025-11-19 (Phase 3: CLI + Python Parity)
 
 ### CLI & Engine

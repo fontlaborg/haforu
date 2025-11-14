@@ -192,10 +192,12 @@ class TestJSONValidationErrors:
         """Test streaming session with invalid JSON."""
         session = haforu.StreamingSession()
         try:
-            with pytest.raises(ValueError) as exc_info:
-                session.render("not valid json")
-
-            assert "JSON" in str(exc_info.value) or "parse" in str(exc_info.value).lower()
+            # Invalid JSON should return error result, not raise exception
+            result_json = session.render("not valid json")
+            result = json.loads(result_json)
+            assert result["status"] == "error"
+            assert result.get("error") is not None
+            assert "JSON" in result["error"] or "parse" in result["error"].lower()
         finally:
             session.close()
 
@@ -462,10 +464,12 @@ class TestContextManagerErrorHandling:
     """Test error handling with context managers."""
 
     def test_exception_in_context_manager(self):
-        """Test that exceptions propagate correctly from context manager."""
-        with pytest.raises(ValueError):
-            with haforu.StreamingSession() as session:
-                session.render("invalid json")
+        """Test that errors return error results in context manager."""
+        with haforu.StreamingSession() as session:
+            # Invalid JSON should return error result, not raise exception
+            result_json = session.render("invalid json")
+            result = json.loads(result_json)
+            assert result["status"] == "error"
 
     def test_context_manager_cleanup_after_error(self):
         """Test that cleanup happens even after errors."""

@@ -226,12 +226,15 @@ def test_streaming_session_multiple_renders():
 
     session = haforu.StreamingSession()
 
-    # Render same job 10 times
+    # Render same job 10 times with a real font so glyphs are cached
+    from pathlib import Path
+    font_path = Path(__file__).parent.parent.parent / "testdata" / "fonts" / "Arial-Black.ttf"
+
     for i in range(10):
         job = {
             "id": f"test{i}",
             "font": {
-                "path": "/nonexistent/font.ttf",
+                "path": str(font_path),
                 "size": 1000,
                 "variations": {},
             },
@@ -247,8 +250,10 @@ def test_streaming_session_multiple_renders():
         result_json = session.render(job_json)
         result = json.loads(result_json)
         assert result["id"] == f"test{i}"
+        assert result["status"] == "success"
 
     glyph_stats = session.cache_stats()
+    # Should have cached the single glyph 'a' after rendering it 10 times
     assert glyph_stats["glyph_entries"] == 1
 
 

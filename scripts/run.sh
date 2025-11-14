@@ -75,8 +75,8 @@ summarize_jobs() {
 import json, sys
 from pathlib import Path
 
-label = sys.argv[1]
-path = Path(sys.argv[2])
+path = Path(sys.argv[1])
+label = sys.argv[2]
 print(f"{label} summaries:")
 for line in path.read_text().splitlines():
     line = line.strip()

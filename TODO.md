@@ -2,80 +2,53 @@
 this_file: TODO.md
 ---
 
-- [ ] Fix build errors in `src/python/batch.rs` and `src/python/mod.rs`:
+# Haforu Task List
 
-```
-uv pip install --system --upgrade -e .
-Using Python 3.12.8 environment at: /Library/Frameworks/Python.framework/Versions/3.12
-Resolved 4 packages in 1.72s
-Building haforu @ file:///Users/adam/Developer/vcs/github.fontlaborg/haforu
-× Failed to build `haforu @ file:///Users/adam/Developer/vcs/github.fontlaborg/haforu`
-├─▶ The build backend returned an error
-╰─▶ Call to `maturin.build_editable` failed (exit status: 1)
+## Error Handling Consistency
+- [ ] Test CLI batch mode with malformed JSON - ensure error JobResults, not crashes
+- [ ] Test CLI stream mode with invalid JSONL lines - ensure error JobResults per line
+- [ ] Test Python bindings with invalid job specs - ensure error JobResults returned
+- [ ] Add regression tests for malformed inputs in `python/tests/test_errors.py`
 
-[stdout]
-Running `maturin pep517 build-wheel -i /Users/adam/.cache/uv/builds-v0/.tmpjtJzYu/bin/python --compatibility off --editable`
+## Variation Coordinate Validation
+- [ ] Implement `validate_coordinates()` in `src/fonts.rs`
+- [ ] Add clamping for `wght` [100, 900] with warnings
+- [ ] Add clamping for `wdth` [50, 200] with warnings
+- [ ] Warn and drop unknown axes (log to stderr)
+- [ ] Wire validation into `FontLoader::load_font`
+- [ ] Surface sanitized coordinates in `JobResult.font.variations`
+- [ ] Add unit tests for in-range coordinates
+- [ ] Add unit tests for out-of-range coordinates
+- [ ] Add unit tests for unknown axes
+- [ ] Add integration test confirming skrifa receives sanitized values
 
-[stderr]
-🍹 Building a mixed python/rust project
-🔗 Found pyo3 bindings
-🐍 Found CPython 3.12 at /Users/adam/.cache/uv/builds-v0/.tmpjtJzYu/bin/python
-📡 Using build options features from pyproject.toml
-Compiling pyo3-build-config v0.22.6
-Compiling pyo3-ffi v0.22.6
-Compiling pyo3-macros-backend v0.22.6
-Compiling pyo3 v0.22.6
-Compiling pyo3-macros v0.22.6
-Compiling numpy v0.22.1
-Compiling haforu v2.0.0 (/Users/adam/Developer/vcs/github.fontlaborg/haforu)
-error[E0063]: missing field `font` in initializer of `JobResult`
---> src/python/batch.rs:142:44
-|
-142 |                     serde_json::to_string(&JobResult {
-|                                            ^^^^^^^^^ missing `font`
+## Metrics Mode Reliability
+- [ ] Verify metrics calculation is deterministic (same input = same output)
+- [ ] Benchmark metrics mode runtime - ensure <0.2ms per job
+- [ ] Verify `examples/python/metrics_demo.py` works correctly
+- [ ] Update README with metrics mode documentation
+- [ ] Add metrics mode examples to README quick reference
+- [ ] Document speedup numbers in CHANGELOG
 
-error[E0061]: this function takes 3 arguments but 1 argument was supplied
---> src/python/mod.rs:17:5
-|
-17 |     streaming::StreamingSession::new(1).is_ok()
-|     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--- two arguments of type `std::option::Option<usize>` and `std::option::Option<usize>` are missing
-|
-note: associated function defined here
---> src/python/streaming.rs:58:12
-|
-58 |     pub fn new(
-|            ^^^
-59 |         cache_size: Option<usize>,
-|         -------------------------
-60 |         max_fonts: Option<usize>,
-|         ------------------------
-help: provide the arguments
-|
-17 |     streaming::StreamingSession::new(/* std::option::Option<usize> */, /* std::option::Option<usize> */, 1).is_ok()
-|                                      +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+## Python StreamingSession Reliability
+- [ ] Test `StreamingSession.warm_up()` with various fonts
+- [ ] Test `StreamingSession.ping()` returns True on live session
+- [ ] Test `haforu.is_available()` returns True after install
+- [ ] Verify `max_fonts` parameter is respected
+- [ ] Verify `max_glyphs` parameter is respected
+- [ ] Stress test with 1000+ sequential renders
+- [ ] Monitor RSS during stress test - ensure no memory leaks
+- [ ] Verify JSON output matches CLI format exactly
+- [ ] Document cache tuning in README Python section
 
-Some errors have detailed explanations: E0061, E0063.
-For more information about an error, try `rustc --explain E0061`.
-error: could not compile `haforu` (lib) due to 2 previous errors
-💥 maturin failed
-Caused by: Failed to build a native library through cargo
-Caused by: Cargo build finished with "exit status: 101": `env -u CARGO PYO3_BUILD_EXTENSION_MODULE="1" PYO3_ENVIRONMENT_SIGNATURE="cpython-3.12-64bit"
-PYO3_PYTHON="/Users/adam/.cache/uv/builds-v0/.tmpjtJzYu/bin/python" PYTHON_SYS_EXECUTABLE="/Users/adam/.cache/uv/builds-v0/.tmpjtJzYu/bin/python"
-"cargo" "rustc" "--profile" "release" "--features" "python" "--message-format" "json-render-diagnostics" "--manifest-path"
-"/Users/adam/Developer/vcs/github.fontlaborg/haforu/Cargo.toml" "--lib" "--crate-type" "cdylib" "--" "-C" "link-arg=-undefined" "-C" "link-arg=dynamic_lookup"
-"-C" "link-args=-Wl,-install_name,@rpath/haforu._haforu.cpython-312-darwin.so"`
-Error: command ['maturin', 'pep517', 'build-wheel', '-i', '/Users/adam/.cache/uv/builds-v0/.tmpjtJzYu/bin/python', '--compatibility', 'off', '--editable']
-returned non-zero exit status 1
-
-hint: This usually indicates a problem with the package or the build environment.
-```
-
-
-
-- [ ] Write nice `./build.sh` script that builds the Rust CLI and Python package, runs the tests, and builds the wheels.
-- [ ] Add a `./run.sh` script that runs the package using some test data fonts.
-- [ ] Audit and upgrade Rust CLI for "efficient powerful" contract (flags, streaming throughput, profiling hooks), plus add regression/benchmark coverage
-- [ ] Align Python Fire CLI with Rust feature set (batch/stream/render/metrics/cache knobs), add validation, ensure console entry points stay fast even without native wheels
-- [ ] Canonicalize repo structure/documentation so Rust workspace + Python package best practices (tooling configs, docs, metadata) stay in sync with FontSimi requirements
-- [ ] Make build pipeline reproducible locally and in GitHub Actions, including artifact uploads, smoke tests, and documentation of cache keys + prerequisites
-- [ ] Wire automatic SemVer sourced from git tags (hatch-vcs + cargo) and hook GitHub Actions to cut releases whenever a `vX.Y.Z` tag is pushed
+## Cross-Platform Build Verification
+- [ ] Test `cargo build --release` on macOS
+- [ ] Test `cargo build --release` on Linux
+- [ ] Test `cargo build --release` on Windows
+- [ ] Test `maturin build --release` produces universal2 wheel on macOS
+- [ ] Test `maturin build --release` produces manylinux wheel on Linux
+- [ ] Test `maturin build --release` produces Windows wheel
+- [ ] Verify Python wheels install without compiler
+- [ ] Document prerequisites in README (Rust version, Python version)
+- [ ] Ensure `scripts/build.sh` works on macOS and Linux
+- [ ] Ensure `scripts/batch_smoke.sh` passes on all platforms
