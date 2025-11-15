@@ -8,9 +8,7 @@
 use crate::batch::TextConfig;
 use crate::error::{Error, Result};
 use crate::fonts::FontInstance;
-use harfbuzz_rs::{
-    Direction, Face, Feature, Font as HbFont, GlyphBuffer, Language, Tag, UnicodeBuffer,
-};
+use harfbuzz_rs::{Direction, Feature, GlyphBuffer, Language, Tag, UnicodeBuffer};
 use read_fonts::TableProvider;
 use std::path::Path;
 use std::str::FromStr;
@@ -128,6 +126,7 @@ impl TextShaper {
     }
 
     /// Fast path: shape single character without HarfBuzz overhead.
+    /// Now supports variable fonts using skrifa's variation-aware metrics.
     fn shape_single_char(
         &self,
         font_instance: &FontInstance,
@@ -147,18 +146,26 @@ impl TextShaper {
             .ok_or_else(|| Error::Internal(format!("Character '{}' not found in font", ch)))?
             .to_u32();
 
-        // Get advance width from hmtx table
-        // TODO: Use instance coordinates for variable fonts
-        if !font_instance.coordinates().is_empty() {
-            log::warn!(
-                "Single-character fast path does not support variable font coordinates yet: {:?}. Using static metrics.",
-                font_instance.coordinates()
-            );
-        }
-        let hmtx = font
-            .hmtx()
-            .map_err(|e| Error::Internal(format!("Failed to read hmtx table: {}", e)))?;
-        let advance = hmtx.advance(glyph_id.into()).unwrap_or(0) as i32;
+        // Get variation-aware advance width using skrifa
+        let advance = if !font_instance.coordinates().is_empty() {
+            // Use skrifa's variation-aware metrics
+            use skrifa::instance::Size;
+            use skrifa::MetadataProvider;
+
+            let user_coords = font_instance.location();
+            let axes = font.axes();
+            let location = axes.location(user_coords.iter().copied());
+
+            // Query HVAR/gvar-adjusted metrics
+            let metrics = font.glyph_metrics(Size::unscaled(), location.coords());
+            metrics.advance_width(glyph_id.into()).unwrap_or(0.0) as i32
+        } else {
+            // Static font - use hmtx directly
+            let hmtx = font
+                .hmtx()
+                .map_err(|e| Error::Internal(format!("Failed to read hmtx table: {}", e)))?;
+            hmtx.advance(glyph_id.into()).unwrap_or(0) as i32
+        };
 
         Ok(ShapedText {
             glyphs: vec![ShapedGlyph {
@@ -180,38 +187,15 @@ impl TextShaper {
         font_size: f32,
         path: &Path,
     ) -> Result<ShapedText> {
-        // Get the raw font data from the FontInstance
-        let font_data = font_instance.font_data();
-
-        // Create HarfBuzz face from font data
-        let face = Face::from_bytes(font_data, 0);
-        let mut hb_font = HbFont::new(face);
+        // Use the cached HarfBuzz font (with variations pre-applied)
+        let hb_font_arc = font_instance.hb_font();
+        let mut hb_font_guard = hb_font_arc
+            .lock()
+            .map_err(|e| Error::Internal(format!("HarfBuzz font lock poisoned: {}", e)))?;
 
         // Set font size (convert points to pixels, assuming 72 DPI)
         let ppem = font_size as u32;
-        hb_font.set_ppem(ppem, ppem);
-
-        // Apply variations if present
-        if !font_instance.coordinates().is_empty() {
-            let variations: Vec<harfbuzz_rs::Variation> = font_instance
-                .coordinates()
-                .iter()
-                .filter_map(|(tag, value)| {
-                    // Parse tag string (e.g. "wght") into 4 chars
-                    let chars: Vec<char> = tag.chars().collect();
-                    if chars.len() == 4 {
-                        Some(harfbuzz_rs::Variation::new(
-                            harfbuzz_rs::Tag::new(chars[0], chars[1], chars[2], chars[3]),
-                            *value,
-                        ))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            hb_font.set_variations(&variations);
-        }
+        hb_font_guard.set_ppem(ppem, ppem);
 
         // Create buffer and add text (chain methods since they take ownership)
         let mut buffer = UnicodeBuffer::new().add_str(request.text);
@@ -233,8 +217,8 @@ impl TextShaper {
 
         let features = build_features(request.features);
 
-        // Shape
-        let glyph_buffer: GlyphBuffer = harfbuzz_rs::shape(&hb_font, buffer, &features);
+        // Shape (borrow the font for shaping)
+        let glyph_buffer: GlyphBuffer = harfbuzz_rs::shape(&*hb_font_guard, buffer, &features);
 
         // Extract glyph positions
         let glyph_infos = glyph_buffer.get_glyph_infos();

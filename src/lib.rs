@@ -49,13 +49,16 @@
 //! ```
 
 pub mod batch;
+mod bufpool;
 mod cache;
 pub mod error;
 pub mod fonts;
+pub mod image_ops;  // NEW: Image processing for font matching (v2.2)
 pub mod output;
 pub mod render;
 pub mod security;
 pub mod shaping;
+pub mod varsweep;
 
 // Python bindings (optional feature)
 #[cfg(feature = "python")]
@@ -71,6 +74,10 @@ pub use fonts::{CacheStats, FontInstance, FontLoader};
 pub use output::ImageOutput;
 pub use render::{GlyphRasterizer, Image};
 pub use shaping::{ShapeRequest, ShapedText, TextShaper};
+pub use varsweep::{
+    render_variation_sweep, render_variation_sweep_with_fallback, SweepConfig, SweepPoint,
+    VariationCoords,
+};
 
 #[derive(Clone, Debug)]
 pub(crate) enum JobPayload {
@@ -336,7 +343,8 @@ fn build_cache_key(
     font_path: &camino::Utf8PathBuf,
     applied_variations: &std::collections::HashMap<String, f32>,
 ) -> GlyphCacheKey {
-    let mut variations: Vec<(String, u32)> = applied_variations
+    use smallvec::SmallVec;
+    let mut variations: SmallVec<[(String, u32); 4]> = applied_variations
         .iter()
         .map(|(axis, value)| (axis.clone(), value.to_bits()))
         .collect();

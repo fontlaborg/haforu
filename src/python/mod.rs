@@ -9,6 +9,7 @@ use pyo3::prelude::*;
 
 pub mod batch;
 pub mod errors;
+pub mod image_ops;  // NEW: Image processing bindings (v2.2)
 pub mod streaming;
 pub mod types;
 
@@ -32,6 +33,14 @@ fn _haforu(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Add streaming session class
     m.add_class::<streaming::StreamingSession>()?;
+
+    // Add image processing functions (v2.2)
+    m.add_function(wrap_pyfunction!(image_ops::align_and_compare, m)?)?;
+    m.add_class::<image_ops::AlignCompareResult>()?;
+
+    // Add image scaling function (v2.3)
+    m.add_function(wrap_pyfunction!(image_ops::resize_bilinear, m)?)?;
+    m.add_class::<image_ops::ResizeResult>()?;
 
     Ok(())
 }

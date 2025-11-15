@@ -20,6 +20,10 @@ try:
         process_jobs,
         StreamingSession,
         is_available,
+        align_and_compare,
+        AlignCompareResult,
+        resize_bilinear,
+        ResizeResult,
     )
 except ImportError as e:
     raise ImportError(
@@ -32,4 +36,8 @@ __all__ = [
     "process_jobs",
     "StreamingSession",
     "is_available",
+    "align_and_compare",
+    "AlignCompareResult",
+    "resize_bilinear",
+    "ResizeResult",
 ]

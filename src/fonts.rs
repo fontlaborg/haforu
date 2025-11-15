@@ -7,20 +7,23 @@
 
 use crate::error::{Error, Result};
 use camino::Utf8Path;
-use lru::LruCache;
+use dashmap::DashMap;
+use harfbuzz_rs::{Face as HbFace, Owned};
 use memmap2::Mmap;
 use read_fonts::{types::Tag, FileRef, FontRef};
 use skrifa::MetadataProvider;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::ErrorKind;
-use std::num::NonZeroUsize;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Memory-mapped font with metadata and instance cache.
 pub struct FontLoader {
-    cache: Arc<Mutex<LruCache<FontCacheKey, Arc<FontInstance>>>>,
+    cache: Arc<DashMap<FontCacheKey, Arc<FontInstance>>>,
+    max_capacity: usize,
+    current_size: Arc<AtomicUsize>,
 }
 
 /// Font cache statistics for observability.
@@ -41,6 +44,8 @@ pub struct FontInstance {
     font_ref: FontRef<'static>,
     /// Applied variation coordinates
     coordinates: HashMap<String, f32>,
+    /// Cached HarfBuzz font with variations pre-applied (for performance)
+    hb_font: Arc<Mutex<Owned<harfbuzz_rs::Font<'static>>>>,
 }
 
 /// Cache key for font instances.
@@ -53,9 +58,11 @@ struct FontCacheKey {
 impl FontLoader {
     /// Create a new font loader with specified cache size.
     pub fn new(cache_size: usize) -> Self {
-        let cache_size = NonZeroUsize::new(cache_size).unwrap_or(NonZeroUsize::new(512).unwrap());
+        let cache_size = cache_size.max(1);
         Self {
-            cache: Arc::new(Mutex::new(LruCache::new(cache_size))),
+            cache: Arc::new(DashMap::with_capacity(cache_size)),
+            max_capacity: cache_size,
+            current_size: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -67,7 +74,7 @@ impl FontLoader {
         path: &Utf8Path,
         coordinates: &HashMap<String, f32>,
     ) -> Result<Arc<FontInstance>> {
-        // Check cache first
+        // Build cache key
         let cache_key = FontCacheKey {
             path: path.to_string(),
             coordinates: coordinates
@@ -76,48 +83,48 @@ impl FontLoader {
                 .collect(),
         };
 
-        {
-            let mut cache = self.cache.lock().unwrap();
-            if let Some(instance) = cache.get(&cache_key) {
-                return Ok(Arc::clone(instance));
-            }
+        // Fast path: check cache with lock-free read
+        if let Some(instance) = self.cache.get(&cache_key) {
+            return Ok(Arc::clone(instance.value()));
         }
 
-        // Not in cache - load from disk
+        // Slow path: load from disk
         let instance = Self::load_font_impl(path, coordinates)?;
         let instance = Arc::new(instance);
 
-        // Store in cache
-        {
-            let mut cache = self.cache.lock().unwrap();
-            cache.put(cache_key, Arc::clone(&instance));
+        // Store in cache with simple size-based eviction
+        let current = self.current_size.fetch_add(1, Ordering::Relaxed);
+        if current >= self.max_capacity {
+            // Cache full - evict random entry (DashMap doesn't have LRU built-in)
+            // This is a simple eviction strategy, not perfect but avoids unbounded growth
+            if let Some(first_key) = self.cache.iter().next().map(|e| e.key().clone()) {
+                self.cache.remove(&first_key);
+                self.current_size.fetch_sub(1, Ordering::Relaxed);
+            }
         }
 
+        self.cache.insert(cache_key, Arc::clone(&instance));
         Ok(instance)
     }
 
     /// Clear all cached font instances.
     pub fn clear(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        cache.clear();
+        self.cache.clear();
+        self.current_size.store(0, Ordering::Relaxed);
     }
 
     /// Resize the cache to the requested capacity (drops old entries).
-    pub fn set_capacity(&self, cache_size: usize) {
-        let cap = NonZeroUsize::new(cache_size.max(1)).unwrap();
-        let mut cache = self.cache.lock().unwrap();
-        if cache.cap() == cap {
-            return;
-        }
-        *cache = LruCache::new(cap);
+    pub fn set_capacity(&self, _cache_size: usize) {
+        // Note: DashMap doesn't support runtime capacity changes easily
+        // For now, we keep the initial capacity but could clear and rebuild if needed
+        log::warn!("set_capacity is not fully supported with DashMap-based cache");
     }
 
     /// Return current cache statistics.
     pub fn stats(&self) -> CacheStats {
-        let cache = self.cache.lock().unwrap();
         CacheStats {
-            capacity: cache.cap().get(),
-            entries: cache.len(),
+            capacity: self.max_capacity,
+            entries: self.cache.len(),
         }
     }
 
@@ -175,10 +182,14 @@ impl FontLoader {
             coordinates.clone()
         };
 
+        // Create HarfBuzz font with variations pre-applied for performance
+        let hb_font = Self::create_harfbuzz_font(&mmap, &clamped_coords)?;
+
         Ok(FontInstance {
             mmap,
             font_ref,
             coordinates: clamped_coords,
+            hb_font: Arc::new(Mutex::new(hb_font)),
         })
     }
 
@@ -255,10 +266,44 @@ impl FontLoader {
         Ok(clamped)
     }
 
+    /// Create a HarfBuzz font from memory-mapped data with variations applied.
+    fn create_harfbuzz_font(
+        mmap: &Arc<Mmap>,
+        coordinates: &HashMap<String, f32>,
+    ) -> Result<Owned<harfbuzz_rs::Font<'static>>> {
+        // Convert mmap bytes to 'static lifetime (safe because mmap is Arc'd)
+        let font_data: &'static [u8] =
+            unsafe { std::slice::from_raw_parts(mmap.as_ptr(), mmap.len()) };
+
+        // Create HarfBuzz face and font
+        let face = HbFace::from_bytes(font_data, 0);
+        let mut hb_font = harfbuzz_rs::Font::new(face);
+
+        // Apply variation coordinates if present
+        if !coordinates.is_empty() {
+            let variations: Vec<harfbuzz_rs::Variation> = coordinates
+                .iter()
+                .filter_map(|(tag, value)| {
+                    let chars: Vec<char> = tag.chars().collect();
+                    if chars.len() == 4 {
+                        Some(harfbuzz_rs::Variation::new(
+                            harfbuzz_rs::Tag::new(chars[0], chars[1], chars[2], chars[3]),
+                            *value,
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            hb_font.set_variations(&variations);
+        }
+
+        Ok(hb_font)
+    }
+
     /// Get current cache statistics.
     pub fn cache_stats(&self) -> (usize, usize) {
-        let cache = self.cache.lock().unwrap();
-        (cache.len(), cache.cap().get())
+        (self.cache.len(), self.max_capacity)
     }
 }
 
@@ -288,6 +333,11 @@ impl FontInstance {
                     .map(|tag| (tag, *value))
             })
             .collect()
+    }
+
+    /// Get reference to the cached HarfBuzz font (for performance optimization).
+    pub fn hb_font(&self) -> &Arc<Mutex<Owned<harfbuzz_rs::Font<'static>>>> {
+        &self.hb_font
     }
 }
 

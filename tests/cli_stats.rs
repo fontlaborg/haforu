@@ -45,10 +45,7 @@ fn parse_stats(stderr: &str) -> Value {
 fn batch_stats_flag_emits_summary_json() {
     let spec = metrics_job_spec("batch-stats");
     let mut cmd = assert_cmd::cargo::cargo_bin_cmd!("haforu");
-    cmd.arg("batch")
-        .arg("--stats")
-        .arg("--max-fonts")
-        .arg("4");
+    cmd.arg("batch").arg("--stats").arg("--max-fonts").arg("4");
 
     let output = cmd.write_stdin(spec).output().expect("command should run");
     assert!(

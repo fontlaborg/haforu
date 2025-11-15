@@ -9,11 +9,13 @@
 
 use crate::JobPayload;
 use lru::LruCache;
+use smallvec::SmallVec;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Unique key for cached render payloads.
+/// Uses SmallVec for variations to avoid heap allocations for common case (1-4 axes).
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub(crate) struct GlyphCacheKey {
     pub(crate) font_path: String,
@@ -24,7 +26,7 @@ pub(crate) struct GlyphCacheKey {
     pub(crate) encoding: String,
     pub(crate) text: String,
     pub(crate) script: Option<String>,
-    pub(crate) variations: Vec<(String, u32)>,
+    pub(crate) variations: SmallVec<[(String, u32); 4]>,
 }
 
 /// Lightweight stats for observability.
@@ -137,7 +139,7 @@ mod tests {
             encoding: "base64".into(),
             text: "A".into(),
             script: Some("Latn".into()),
-            variations: vec![],
+            variations: SmallVec::new(),
         };
         let payload = JobPayload::Rendering(RenderingOutput {
             format: "pgm".into(),
@@ -172,7 +174,7 @@ mod tests {
             encoding: "base64".into(),
             text: "a".into(),
             script: None,
-            variations: vec![],
+            variations: SmallVec::new(),
         };
         cache.insert(
             key.clone(),

@@ -5,6 +5,7 @@
 //! This module extracts glyph outlines from fonts and rasterizes them
 //! into grayscale images with proper antialiasing.
 
+use crate::bufpool::PooledBuffer;
 use crate::error::{Error, Result};
 use crate::fonts::FontInstance;
 use crate::shaping::ShapedText;
@@ -80,20 +81,33 @@ impl Image {
     }
 
     /// Calculate tight bounding box of non-zero pixels.
+    #[inline]
     pub fn calculate_bbox(&self) -> (u32, u32, u32, u32) {
         let mut min_x = self.width;
         let mut min_y = self.height;
         let mut max_x = 0u32;
         let mut max_y = 0u32;
 
+        // Process row-by-row, using SIMD to check if row has any non-zero pixels
         for y in 0..self.height {
-            for x in 0..self.width {
-                let idx = (y * self.width + x) as usize;
-                if self.pixels[idx] > 0 {
-                    min_x = min_x.min(x);
-                    min_y = min_y.min(y);
-                    max_x = max_x.max(x);
-                    max_y = max_y.max(y);
+            let row_start = (y * self.width) as usize;
+            let row_end = row_start + self.width as usize;
+            let row = &self.pixels[row_start..row_end];
+
+            // Check if this row has any non-zero pixels
+            let has_content = Self::has_nonzero_simd(row);
+            if !has_content {
+                continue;
+            }
+
+            min_y = min_y.min(y);
+            max_y = max_y.max(y);
+
+            // Find min_x and max_x in this row
+            for (x, &px) in row.iter().enumerate() {
+                if px > 0 {
+                    min_x = min_x.min(x as u32);
+                    max_x = max_x.max(x as u32);
                 }
             }
         }
@@ -103,6 +117,43 @@ impl Image {
         }
 
         (min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+    }
+
+    /// Check if slice has any non-zero bytes (SIMD-accelerated on x86_64).
+    #[inline]
+    fn has_nonzero_simd(slice: &[u8]) -> bool {
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::*;
+
+            unsafe {
+                let len = slice.len();
+                let mut i = 0;
+                let zeros = _mm256_setzero_si256();
+
+                // Process 32 bytes at a time
+                while i + 32 <= len {
+                    let chunk = _mm256_loadu_si256(slice[i..].as_ptr() as *const __m256i);
+                    let cmp = _mm256_cmpeq_epi8(chunk, zeros);
+                    let mask = _mm256_movemask_epi8(cmp) as u32;
+
+                    // If mask is not all-ones, there's a non-zero byte
+                    if mask != 0xFFFFFFFF {
+                        return true;
+                    }
+
+                    i += 32;
+                }
+
+                // Scalar cleanup
+                slice[i..].iter().any(|&px| px > 0)
+            }
+        }
+
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            slice.iter().any(|&px| px > 0)
+        }
     }
 
     /// Compute normalized pixel delta with hard clamps to avoid infinities.
@@ -128,10 +179,26 @@ impl Image {
     }
 
     /// Compute normalized pixel density (0.0 - 1.0).
+    #[inline]
     pub fn density(&self) -> f64 {
         if self.len() == 0 {
             return 0.0;
         }
+
+        // Use SIMD-accelerated sum for x86_64, fallback to scalar otherwise
+        #[cfg(target_arch = "x86_64")]
+        {
+            self.density_simd()
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            self.density_scalar()
+        }
+    }
+
+    /// Scalar implementation of density (fallback).
+    #[inline]
+    fn density_scalar(&self) -> f64 {
         let sum: u64 = self.pixels.iter().map(|&px| px as u64).sum();
         let denom = (self.len() as u64) * 255u64;
         if denom == 0 {
@@ -141,11 +208,84 @@ impl Image {
         density.clamp(0.0, 1.0)
     }
 
+    /// SIMD implementation of density (x86_64 only).
+    #[cfg(target_arch = "x86_64")]
+    #[inline]
+    fn density_simd(&self) -> f64 {
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::*;
+
+            unsafe {
+                let mut sum = _mm256_setzero_si256();
+                let mut i = 0;
+                let len = self.pixels.len();
+
+                // Process 32 bytes at a time with AVX2
+                while i + 32 <= len {
+                    // Load 32 bytes
+                    let chunk = _mm256_loadu_si256(self.pixels[i..].as_ptr() as *const __m256i);
+
+                    // Unpack to 16-bit for accumulation (split into low and high)
+                    let zeros = _mm256_setzero_si256();
+                    let low = _mm256_unpacklo_epi8(chunk, zeros);
+                    let high = _mm256_unpackhi_epi8(chunk, zeros);
+
+                    // Accumulate both halves
+                    let low_32 = _mm256_madd_epi16(low, _mm256_set1_epi16(1));
+                    let high_32 = _mm256_madd_epi16(high, _mm256_set1_epi16(1));
+
+                    sum = _mm256_add_epi32(sum, low_32);
+                    sum = _mm256_add_epi32(sum, high_32);
+
+                    i += 32;
+                }
+
+                // Horizontal sum of the accumulator
+                let sum_array: [i32; 8] = std::mem::transmute(sum);
+                let total: u64 = sum_array.iter().map(|&x| x as u64).sum();
+
+                // Scalar cleanup for remaining bytes
+                let remainder: u64 = self.pixels[i..].iter().map(|&px| px as u64).sum();
+                let final_sum = total + remainder;
+
+                let denom = (self.len() as u64) * 255u64;
+                if denom == 0 {
+                    return 0.0;
+                }
+                let density = final_sum as f64 / denom as f64;
+                density.clamp(0.0, 1.0)
+            }
+        }
+
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            // This branch should never be hit due to outer cfg, but needed for compilation
+            self.density_scalar()
+        }
+    }
+
     /// Compute longest contiguous non-zero run ratio (0.0 - 1.0).
+    #[inline]
     pub fn beam(&self) -> f64 {
         if self.len() == 0 {
             return 0.0;
         }
+
+        // SIMD-accelerated beam for x86_64
+        #[cfg(target_arch = "x86_64")]
+        {
+            self.beam_simd()
+        }
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            self.beam_scalar()
+        }
+    }
+
+    /// Scalar implementation of beam (fallback).
+    #[inline]
+    fn beam_scalar(&self) -> f64 {
         let mut best = 0usize;
         let mut current = 0usize;
         for &px in &self.pixels {
@@ -158,6 +298,66 @@ impl Image {
         }
         let ratio = best as f64 / self.len() as f64;
         ratio.clamp(0.0, 1.0)
+    }
+
+    /// SIMD implementation of beam (x86_64 only).
+    /// Uses AVX2 to quickly identify zero/non-zero runs.
+    #[cfg(target_arch = "x86_64")]
+    #[inline]
+    fn beam_simd(&self) -> f64 {
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::*;
+
+            unsafe {
+                let mut best = 0usize;
+                let mut current = 0usize;
+                let mut i = 0;
+                let len = self.pixels.len();
+                let zeros = _mm256_setzero_si256();
+
+                // Process 32 bytes at a time
+                while i + 32 <= len {
+                    let chunk = _mm256_loadu_si256(self.pixels[i..].as_ptr() as *const __m256i);
+
+                    // Compare with zero to get mask
+                    let cmp = _mm256_cmpeq_epi8(chunk, zeros);
+                    let mask = _mm256_movemask_epi8(cmp) as u32;
+
+                    // Process each byte in the chunk
+                    for j in 0..32 {
+                        let is_zero = (mask & (1 << j)) != 0;
+                        if !is_zero {
+                            current += 1;
+                            best = best.max(current);
+                        } else {
+                            current = 0;
+                        }
+                    }
+
+                    i += 32;
+                }
+
+                // Scalar cleanup for remaining bytes
+                for &px in &self.pixels[i..] {
+                    if px > 0 {
+                        current += 1;
+                        best = best.max(current);
+                    } else {
+                        current = 0;
+                    }
+                }
+
+                let ratio = best as f64 / self.len() as f64;
+                ratio.clamp(0.0, 1.0)
+            }
+        }
+
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            // This branch should never be hit due to outer cfg, but needed for compilation
+            self.beam_scalar()
+        }
     }
 }
 
@@ -182,11 +382,11 @@ impl GlyphRasterizer {
         tracking: f32,
         path: &Path,
     ) -> Result<Image> {
-        // Create blank canvas
-        let mut canvas = vec![0u8; (width * height) as usize];
+        // Create blank canvas from pool (automatically returned on drop)
+        let mut canvas = PooledBuffer::new((width * height) as usize);
 
         if shaped.glyphs.is_empty() {
-            return Image::new(width, height, canvas);
+            return Image::new(width, height, canvas.take());
         }
 
         let font = font_instance.font_ref();
@@ -259,7 +459,8 @@ impl GlyphRasterizer {
             *pixel = 255 - *pixel;
         }
 
-        Image::new(width, height, canvas)
+        // Take ownership of buffer to prevent return to pool
+        Image::new(width, height, canvas.take())
     }
 
     /// Composite a single glyph onto the canvas.
