@@ -58,40 +58,151 @@ Project Structure:
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
 │   │       ├── 📁 cli_stats-34uwdyqqhe43m
-│   │       │   └── 📁 s-hczhvw5gax-077kflm-4dypcdwvvzkv3pi6ljqpqoj7k
+│   │       │   └── 📁 
+│   │       │       s-hczqpc21bb-07yzz83-4dypcdwvvzkv3pi6ljqpqoj7k
 │   │       ├── 📁 haforu-08zf1nnuqulfd
-│   │       │   └── 📁 s-hczhvridfn-07cpz20-1ej329jvd0kphb6g9tvazpiou
+│   │       │   └── 📁 
+│   │       │       s-hczqpb3fek-14mmksn-bcosaf1zdsh6ew39daoxl340y
 │   │       ├── 📁 haforu-0rbv9x69y580h
-│   │       │   └── 📁 s-hczg4b7xcj-1pd759l-aioxgobbvymw7zkgxdklpnn9p
+│   │       │   └── 📁 
+│   │       │       s-hczg4b7xcj-1pd759l-aioxgobbvymw7zkgxdklpnn9p
 │   │       ├── 📁 haforu-1gfyf1h42fl5j
-│   │       │   └── 📁 s-hczg4c2apk-1807kfv-76hjdokiix5z0ou4o2n04mdps
+│   │       │   └── 📁 
+│   │       │       s-hczg4c2apk-1807kfv-76hjdokiix5z0ou4o2n04mdps
 │   │       ├── 📁 haforu-2bk6jiyvnoozg
-│   │       │   └── 📁 s-hczhvsoka5-0tr2a3a-9h15dz8513ok4d0kmhm30idov
+│   │       │   └── 📁 
+│   │       │       s-hczqpb3eve-0pmv54u-cb4fel52mw8xnz6x87xbrsieh
 │   │       ├── 📁 haforu-2kxd8htbh9i7m
-│   │       │   └── 📁 s-hczhvv5qrr-1pu0um4-0jel29wp46xsdbcisf41u6oaw
+│   │       │   └── 📁 
+│   │       │       s-hczqpc22ji-0t8c96j-8bivgdz3hujwlvcqyshrkvwdf
 │   │       ├── 📁 haforu-2qf2tmg8datww
-│   │       │   └── 📁 s-hczhvw5t5e-1ea9idd-a6og4fe2z4htxgey5s2fu1z41
+│   │       │   └── 📁 
+│   │       │       s-hczqpc2164-1t64bux-6q9shwaymm4btahxtro9ehmlx
 │   │       └── 📁 smoke_test-1l1n0kvfmtt2i
-│   │           └── 📁 s-hczhvw5ls0-0hjtcsc-6cta0sckfwz4ev5e1urb80yta
+│   │           └── 📁 
+│   │               s-hczqpc221t-0spqxt4-9rxk15u9rzj8a9w7bmun9v92j
+│   ├── 📁 doc
+│   │   ├── 📁 haforu
+│   │   │   ├── 📁 batch
+│   │   │   ├── 📁 error
+│   │   │   ├── 📁 fonts
+│   │   │   ├── 📁 output
+│   │   │   ├── 📁 render
+│   │   │   ├── 📁 security
+│   │   │   └── 📁 shaping
+│   │   ├── 📁 search.index
+│   │   │   ├── 📁 alias
+│   │   │   ├── 📁 crateNames
+│   │   │   ├── 📁 desc
+│   │   │   ├── 📁 entry
+│   │   │   ├── 📁 function
+│   │   │   ├── 📁 generic_inverted_index
+│   │   │   ├── 📁 name
+│   │   │   ├── 📁 normalizedName
+│   │   │   ├── 📁 path
+│   │   │   └── 📁 type
+│   │   ├── 📁 skrifa
+│   │   │   ├── 📁 attribute
+│   │   │   ├── 📁 charmap
+│   │   │   ├── 📁 color
+│   │   │   │   └── 📁 transform
+│   │   │   ├── 📁 font
+│   │   │   ├── 📁 instance
+│   │   │   ├── 📁 metrics
+│   │   │   ├── 📁 outline
+│   │   │   │   ├── 📁 autohint
+│   │   │   │   │   └── 📁 instance
+│   │   │   │   ├── 📁 error
+│   │   │   │   ├── 📁 glyf
+│   │   │   │   │   └── 📁 hint
+│   │   │   │   │       └── 📁 error
+│   │   │   │   ├── 📁 hint
+│   │   │   │   ├── 📁 path
+│   │   │   │   └── 📁 pen
+│   │   │   ├── 📁 patchmap
+│   │   │   ├── 📁 prelude
+│   │   │   ├── 📁 provider
+│   │   │   ├── 📁 setting
+│   │   │   ├── 📁 string
+│   │   │   └── 📁 variation
+│   │   ├── 📁 src
+│   │   │   ├── 📁 haforu
+│   │   │   └── 📁 skrifa
+│   │   │       ├── 📁 color
+│   │   │       └── 📁 outline
+│   │   │           ├── 📁 autohint
+│   │   │           │   └── 📁 latin
+│   │   │           ├── 📁 cff
+│   │   │           └── 📁 glyf
+│   │   │               └── 📁 hint
+│   │   │                   └── 📁 engine
+│   │   ├── 📁 static.files
+│   │   ├── 📁 trait.impl
+│   │   │   ├── 📁 core
+│   │   │   │   ├── 📁 clone
+│   │   │   │   ├── 📁 cmp
+│   │   │   │   ├── 📁 convert
+│   │   │   │   ├── 📁 default
+│   │   │   │   ├── 📁 error
+│   │   │   │   ├── 📁 fmt
+│   │   │   │   ├── 📁 hash
+│   │   │   │   ├── 📁 iter
+│   │   │   │   │   └── 📁 traits
+│   │   │   │   │       ├── 📁 collect
+│   │   │   │   │       └── 📁 iterator
+│   │   │   │   ├── 📁 marker
+│   │   │   │   ├── 📁 ops
+│   │   │   │   │   ├── 📁 arith
+│   │   │   │   │   └── 📁 deref
+│   │   │   │   └── 📁 panic
+│   │   │   │       └── 📁 unwind_safe
+│   │   │   ├── 📁 serde_core
+│   │   │   │   ├── 📁 de
+│   │   │   │   └── 📁 ser
+│   │   │   └── 📁 skrifa
+│   │   │       ├── 📁 outline
+│   │   │       │   └── 📁 pen
+│   │   │       └── 📁 provider
+│   │   └── 📁 type.impl
+│   │       ├── 📁 core
+│   │       │   └── 📁 result
+│   │       ├── 📁 font_types
+│   │       │   ├── 📁 bbox
+│   │       │   └── 📁 fixed
+│   │       └── 📁 skrifa
+│   │           └── 📁 setting
 │   ├── 📁 maturin
 │   ├── 📁 release
 │   │   ├── 📁 deps
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
 │   │       ├── 📁 cli-2osw21mn0ve1l
-│   │       │   └── 📁 s-hczg7kumom-0fokd5f-7tqw0f5unvu6hu34iwueo9i0q
+│   │       │   └── 📁 
+│   │       │       s-hczg7kumom-0fokd5f-7tqw0f5unvu6hu34iwueo9i0q
+│   │       ├── 📁 haforu-16g4lvxg9q5ay
+│   │       │   └── 📁 
+│   │       │       s-hczrczc5a8-0geu15r-3dtefu4euswalkzt3mbn2098x
 │   │       ├── 📁 haforu-1l12g9es5z0a7
-│   │       │   └── 📁 s-hczg7krw75-1d5p5tn-b4ba0092v6nvvl7pwbch3o1ds
+│   │       │   └── 📁 
+│   │       │       s-hczg7krw75-1d5p5tn-b4ba0092v6nvvl7pwbch3o1ds
 │   │       ├── 📁 haforu-2s4lo2coqi1y3
-│   │       │   └── 📁 s-hczg7klfi5-1xvokh9-bqzi55jezwhcthhoj9ny6dnd0
+│   │       │   └── 📁 
+│   │       │       s-hczg7klfi5-1xvokh9-bqzi55jezwhcthhoj9ny6dnd0
 │   │       ├── 📁 haforu-2w98643ew4hsq
-│   │       │   └── 📁 s-hczgw59sch-0cd5m0j-19hjwwkfx4if05ocvggq0wkyv
+│   │       │   └── 📁 
+│   │       │       s-hczrbz3fnf-1ki1gxt-btdwz737k9cocic9ojwiak7yo
 │   │       ├── 📁 haforu-3002vez00oonz
-│   │       │   └── 📁 s-hcznxx3qca-009zh0g-a4hpmshttkgthvs46wqwhu8c7
+│   │       │   └── 📁 
+│   │       │       s-hczrcevi93-1omtugk-edzm2153rvvb0ztfy2ntei5ot
 │   │       ├── 📁 haforu-3l0mulv3ej1mz
-│   │       │   └── 📁 s-hczg7klfi7-0djl7zb-epuwmapnzex5kipbbeqx8ba3d
-│   │       └── 📁 haforu-3okrdq68lieta
-│   │           └── 📁 s-hczgwg3v04-14r7rq1-81daoat601ih2vwxf7nt8mjl2
+│   │       │   └── 📁 
+│   │       │       s-hczg7klfi7-0djl7zb-epuwmapnzex5kipbbeqx8ba3d
+│   │       ├── 📁 haforu-3okrdq68lieta
+│   │       │   └── 📁 
+│   │       │       s-hczrbzjrxk-06syavp-5x5svhd66s5uuf8e59aq6ln79
+│   │       └── 📁 haforu-3orrzumlwtfvw
+│   │           └── 📁 
+│   │               s-hczrcp1u58-1tt2bko-baitlpb1njb8ikm8c73iqeyqv
 │   ├── 📁 tmp
 │   └── 📁 wheels
 ├── 📁 testdata
