@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use crate::fonts::FontInstance;
 use crate::shaping::ShapedText;
 use read_fonts::TableProvider;
-use skrifa::instance::{LocationRef, Size};
+use skrifa::instance::Size;
 use skrifa::outline::{DrawSettings, OutlinePen};
 use skrifa::MetadataProvider;
 use std::path::Path;
@@ -191,15 +191,12 @@ impl GlyphRasterizer {
 
         let font = font_instance.font_ref();
 
-        // TODO: Properly convert variation coordinates to normalized F2Dot14 values
-        // For now, use default location (static font rendering only)
-        if !font_instance.coordinates().is_empty() {
-            log::warn!(
-                "Variable font coordinates requested but not yet supported in rendering: {:?}. Using default coordinates.",
-                font_instance.coordinates()
-            );
-        }
-        let location_ref = LocationRef::default();
+        // Apply variation coordinates if present
+        // Use skrifa's charted space to properly normalize user coordinates
+        let user_coords = font_instance.location();
+        let axes = font.axes();
+        let location = axes.location(user_coords.iter().copied());
+        let location_ref = location.coords();
 
         // Calculate scale factor (font size to pixels)
         let head = font
@@ -254,6 +251,12 @@ impl GlyphRasterizer {
 
             // Advance cursor
             cursor_x += (glyph.x_advance as f32 + tracking) * scale;
+        }
+
+        // Invert pixels to get black text on white background
+        // (rendering produces white on black, we need the inverse)
+        for pixel in canvas.iter_mut() {
+            *pixel = 255 - *pixel;
         }
 
         Image::new(width, height, canvas)

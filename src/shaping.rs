@@ -116,7 +116,8 @@ impl TextShaper {
             || request
                 .features
                 .iter()
-                .any(|entry| !entry.trim().is_empty());
+                .any(|entry| !entry.trim().is_empty())
+            || !font_instance.coordinates().is_empty();
 
         if !advanced && request.text.chars().count() == 1 {
             return self.shape_single_char(font_instance, request.text, font_size, path);
