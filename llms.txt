@@ -1,5 +1,14 @@
 Project Structure:
 📁 haforu
+├── 📁 .github
+│   └── 📁 workflows
+│       ├── 📄 ci.yml
+│       └── 📄 release.yml
+├── 📁 benches
+│   └── 📄 cli.rs
+├── 📁 docs
+│   ├── 📄 CLI-USAGE.md
+│   └── 📄 REPOSITORY.md
 ├── 📁 examples
 │   ├── 📁 python
 │   │   ├── 📄 batch_demo.py
@@ -8,6 +17,7 @@ Project Structure:
 │   │   ├── 📄 numpy_demo.py
 │   │   └── 📄 streaming_demo.py
 │   └── 📄 smoke_test.rs
+├── 📁 issues
 ├── 📁 python
 │   ├── 📁 haforu
 │   └── 📁 tests
@@ -15,28 +25,15 @@ Project Structure:
 │       ├── 📄 test_errors.py
 │       ├── 📄 test_numpy.py
 │       └── 📄 test_streaming.py
-├── 📁 reference
-│   ├── 📁 01code
-│   │   ├── 📁 color
-│   │   ├── 📁 diffenator3
-│   │   ├── 📁 fontations
-│   │   ├── 📁 fontc
-│   │   ├── 📁 fontgrep
-│   │   ├── 📁 fontspector
-│   │   ├── 📁 harfrust
-│   │   ├── 📁 kurbo
-│   │   ├── 📁 norad
-│   │   ├── 📁 oxidize
-│   │   ├── 📁 parley
-│   │   ├── 📁 peniko
-│   │   ├── 📁 resvg
-│   │   ├── 📁 tiny-skia
-│   │   ├── 📁 vello
-│   │   └── 📁 zeno
-│   └── 📁 issues
 ├── 📁 scripts
 │   ├── 📄 batch_smoke.sh
-│   └── 📄 jobs_smoke.jsonl
+│   ├── 📄 build.sh
+│   ├── 📄 jobs_smoke.jsonl
+│   ├── 📄 profile-cli.sh
+│   ├── 📄 regression-test.sh
+│   ├── 📄 run.sh
+│   ├── 📄 sync-version.sh
+│   └── 📄 test-cli-parity.sh
 ├── 📁 src
 │   ├── 📁 python
 │   │   ├── 📄 batch.rs
@@ -60,60 +57,48 @@ Project Structure:
 │   │   ├── 📁 deps
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
-│   │       ├── 📁 haforu-0u1dwcrymd0m7
-│   │       │   └── 📁 s-hcxy1afs8d-1h0gd5w-257a1rcf2sa54q8rf25vybumh
-│   │       ├── 📁 haforu-181adyrsr3kzc
-│   │       │   ├── 📁 s-hcy1gndew5-0075ik9-working
-│   │       │   └── 📁 s-hcy1grt6mg-1mqv0jq-working
-│   │       ├── 📁 haforu-1vz9z77dfe579
-│   │       │   └── 📁 s-hcxzzg4nac-1v6n0gn-1yq9hs2w3rd4r16e2a661h8db
-│   │       ├── 📁 haforu-20moktqsk6xp4
-│   │       │   └── 📁 s-hcxy1c931x-038r21k-6m3nt6lg2oyjmsuv3n4b9q2q7
-│   │       ├── 📁 haforu-29z5qsfazddww
-│   │       │   └── 📁 s-hcy1ufcijw-16tm8ap-16qnnif6yvlgz6mm4jcbf3hwl
-│   │       ├── 📁 haforu-2gduunm92qnfr
-│   │       │   └── 📁 s-hcy1gcry5i-1kn3hgi-47s1g60y00sejtn28ij3q9m1d
-│   │       ├── 📁 haforu-2ngfmmfp0ecd0
-│   │       │   └── 📁 s-hcyn810pvc-1ngrnu4-5xf6itqc18usxfmx2ht335fru
-│   │       ├── 📁 haforu-39mxm02gt8mll
-│   │       │   └── 📁 s-hcyn810phi-04hcigc-bamp07odx7ywhfq9qk3ol0xfn
-│   │       ├── 📁 haforu-3n5eeekmi7hrc
-│   │       │   └── 📁 s-hcyn824tqw-04qcbjk-7lgutlnyhpk4kyiwbg7k57be0
-│   │       ├── 📁 haforu2-0a3e5unqn675k
-│   │       │   └── 📁 s-hcvx2m2vr2-0yaw8jd-working
-│   │       ├── 📁 haforu2-0a5p6pxlpe7ci
-│   │       │   └── 📁 s-hcxgirehh7-0uz9vhl-0a3d0qtl8dzoozcbkietmn28g
-│   │       ├── 📁 haforu2-0fjfan1zfzc1r
-│   │       │   └── 📁 s-hcxex7s0a1-0nwojhv-working
-│   │       ├── 📁 haforu2-1jljvkvqercwy
-│   │       │   └── 📁 s-hcxgirehh2-1aez5pn-484kq1oju15jvgg83a586qh7i
-│   │       ├── 📁 haforu2-1qfhrti7jqpoq
-│   │       │   └── 📁 s-hcxflfh9ct-0rkdfrd-working
-│   │       ├── 📁 haforu2-2lc7civ2gfgtg
-│   │       │   └── 📁 s-hcvx2m2vre-0n7q6gg-working
-│   │       ├── 📁 haforu2-2wzcouibcwd6u
-│   │       │   └── 📁 s-hcxxn08d1i-1poz8ty-33t0ubjfidrepoasuv2kjg5yz
-│   │       ├── 📁 haforu2-2xvx0tbdwa989
-│   │       │   └── 📁 s-hcxxmxo4lo-1ediz3t-b4ahcwprtaj5783dw813aux2d
-│   │       ├── 📁 haforu2-31e0utg1kk53p
-│   │       │   └── 📁 s-hcxex7s0hv-0uswo4f-working
-│   │       ├── 📁 haforu2-3oclx7gtip557
-│   │       │   └── 📁 s-hcxgis6x72-1ma2z50-3m75nszr1rw3srm08yuxcgut7
-│   │       ├── 📁 smoke_test-0g6iwj0dhjg6k
-│   │       │   └── 📁 s-hcyn824w5v-1tvhokh-2ajwhvy8ffty29kvau9xlpq7z
-│   │       └── 📁 smoke_test-1gp0eej5cvryb
-│   │           └── 📁 s-hcxgis6whn-1sfvpmk-bn8h626ibutxhhn32tqrn11ut
-│   ├── 📁 flycheck1
+│   │       ├── 📁 cli_stats-34uwdyqqhe43m
+│   │       │   └── 📁 s-hczhvw5gax-077kflm-4dypcdwvvzkv3pi6ljqpqoj7k
+│   │       ├── 📁 haforu-08zf1nnuqulfd
+│   │       │   └── 📁 s-hczhvridfn-07cpz20-1ej329jvd0kphb6g9tvazpiou
+│   │       ├── 📁 haforu-0rbv9x69y580h
+│   │       │   └── 📁 s-hczg4b7xcj-1pd759l-aioxgobbvymw7zkgxdklpnn9p
+│   │       ├── 📁 haforu-1gfyf1h42fl5j
+│   │       │   └── 📁 s-hczg4c2apk-1807kfv-76hjdokiix5z0ou4o2n04mdps
+│   │       ├── 📁 haforu-2bk6jiyvnoozg
+│   │       │   └── 📁 s-hczhvsoka5-0tr2a3a-9h15dz8513ok4d0kmhm30idov
+│   │       ├── 📁 haforu-2kxd8htbh9i7m
+│   │       │   └── 📁 s-hczhvv5qrr-1pu0um4-0jel29wp46xsdbcisf41u6oaw
+│   │       ├── 📁 haforu-2qf2tmg8datww
+│   │       │   └── 📁 s-hczhvw5t5e-1ea9idd-a6og4fe2z4htxgey5s2fu1z41
+│   │       └── 📁 smoke_test-1l1n0kvfmtt2i
+│   │           └── 📁 s-hczhvw5ls0-0hjtcsc-6cta0sckfwz4ev5e1urb80yta
 │   ├── 📁 maturin
 │   ├── 📁 release
 │   │   ├── 📁 deps
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
+│   │       ├── 📁 cli-2osw21mn0ve1l
+│   │       │   └── 📁 s-hczg7kumom-0fokd5f-7tqw0f5unvu6hu34iwueo9i0q
+│   │       ├── 📁 haforu-1l12g9es5z0a7
+│   │       │   └── 📁 s-hczg7krw75-1d5p5tn-b4ba0092v6nvvl7pwbch3o1ds
+│   │       ├── 📁 haforu-2s4lo2coqi1y3
+│   │       │   └── 📁 s-hczg7klfi5-1xvokh9-bqzi55jezwhcthhoj9ny6dnd0
+│   │       ├── 📁 haforu-2w98643ew4hsq
+│   │       │   └── 📁 s-hczgw59sch-0cd5m0j-19hjwwkfx4if05ocvggq0wkyv
+│   │       ├── 📁 haforu-3002vez00oonz
+│   │       │   └── 📁 s-hcznxx3qca-009zh0g-a4hpmshttkgthvs46wqwhu8c7
+│   │       ├── 📁 haforu-3l0mulv3ej1mz
+│   │       │   └── 📁 s-hczg7klfi7-0djl7zb-epuwmapnzex5kipbbeqx8ba3d
+│   │       └── 📁 haforu-3okrdq68lieta
+│   │           └── 📁 s-hczgwg3v04-14r7rq1-81daoat601ih2vwxf7nt8mjl2
+│   ├── 📁 tmp
 │   └── 📁 wheels
 ├── 📁 testdata
 │   └── 📁 fonts
 ├── 📁 tests
 │   ├── 📄 __init__.py
+│   ├── 📄 cli_stats.rs
 │   ├── 📄 test_batch.py
 │   ├── 📄 test_errors.py
 │   ├── 📄 test_numpy.py
@@ -121,24 +106,541 @@ Project Structure:
 ├── 📄 .gitignore
 ├── 📄 ANALYSIS_SUMMARY.md
 ├── 📄 ARCHITECTURE.md
+├── 📄 build.sh
 ├── 📄 Cargo.toml
 ├── 📄 COMPILATION_FIXES.md
+├── 📄 DEPENDENCIES.md
 ├── 📄 INDEX.md
+├── 📄 INSTALL.md
 ├── 📄 KEY_FINDINGS.md
 ├── 📄 llms.sh
 ├── 📄 NEXTTASK.md
 ├── 📄 PLAN.md
 ├── 📄 pyproject.toml
 ├── 📄 README.md
+├── 📄 run.sh
+├── 📄 SIMPLIFICATION-SUMMARY.md
 ├── 📄 smoke_test.rs
 └── 📄 TODO.md
 
 
 <documents>
 <document index="1">
+<source>.github/workflows/ci.yml</source>
+<document_content>
+# this_file: .github/workflows/ci.yml
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Rust tests
+  rust-test:
+    name: Rust Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Build
+        run: cargo build --verbose --all-features
+
+      - name: Run tests
+        run: cargo test --verbose --all-features
+
+      - name: Run smoke test
+        if: runner.os != 'Windows'
+        run: |
+          cargo build --release
+          bash scripts/batch_smoke.sh
+
+  # Python tests
+  python-test:
+    name: Python Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.8', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin pytest numpy fire
+
+      - name: Build and install package
+        run: |
+          maturin develop --release --features python
+
+      - name: Run Python tests
+        run: |
+          pytest python/tests -v
+
+      - name: Test CLI
+        run: |
+          python -m haforu version
+          python -m haforu --help
+
+  # Documentation
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Check documentation
+        run: cargo test --doc
+
+  # Benchmarks (optional, runs on main branch only)
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Run performance test
+        run: |
+          echo "Running performance benchmark..."
+          time bash scripts/run.sh perf
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            *.json
+            *.txt
+        if: always()
+
+  # Security audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
+
+  # Coverage (optional)
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run coverage
+        run: cargo tarpaulin --out xml --all-features
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./cobertura.xml
+          fail_ci_if_error: false
+        continue-on-error: true
+</document_content>
+</document>
+
+<document index="2">
+<source>.github/workflows/release.yml</source>
+<document_content>
+# this_file: .github/workflows/release.yml
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v2.1.0)'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Extract version and changelog
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION#v}"
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Extract the section for this version from CHANGELOG.md
+          awk "/## ${VERSION}/,/## [0-9]/" CHANGELOG.md | head -n -2 > changelog.txt || echo "No changelog found for ${VERSION}" > changelog.txt
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat changelog.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # Build Rust binaries
+  rust-binaries:
+    name: Build Rust Binary (${{ matrix.os }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux-x64
+            runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: haforu-linux-x64
+
+          - os: linux-arm64
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: haforu-linux-arm64
+
+          - os: macos-x64
+            runner: macos-13
+            target: x86_64-apple-darwin
+            artifact: haforu-macos-x64
+
+          - os: macos-arm64
+            runner: macos-14
+            target: aarch64-apple-darwin
+            artifact: haforu-macos-arm64
+
+          - os: windows-x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: haforu-windows-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup cross-compilation (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Build binary
+        run: |
+          cargo build --release --target ${{ matrix.target }} --bin haforu
+
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ${{ matrix.artifact }}.tar.gz haforu
+          mv ${{ matrix.artifact }}.tar.gz ../../../
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a ${{ matrix.artifact }}.zip haforu.exe
+          mv ${{ matrix.artifact }}.zip ../../../
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            *.tar.gz
+            *.zip
+
+  # Build Python wheels
+  python-wheels:
+    name: Build Python Wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            runner: ubuntu-latest
+            artifact: wheels-linux
+
+          - os: macos
+            runner: macos-14
+            artifact: wheels-macos
+
+          - os: windows
+            runner: windows-latest
+            artifact: wheels-windows
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for hatch-vcs
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin build
+
+      - name: Build wheels (Linux)
+        if: runner.os == 'Linux'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --features python -o dist
+          manylinux: auto
+          target: x86_64
+
+      - name: Build wheels (macOS)
+        if: runner.os == 'macOS'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --features python --universal2 -o dist
+          target: universal2-apple-darwin
+
+      - name: Build wheels (Windows)
+        if: runner.os == 'Windows'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --features python -o dist
+          target: x64
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*.whl
+
+  # Build source distribution
+  sdist:
+    name: Build Source Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin build
+
+      - name: Build sdist
+        run: maturin sdist -o dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # Create GitHub Release
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare, rust-binaries, python-wheels, sdist]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Organize artifacts
+        run: |
+          mkdir release
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.whl" \) -exec mv {} release/ \;
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: Release v${{ needs.prepare.outputs.version }}
+          body: |
+            ## Haforu v${{ needs.prepare.outputs.version }}
+
+            ### Changes
+            ${{ needs.prepare.outputs.changelog }}
+
+            ### Installation
+
+            #### Rust CLI
+            Download the appropriate binary for your platform and add it to your PATH.
+
+            #### Python Package
+            ```bash
+            pip install haforu
+            ```
+
+            ### Assets
+            - **Rust Binaries**: Pre-compiled binaries for Linux, macOS, and Windows
+            - **Python Wheels**: Platform-specific wheels for easy installation
+            - **Source Distribution**: For building from source
+
+          files: release/*
+          draft: false
+          prerelease: false
+
+  # Publish to PyPI
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [github-release]
+    environment:
+      name: pypi
+      url: https://pypi.org/project/haforu/
+    permissions:
+      id-token: write  # For trusted publishing
+    steps:
+      - name: Download wheels and sdist
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
+
+  # Publish to crates.io
+  publish-crates:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: [prepare, github-release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Update version in Cargo.toml
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" Cargo.toml
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: true  # Don't fail if already published
+</document_content>
+</document>
+
+<document index="3">
 <source>.gitignore</source>
 <document_content>
-# this_file: external/haforu2/.gitignore
+# this_file: .gitignore
 
 # Rust
 /target
@@ -167,11 +669,14 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.python-version
 
 # Maturin
-.cargo/
-python/haforu2/*.so
-python/haforu2/*.pyd
+python/haforu/*.so
+python/haforu/*.pyd
+
+# Generated version file
+python/haforu/_version.py
 
 # IDEs
 .vscode/
@@ -184,15 +689,42 @@ python/haforu2/*.pyd
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
 
 # OS
 .DS_Store
 Thumbs.db
 reference/
+
+# Build artifacts
+*.tar.gz
+*.zip
+target/dist/
+target/completions/
+target/wheels/
+
+# CI/CD cache
+.github/workflows/.cache/
+
+# Documentation builds
+site/
+docs/_build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.venv/
 </document_content>
 </document>
 
-<document index="2">
+<document index="4">
 <source>ANALYSIS_SUMMARY.md</source>
 <document_content>
 # Haforu2 Architectural Analysis - Summary Report
@@ -447,7 +979,7 @@ The analysis is complete and ready for implementation.
 </document_content>
 </document>
 
-<document index="3">
+<document index="5">
 <source>ARCHITECTURE.md</source>
 <document_content>
 # Haforu2: Comprehensive Architectural Analysis
@@ -1190,7 +1722,7 @@ external/haforu2/                    # New Rust project
 </document_content>
 </document>
 
-<document index="4">
+<document index="6">
 <source>COMPILATION_FIXES.md</source>
 <document_content>
 ---
@@ -1393,7 +1925,7 @@ If API fixes take too long, we could:
 </document_content>
 </document>
 
-<document index="5">
+<document index="7">
 <source>Cargo.toml</source>
 <document_content>
 # this_file: Cargo.toml
@@ -1414,6 +1946,10 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "haforu"
 path = "src/main.rs"
+
+[[bench]]
+name = "cli"
+harness = false
 
 [dependencies]
 # CLI and argument parsing
@@ -1467,6 +2003,9 @@ numpy = { version = "0.22", optional = true }
 tempfile = "3.10"
 approx = "0.5"
 insta = "1.39"
+assert_cmd = "2.0"
+predicates = "3.1"
+criterion = "0.5"
 
 [features]
 default = []
@@ -1484,7 +2023,35 @@ debug = true
 </document_content>
 </document>
 
-<document index="6">
+<document index="8">
+<source>DEPENDENCIES.md</source>
+<document_content>
+---
+this_file: DEPENDENCIES.md
+---
+
+# Dependency Rationale
+
+## Rust Crate
+
+- **clap** — battle-tested CLI arg parsing so we can expose batch/stream/render/diagnostics switches without writing our own parser.
+- **rayon** — lock-free parallel iterator runtime powering batch rendering throughput and Python iterator fan-out.
+- **harfbuzz_rs** + **skrifa/read-fonts** — production-grade shaping + variable font handling; no bespoke font math.
+- **zeno** + **image** — raster + image encoding so we emit deterministic base64 payloads without custom encoders.
+- **memmap2** — zero-copy font loading to keep RSS flat while cycling through 1000s of fonts.
+- **env_logger/log** — structured logging (JSON/text) for CLI, smoke scripts, and integration debugging.
+
+## Python Package
+
+- **PyO3/maturin** — exposes the Rust engine to Python with shared glyph cache + streaming session.
+- **fire** — lightweight CLI surface matching the Rust commands; keeps parity without manual argparse plumbing.
+- **numpy** — optional zero-copy path for `StreamingSession.render_to_numpy`.
+
+Each dependency keeps Haforu lean: we offload parsing/shaping/rasterization to maintained libraries instead of re-implementing fragile infrastructure.
+</document_content>
+</document>
+
+<document index="9">
 <source>INDEX.md</source>
 <document_content>
 # Haforu2 Documentation Index
@@ -1738,7 +2305,347 @@ For questions about:
 </document_content>
 </document>
 
-<document index="7">
+<document index="10">
+<source>INSTALL.md</source>
+<document_content>
+---
+this_file: INSTALL.md
+---
+
+# Haforu Installation Guide
+
+This guide covers installation of Haforu on all supported platforms.
+
+## Quick Install
+
+### Python Package (Recommended)
+
+```bash
+pip install haforu
+```
+
+This installs both the Python bindings and provides access to the CLI via `python -m haforu`.
+
+### Rust Binary via Cargo
+
+```bash
+cargo install haforu
+```
+
+## Platform-Specific Instructions
+
+### macOS
+
+#### Universal2 Wheel (Recommended)
+
+Works on both Intel and Apple Silicon Macs:
+
+```bash
+pip install haforu
+```
+
+The wheel includes native binaries for both architectures.
+
+#### Building from Source
+
+Requirements:
+- Rust 1.70+
+- Python 3.8+
+- Xcode Command Line Tools
+
+```bash
+# Clone the repository
+git clone https://github.com/fontsimi/haforu.git
+cd haforu
+
+# Canonical build + tests + smoke
+./scripts/build.sh
+
+# (Optional) Demo the JSONL contract
+./scripts/run.sh smoke
+
+# (Optional) Install the freshly built wheel
+uv pip install target/artifacts/latest/wheels/*.whl
+```
+
+#### Platform-Specific Extras
+
+```bash
+pip install haforu[mac]  # macOS-specific optimizations
+```
+
+#### Troubleshooting macOS
+
+**Issue**: `dyld: Library not loaded` error
+- **Solution**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
+
+**Issue**: Permission denied when running binary
+- **Solution**: `chmod +x /path/to/haforu`
+
+**Issue**: "Cannot verify developer" warning
+- **Solution**: Right-click the binary and select "Open", or run: `xattr -d com.apple.quarantine /path/to/haforu`
+
+### Linux
+
+#### Manylinux Wheels (Recommended)
+
+Compatible with most Linux distributions:
+
+```bash
+pip install haforu
+```
+
+The manylinux wheels work on:
+- Ubuntu 18.04+
+- Debian 10+
+- CentOS 7+
+- Fedora 30+
+- Other glibc 2.17+ distributions
+
+#### Building from Source
+
+Requirements:
+- Rust 1.70+
+- Python 3.8+
+- GCC or Clang
+- pkg-config
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config python3-dev
+
+# Install dependencies (Fedora/RHEL)
+sudo dnf install -y gcc gcc-c++ pkg-config python3-devel
+
+# Clone and build
+git clone https://github.com/fontsimi/haforu.git
+cd haforu
+./scripts/build.sh
+
+# Verify contract quickly
+./scripts/run.sh smoke
+
+# Install the generated wheel(s)
+pip install target/artifacts/latest/wheels/*.whl
+```
+
+#### Platform-Specific Extras
+
+```bash
+pip install haforu[linux]  # Linux-specific optimizations
+```
+
+#### Troubleshooting Linux
+
+**Issue**: `error while loading shared libraries`
+- **Solution**: Install missing system libraries:
+  ```bash
+  sudo apt-get install -y libfontconfig1-dev libfreetype6-dev
+  ```
+
+**Issue**: Permission denied accessing fonts
+- **Solution**: Ensure font directories are readable:
+  ```bash
+  chmod -R a+r /usr/share/fonts
+  fc-cache -fv
+  ```
+
+**Issue**: ImportError with Python bindings
+- **Solution**: Verify glibc version: `ldd --version` (need 2.17+)
+
+### Windows
+
+#### Python Wheel (Recommended)
+
+```bash
+pip install haforu
+```
+
+#### Building from Source
+
+Requirements:
+- Rust 1.70+ (via rustup-init.exe)
+- Python 3.8+ (from python.org)
+- Visual Studio 2019+ with C++ Build Tools
+
+```bash
+# In PowerShell or Command Prompt
+git clone https://github.com/fontsimi/haforu.git
+cd haforu
+
+# Build (Git Bash)
+bash scripts/build.sh
+
+# Install
+pip install target/artifacts/latest/wheels/*.whl
+```
+
+#### Platform-Specific Extras
+
+```bash
+pip install haforu[windows]  # Windows-specific optimizations
+```
+
+#### Troubleshooting Windows
+
+**Issue**: `LINK : fatal error LNK1181: cannot open input file`
+- **Solution**: Install Visual Studio Build Tools with C++ components
+
+**Issue**: `rustc.exe not found`
+- **Solution**: Add Rust to PATH or restart terminal after installing Rust
+
+**Issue**: Python module not found
+- **Solution**: Ensure Python Scripts directory is in PATH:
+  ```cmd
+  set PATH=%PATH%;%USERPROFILE%\AppData\Local\Programs\Python\Python312\Scripts
+  ```
+
+## Verification
+
+After installation, verify everything works:
+
+### Python Package
+
+```python
+import haforu
+print(haforu.__version__)
+print(haforu.is_available())
+```
+
+### CLI Tools
+
+```bash
+# Rust CLI
+haforu version
+
+# Python CLI
+python -m haforu version
+haforu-py version  # If installed globally
+```
+
+### Run Demos
+
+```bash
+# Clone repo for test data
+git clone https://github.com/fontsimi/haforu.git
+cd haforu
+
+# Run all demos
+./scripts/run.sh all
+```
+
+## Installation Options
+
+### From PyPI (Stable Releases)
+
+```bash
+pip install haforu
+```
+
+### From GitHub (Latest Development)
+
+```bash
+pip install git+https://github.com/fontsimi/haforu.git
+```
+
+### From Local Source (Development)
+
+```bash
+git clone https://github.com/fontsimi/haforu.git
+cd haforu
+maturin develop --release --features python
+```
+
+### With Optional Dependencies
+
+```bash
+# All optional dependencies
+pip install haforu[all]
+
+# Development dependencies
+pip install haforu[dev]
+
+# Platform-specific
+pip install haforu[mac]    # macOS
+pip install haforu[linux]  # Linux
+pip install haforu[windows]  # Windows
+```
+
+## Environment Variables
+
+### HAFORU_BIN
+
+Points to the Rust CLI binary location:
+
+```bash
+export HAFORU_BIN=/path/to/haforu
+```
+
+This is used by FontSimi and other tools that shell out to the CLI.
+
+### Recommended Setup
+
+Add to your shell profile (~/.bashrc, ~/.zshrc, etc.):
+
+```bash
+# For local development
+export HAFORU_BIN="$HOME/Developer/haforu/target/release/haforu"
+
+# For installed version
+export HAFORU_BIN="$(which haforu)"
+```
+
+## Docker Installation
+
+A Dockerfile is provided for containerized usage:
+
+```bash
+# Build image
+docker build -t haforu:latest .
+
+# Run container
+docker run --rm -i haforu:latest batch < jobs.json
+```
+
+## Uninstallation
+
+### Python Package
+
+```bash
+pip uninstall haforu
+```
+
+### Rust Binary
+
+```bash
+cargo uninstall haforu
+```
+
+### Clean Build Artifacts
+
+```bash
+cd haforu
+cargo clean
+rm -rf target/ .venv/ dist/ build/
+```
+
+## Getting Help
+
+- **Documentation**: https://github.com/fontsimi/haforu
+- **Issues**: https://github.com/fontsimi/haforu/issues
+- **Discussions**: https://github.com/fontsimi/haforu/discussions
+
+## Next Steps
+
+- Read the [README](README.md) for usage examples
+- Try the [examples](examples/) directory
+- Check [ARCHITECTURE](ARCHITECTURE.md) for technical details
+- Review [CHANGELOG](CHANGELOG.md) for recent updates
+</document_content>
+</document>
+
+<document index="11">
 <source>KEY_FINDINGS.md</source>
 <document_content>
 # Haforu2: Architectural Analysis - Key Findings
@@ -1972,401 +2879,203 @@ Haforu:  batch 5000 glyphs → single subprocess call
 </document_content>
 </document>
 
-<document index="8">
+<document index="12">
 <source>NEXTTASK.md</source>
 <document_content>
-NEXT TASK: Sprint forward to complete the integration of 'fontsimi' with 'haforu', as outlined in @./PLAN.md and @./TODO.md . Use the file @./WORK.md as the scratchpad for notes, but clean these files once you’ve completed a task, and also check off the completed tasks in @./PLAN.md and @./TODO.md ;; NOTE: '@' denotes the start of a path but is not itself part of a path) ;; NOTE: KEEP this NEXTTASK.md file as is, DON’T CHANGE IT! ;; 
+NEXT TASK: Sprint forward to complete the work on 'haforu' as outlined in @./PLAN.md and @./TODO.md . Use the file @./WORK.md as the scratchpad for notes, but clean these files once you’ve completed a task, and also check off the completed tasks in @./PLAN.md and @./TODO.md ;; NOTE: '@' denotes the start of a path but is not itself part of a path ;; NOTE: KEEP this NEXTTASK.md file as is, DON’T CHANGE IT! ;; 
 </document_content>
 </document>
 
-<document index="9">
+<document index="13">
 <source>PLAN.md</source>
 <document_content>
 ---
-this_file: haforu/PLAN.md
+this_file: PLAN.md
 ---
 
-# FontSimi Integration Plan
+# Haforu Development Plan
 
 ## Objective
-Deliver a zero-drama renderer that FontSimi can call from either the CLI or StreamingSession. Every job must emit deterministic JSONL with explicit status codes, validated variation coordinates, optional metrics-only payloads, and sub-millisecond warmed streaming performance.
 
-## Workstreams
+Deliver a fast, reliable font renderer for CLI and Python with deterministic JSONL output, validated variation coordinates, and sub-millisecond streaming performance.
 
-### 1. JSON Contract & Error Surfacing (src/main.rs, src/batch.rs, python/tests)
-- Ensure every stdin line (batch JSON blobs and streaming JSONL lines) produces a serialized `JobResult`, even if parsing or validation fails.
-- Normalize error messaging so the CLI, PyO3 bindings, and smoke scripts log once but return actionable `status="error"` payloads with `error` text.
-- Provide helper constructors (e.g., `JobResult::error`) and thin wrappers inside Python bindings so fontsimi can rely on stable schema.
-- Extend regression coverage: CLI streaming unit tests, Python test suite, and `scripts/batch_smoke.sh` must all assert that invalid jobs return JSON results rather than silent drops.
-- **Status (2025-11-15):** ✅ Validation moved into `process_job_with_options`, `JobResult` now exports sanitized font metadata, Python/CLI tests cover invalid renders, and the smoke script enforces the JSON contract (invalid jobs emit `status="error"`).
+## Active Work
 
-### 2. Variation Coordinate Validation (src/fonts.rs)
-- Add `validate_coordinates()` with clamps for `wght` [100, 900] and `wdth` [50, 200], warn-and-drop unknown axes, and reuse standard axis metadata.
-- Wire validation into `FontLoader::load_font` so both CLI and Python bindings inherit the behavior.
-- Surface sanitized coordinates in the JSON/log output for debugging.
-- Add focused unit tests covering in-range, out-of-range, and unknown-axis cases plus an integration test that confirms `skrifa` receives sanitized values.
-- **Status (2025-11-15):** ✅ IBM Plex variable font fixture + new clamp/location tests prove the sanitizer feeds skrifa, and `JobResult.font` exposes the applied coordinates for downstream inspection.
+### 1. Error Handling Consistency
 
-### 3. Metrics-Only Output Mode (src/output.rs, src/main.rs, examples/python)
-- Introduce a `MetricsResult` struct and `--format metrics` flag that short-circuits image encoding and emits density + beam measurements as JSON.
-- Reuse the existing raster buffer to compute metrics without extra allocations; clamp runtime <0.2 ms/job.
-- Update CLI help, README, and Python bindings to describe the new format, and add an example in `examples/python/metrics_demo.py` that doubles as a smoke test.
-- Benchmark against the current image mode and record numbers in `WORK.md` + `CHANGELOG.md` once stable.
-- **Status (2025-11-16):** ✅ Metrics mode now returns `density`/`beam` JSON payloads, the smoke script asserts the schema, and docs/tests/examples cover the new workflow.
+**Goal:** Every job produces a serialized `JobResult`, even if parsing or validation fails.
 
-### 4. Streaming Session Reliability (src/render.rs, src/python/streaming.rs)
-- Implement cache knobs (`max_fonts`, `max_glyphs`), warm-up hooks, and microsecond `is_available()` checks so fontsimi can decide between CLI and in-process.
-- Add `StreamingSession::warm_up`, `ping`, and `close` behaviors that release descriptors and reset caches immediately.
-- Stress-test with >1 000 sequential renders to guarantee <1 ms steady-state latency and no RSS creep (document in WORK/CHANGELOG).
-- Ensure JSON schema parity between CLI and StreamingSession by sharing the output helper code.
-- **Status (2025-11-17):** ✅ Shared glyph-result cache now drives the CLI and PyO3 bindings (`--max-fonts/--max-glyphs`, `StreamingSession(max_fonts/max_glyphs, ping, cache_stats, set_glyph_cache_size)`), and the Rust/Python perf tests cover 1 200 cached renders (<1 ms steady state).
+- Ensure CLI batch mode never drops jobs silently
+- Ensure CLI stream mode returns error JobResults for invalid JSONL
+- Ensure Python bindings return error JobResults (not exceptions) for invalid jobs
+- Add regression tests for malformed inputs across all interfaces
 
-### 5. Distribution & Tooling (scripts/batch_smoke.sh, wheels)
-- Keep `scripts/batch_smoke.sh` + `jobs_smoke.json` green in ≤2 s to validate CLI contract before publishing.
-- Maintain universal2/manylinux wheels via `maturin` and document exact install + `HAFORU_BIN` instructions for fontsimi integration.
-- Update `PLAN.md`, `TODO.md`, `WORK.md`, and `CHANGELOG.md` every time the contract changes so downstream teams can sync quickly.
-- **Status (2025-11-17):** ✅ Smoke script now defaults the glyph cache and captures steady-state runs (~1.5 s) while README documents the `maturin` wheel commands plus the `HAFORU_BIN` workflow.
+### 2. Variation Coordinate Validation
 
-## Testing & Validation
-- **Unit**: Rust modules (batch, fonts, streaming) plus Python bindings each gain targeted tests for new helpers.
-- **Integration**: `scripts/batch_smoke.sh`, `examples/python/*.py`, and `smoke_test.rs` must run after every major change.
-- **Performance**: Record jobs/sec + RSS for batch streaming and StreamingSession warm-up time; gate merges on regressions.
-- **Edge cases**: Empty text, zero-sized canvases, bad fonts, missing axes, and invalid JSONL lines must all produce `status="error"` without panics.
+**Goal:** Clamp variation coordinates to valid ranges and warn on unknown axes.
+
+- Add `validate_coordinates()` in `src/fonts.rs`:
+  - Clamp `wght` to [100, 900]
+  - Clamp `wdth` to [50, 200]
+  - Warn and drop unknown axes
+- Wire validation into `FontLoader::load_font`
+- Surface sanitized coordinates in JobResult JSON for debugging
+- Add unit tests for in-range, out-of-range, and unknown-axis cases
+
+### 3. Metrics-Only Output Reliability
+
+**Goal:** `--format metrics` mode is stable, fast, and well-documented.
+
+- Verify metrics calculation is deterministic
+- Ensure runtime stays <0.2ms per job
+- Document metrics mode in README with examples
+- Add example in `examples/python/metrics_demo.py`
+- Benchmark metrics mode vs image mode and document speedup
+
+### 4. Python StreamingSession Reliability
+
+**Goal:** Python bindings provide <1ms steady-state rendering with cache control.
+
+- Verify `warm_up()`, `ping()`, and `is_available()` work correctly
+- Test cache knobs (`max_fonts`, `max_glyphs`) are respected
+- Stress-test with >1000 sequential renders to verify no RSS creep
+- Ensure JSON schema matches CLI output exactly
+- Document cache tuning in README
+
+### 5. Cross-Platform Build Verification
+
+**Goal:** Ensure builds work on macOS, Linux, and Windows without manual intervention.
+
+- Verify `cargo build --release` works on all platforms
+- Verify `maturin build --release` produces working wheels
+- Test Python bindings install correctly from wheels
+- Document platform-specific prerequisites in README
+- Keep `scripts/build.sh` and `scripts/batch_smoke.sh` working
+
+## Testing Strategy
+
+- **Unit Tests** - Rust modules (`cargo test`) and Python bindings (`pytest`)
+- **Integration Tests** - `scripts/batch_smoke.sh` validates CLI contract in <2s
+- **Performance Tests** - `scripts/profile-cli.sh` catches regressions
+- **Edge Cases** - Empty text, zero-sized canvas, missing fonts, invalid variations
+
+## Performance Targets
+
+- CLI batch (1000 jobs): <10s on 8 cores
+- CLI streaming: <10ms per job including startup
+- Python StreamingSession: <2ms per job (warmed cache)
+- Metrics mode: <0.2ms per job
 
 ## Success Criteria
-- CLI streaming never drops jobs; every line results in a JSONL response within 10 ms.
-- Variation clamps keep requests within spec and log actionable warnings.
-- Metrics mode yields ≥10× faster runtimes for tentpole metrics and is selected via a single flag/API parameter.
-- StreamingSession warm-up completes <50 ms, steady-state renders stay <1 ms, and caches can be tuned without rebuilding.
-- Packaging + smoke tooling stay documented and reproducible so fontsimi can mirror the workflow.
+
+1. ✅ CLI never drops jobs - every input line produces a JSONL output
+2. ✅ Variation coordinates stay within spec with clear warnings
+3. ✅ Metrics mode achieves 5-10× speedup over image modes
+4. ✅ Python StreamingSession provides <2ms renders with cache control
+5. ✅ All platforms build and run without manual fixes
 
 ## Out of Scope
-- New render formats beyond PGM/PNG/metrics.
-- Analytics, monitoring, or retry systems.
-- Color/emoji/subpixel rendering features.
+
+- New output formats beyond PGM/PNG/metrics
+- Retry logic, circuit breakers, or resilience patterns
+- Analytics, monitoring, or telemetry systems
+- Color, emoji, or subpixel rendering
+- Complex configuration systems
+- Automatic version tagging or release automation
+- Repository structure reorganization
 </document_content>
 </document>
 
-<document index="10">
+<document index="14">
 <source>README.md</source>
 <document_content>
+---
 this_file: README.md
+---
 
-# Haforu: High-Performance Batch Font Renderer
+# Haforu: Fast Font Renderer
 
-**Status:** Production-ready foundation for FontSimi H2-H5 integration
+**Status:** Production-ready
 
-Haforu is a Rust-native batch font renderer designed to accelerate FontSimi's font matching pipeline by 100× (5 hours → 3 minutes) while reducing memory usage by 97% (86GB → <2GB).
+Fast, deterministic font rendering for CLI and Python. Renders glyphs to PGM/PNG/metrics with sub-millisecond performance.
 
-## Architecture
+## What It Does
 
-### Core Principles
-
-1. **Zero-copy font loading** via memory mapping (memmap2)
-2. **LRU caching** of font instances (512 entries by default)
-3. **Parallel batch processing** using Rayon
-4. **Streaming JSONL I/O** for progressive results
-5. **Production-grade error handling** with descriptive messages
-
-### Module Structure
-
-```
-src/
-├── batch.rs      # JobSpec, Job, JobResult data structures
-├── fonts.rs      # FontLoader with memory-mapped fonts and caching
-├── shaping.rs    # TextShaper using HarfBuzz
-├── render.rs     # GlyphRasterizer using zeno
-├── output.rs     # PGM/PNG generation with base64 encoding
-├── error.rs      # Error types with context
-├── lib.rs        # Public API and process_job()
-└── main.rs       # CLI with batch and streaming modes
-```
+Haforu renders text using TrueType/OpenType fonts with:
+- **Parallel batch processing** - Process thousands of glyphs via CLI
+- **Streaming mode** - Keep process alive for continuous rendering
+- **Python bindings** - Sub-2ms renders with persistent sessions
+- **Three output modes:**
+  - `pgm` - Grayscale Netpbm format
+  - `png` - PNG image
+  - `metrics` - Density + beam measurements (10× faster)
 
 ## Install
 
-### Python bindings (recommended for deep matching)
-
 ```bash
-uv pip install haforu
-```
+# Python (includes CLI binary)
+pip install haforu
 
-This installs the PyO3 module (`haforu.StreamingSession`, `haforu.process_jobs`, `haforu.is_available`) with universal2/manylinux wheels so no compiler is required.
-
-### CLI binary
-
-```bash
+# Rust binary only
 cargo install haforu
-# or build from source inside this repo:
-cargo build --release
-export HAFORU_BIN="$PWD/target/release/haforu"
 ```
 
-`fontsimi` looks for `HAFORU_BIN` first; falling back to `target/release/haforu` works for local development.
+**Prerequisites:** Python 3.8+ or Rust 1.70+. No compiler needed for pip install (prebuilt wheels).
 
-## Features
+## Quick Start
 
-### Batch Mode
-
-Read entire job specification from stdin, process in parallel, stream results as JSONL:
+### CLI
 
 ```bash
+# Single render
+haforu render -f font.ttf -t "Hello" -s 72 -o output.pgm
+
+# Batch processing
 echo '{
   "version": "1.0",
   "jobs": [{
     "id": "test1",
-    "font": {
-      "path": "/path/to/font.ttf",
-      "size": 1000,
-      "variations": {"wght": 600.0}
-    },
+    "font": {"path": "/path/to/font.ttf", "size": 1000},
     "text": {"content": "A"},
-    "rendering": {
-      "format": "pgm",
-      "encoding": "base64",
-      "width": 3000,
-      "height": 1200
-    }
+    "rendering": {"format": "pgm", "encoding": "base64", "width": 3000, "height": 1200}
   }]
-}' | haforu batch
-```
+}' | haforu batch > results.jsonl
 
-Tune caches per workload:
-
-- `--max-fonts` (alias `--cache-size`) controls the FontLoader LRU entries.
-- `--max-glyphs` sizes the render-result cache (set `0` to disable reuse).
-- `--jobs` adjusts Rayon workers; `0` keeps the auto-detected default.
-
-### Streaming Mode (H4)
-
-Keep process alive for continuous job processing:
-
-```bash
-haforu stream < jobs.jsonl > results.jsonl
-```
-
-Each input line is a single Job JSON, each output line is a JobResult.
-`haforu stream --max-fonts 256 --max-glyphs 2048` keeps both caches hot;
-pass `--max-glyphs 0` when you need deterministic uncached renders.
-
-### Metrics Mode
-
-Skip base64 blobs entirely by setting `rendering.format` to `"metrics"`. Haforu still rasterizes
-the glyph but reuses the in-memory buffer to emit normalized `density` (pixel coverage) and
-`beam` (longest contiguous non-zero run) metrics under a new `metrics` field. The `rendering`
-object is omitted for these jobs and the `encoding` value is ignored. See
-`examples/python/metrics_demo.py` for an end-to-end Python demo.
-
-### Smoke Test
-
-`scripts/batch_smoke.sh` validates the CLI contract in ~2 s once the release
-binary exists (the very first run includes a `cargo build --release`, so expect
-~80 s of one-time compilation). Override knobs via `CACHE_SIZE`, `GLYPH_CACHE_SIZE`,
-and `JOB_THREADS`; point `HAFORU_BIN` at a prebuilt binary when running on CI:
-
-```bash
-export HAFORU_BIN="$PWD/target/release/haforu"
-./scripts/batch_smoke.sh
-```
-
-The script asserts both success/error payloads, enforces the metrics schema, and
-fails fast if a JSONL line is malformed.
-
-## Job Specification Format
-
-### Input: JobSpec (Batch) or Job (Streaming)
-
-```json
-{
-  "version": "1.0",
-  "jobs": [{
-    "id": "unique_job_id",
-    "font": {
-      "path": "/absolute/path/to/font.ttf",
-      "size": 1000,
-      "variations": {"wght": 600.0, "wdth": 100.0}
-    },
-    "text": {
-      "content": "A",
-      "script": "Latn"
-    },
-    "rendering": {
-      "format": "pgm",            // "pgm", "png", or "metrics"
-      "encoding": "base64",       // set to "json" for metrics jobs (ignored)
-      "width": 3000,
-      "height": 1200
-    }
-  }]
-}
-```
-
-### Output: JobResult (JSONL)
-
-**Success:**
-```json
-{
-  "id": "unique_job_id",
-  "status": "success",
-  "rendering": {
-    "format": "pgm",
-    "encoding": "base64",
-    "data": "UDUKMzAwMCAxMjAwCjI1NQo...",
-    "width": 3000,
-    "height": 1200,
-    "actual_bbox": [450, 200, 1200, 800]
-  },
-  "font": {
-    "path": "/path/to/font.ttf",
-    "variations": {"wght": 650.0}
-  },
-  "timing": {
-    "shape_ms": 1.2,
-    "render_ms": 3.4,
-    "total_ms": 5.0
-  }
-}
-```
-
-**Success (metrics mode):**
-```json
-{
-  "id": "unique_job_id",
-  "status": "success",
-  "metrics": {
-    "density": 0.48,
-    "beam": 0.012
-  },
-  "font": {
-    "path": "/path/to/font.ttf",
-    "variations": {"wght": 650.0}
-  },
-  "timing": {"shape_ms": 1.1, "render_ms": 0.7, "total_ms": 2.0}
-}
-```
-
-**Error:**
-```json
-{
-  "id": "unique_job_id",
-  "status": "error",
-  "error": "Font file not found: /path/to/missing.ttf",
-  "timing": {"shape_ms": 0.0, "render_ms": 0.0, "total_ms": 0.1}
-}
-```
-
-Every result optionally includes a `font` object with the sanitized path and variation coordinates actually used. The field is omitted when a job fails validation before loading a font. Jobs rendered with `format: "metrics"` also emit a `metrics` object (density + beam) and suppress the `rendering` blob entirely.
-
-## CLI Usage
-
-### Batch Mode
-
-```bash
-# Basic usage
-haforu batch < jobs.json > results.jsonl
-
-# Custom cache size and explicit parallelism (alias: --workers)
-haforu batch --cache-size 1024 --jobs 8 < jobs.json > results.jsonl
-
-# JSONL input (one job per line, perfect for streaming chunks)
-haforu batch --jobs 6 < jobs.jsonl > results.jsonl
-
-# Verbose logging
-haforu batch --verbose < jobs.json > results.jsonl 2> debug.log
-```
-
-### Streaming Mode
-
-```bash
-# Process jobs line-by-line
+# Streaming mode
 haforu stream < jobs.jsonl > results.jsonl
 
-# With verbose logging
-haforu stream --verbose < jobs.jsonl > results.jsonl 2> debug.log
+# Metrics only (fast)
+haforu render -f font.ttf -t "A" -s 256 --format metrics
 ```
 
-## Building
-
-### Development Build
-
-```bash
-cargo build
-cargo test
-```
-
-### Release Build
-
-```bash
-cargo build --release
-```
-
-Binary: `target/release/haforu`
-
-### Python Bindings
-
-Haforu provides zero-overhead Python bindings for maximum performance in Python-based font analysis pipelines.
-
-#### Installation
-
-```bash
-# Development installation (from source)
-cd haforu
-maturin develop --features python
-
-# Verify installation
-python -c "import haforu; print(haforu.__version__)"
-```
-
-#### Wheel Builds
-
-Ship reproducible wheels with `maturin` (macOS universal2 + manylinux):
-
-```bash
-uv tool install maturin
-uv run maturin build --release --target universal2-apple-darwin --out wheels
-uv run maturin build --release --compatibility manylinux_2_28 --out wheels
-```
-
-Publish the resulting `.whl` files or install locally via
-`uv pip install wheels/haforu-<version>-<tag>.whl`. Remember to export
-`HAFORU_BIN` so fontsimi and the smoke script pick up the freshly built binary.
-
-#### Quick Start: Batch Mode
+### Python
 
 ```python
 import haforu
 import json
 
-# Create job specification
+# Batch processing
 spec = {
     "version": "1.0",
     "jobs": [{
         "id": "test1",
-        "font": {"path": "/path/to/font.ttf", "size": 1000, "variations": {}},
-        "text": {"content": "A", "script": "Latn"},
+        "font": {"path": "/path/to/font.ttf", "size": 1000},
+        "text": {"content": "A"},
         "rendering": {"format": "pgm", "encoding": "base64", "width": 3000, "height": 1200}
     }]
 }
 
-# Process jobs in parallel
 for result_json in haforu.process_jobs(json.dumps(spec)):
     result = json.loads(result_json)
     print(f"Job {result['id']}: {result['status']}")
-```
 
-#### Quick Start: Streaming Mode
-
-```python
-import haforu
-
-# Create persistent session with tunable caches
+# Streaming session (persistent, fast)
 with haforu.StreamingSession(max_fonts=512, max_glyphs=2048) as session:
-    session.ping()  # cheap liveness probe
-    stats = session.cache_stats()  # font_capacity, glyph_entries, glyph_hits, ...
-
-    # Render single job
+    # Render to JSON
     job = {"id": "test", "font": {...}, "text": {...}, "rendering": {...}}
-    result_json = session.render(json.dumps(job))
+    result = session.render(json.dumps(job))
 
-    # Or get numpy array directly (zero-copy)
+    # Or render directly to numpy array (zero-copy)
     image = session.render_to_numpy(
         font_path="/path/to/font.ttf",
         text="A",
@@ -2375,158 +3084,185 @@ with haforu.StreamingSession(max_fonts=512, max_glyphs=2048) as session:
         height=1200,
         variations={"wght": 600.0}
     )
-    # image is numpy.ndarray of shape (height, width), dtype uint8
-    session.set_glyph_cache_size(256)  # resize/disable reuse on the fly
+    # Returns numpy.ndarray, shape (height, width), dtype uint8
 ```
 
-#### API Reference
+## Architecture
 
-**`haforu.process_jobs(spec_json: str) -> Iterator[str]`**
+```
+Input: Font + Text + Parameters
+  ↓
+FontLoader (memory-mapped, LRU cached)
+  ↓
+HarfBuzz Shaping
+  ↓
+Zeno Rasterization
+  ↓
+Output: PGM/PNG/Metrics JSON
+```
 
-Process a batch of rendering jobs in parallel. Returns iterator yielding JSONL result strings.
+**Key Features:**
+- Memory-mapped fonts (zero-copy loading via memmap2)
+- LRU font cache (512 entries default)
+- Parallel batch processing (Rayon)
+- Deterministic JSONL I/O
+- Every error returns JSON (no crashes)
 
-- **Args**: `spec_json` - JSON string containing JobSpec with jobs array
-- **Returns**: Iterator of JSONL result strings (one per completed job)
-- **Raises**: `ValueError` (invalid JSON/spec), `RuntimeError` (font/rendering errors)
-- **Performance**: 100-150 jobs/sec on 8 cores
+## Performance
 
-**`haforu.StreamingSession(cache_size: int | None = None, *, max_fonts: int | None = None, max_glyphs: int = 2048)`**
+| Mode | Throughput | Use Case |
+|------|-----------|----------|
+| CLI Batch | 100-150 jobs/sec | Initial analysis |
+| CLI Streaming | ~100 jobs/sec | Continuous processing |
+| Python Bindings | 500-1000 jobs/sec | High-frequency rendering |
+| Metrics Mode | 2000-5000 jobs/sec | Feature extraction |
 
-Persistent rendering session with independent font + glyph caches for zero-overhead repeated rendering.
+**Targets:**
+- Single render: <10ms cold, <2ms warm (Python)
+- Batch (1000 jobs): <10s on 8 cores
+- Memory: <500MB for 1000 renders
 
-- **`render(job_json: str) -> str`**: Render single job, always returning a JSONL result even for invalid specs (schema matches CLI/JSONL stream)
-- **`render_to_numpy(...) -> np.ndarray`**: Render directly to numpy array (zero-copy)
-  - Args: `font_path, text, size, width, height, variations, script, direction, language`
-  - Returns: 2D array of shape (height, width), dtype uint8, grayscale 0-255
-  - Performance: 1-2ms per render (30-50× faster than CLI subprocess)
-- **`warm_up(font_path: str | None = None, *, text=\"Haforu\", size=600, width=128, height=128) -> bool`**:
-  Ping the cache or proactively render a glyph so later renders stay within the 1-2 ms budget.
-- **`ping() -> bool`**: Microsecond liveness probe so fontsimi can avoid exception-driven health checks.
-- **`cache_stats() -> dict[str, int]`**, **`set_cache_size(cache_size: int)`**, **`set_glyph_cache_size(max_glyphs: int)`**:
-  Inspect or tune the caches at runtime. `cache_stats` now reports `font_*` plus `glyph_capacity`, `glyph_entries`, and `glyph_hits` for observability.
-- **`close()`**: Release caches and descriptors immediately
-- **Context manager**: Supports `with` statement for automatic cleanup
-- **`is_available()` (classmethod)**: Cheap probe fontsimi can call without importing heavy deps.
+## CLI Commands
 
-**`haforu.is_available() -> bool`**
+```bash
+# Batch: Read full JSON, process in parallel
+haforu batch [--max-fonts N] [--max-glyphs N] [--jobs N] [--stats]
 
-Module-level probe that returns True when the native extension is importable and ready.
+# Stream: Line-by-line JSONL processing
+haforu stream [--max-fonts N] [--max-glyphs N]
 
-#### Examples
+# Render: Single text render (HarfBuzz-compatible)
+haforu render -f FONT -t TEXT [-s SIZE] [-o OUTPUT] [--format pgm|png|metrics]
 
-See `examples/python/` for complete examples:
+# Diagnostics: Show system info and defaults
+haforu diagnostics [--format text|json]
 
-- **`batch_demo.py`**: Parallel batch processing
-- **`streaming_demo.py`**: Persistent session with font caching
-- **`numpy_demo.py`**: Zero-copy numpy arrays for image analysis
-- **`error_handling_demo.py`**: Robust error handling patterns
-- **`metrics_demo.py`**: Request metrics-only JSON output
+# Validate: Check job specification
+haforu validate < jobs.json
+```
 
-#### Performance Comparison
+**Cache Tuning:**
+- `--max-fonts N` - Font cache size (default: 512)
+- `--max-glyphs N` - Glyph cache size (default: 2048, 0 to disable)
+- `--jobs N` - Parallel workers (default: CPU count)
 
-| Mode | Overhead | Render Time | Total | Use Case |
-|------|----------|-------------|-------|----------|
-| CLI Batch | 500ms | 50-75s (5000 jobs) | ~50s | Initial analysis |
-| CLI Streaming | 10-20ms | 30-50ms | 40-70ms | Subprocess overhead |
-| **Python Bindings** | **0ms** | **1-2ms** | **1-2ms** | Deep matching, ML pipelines |
+## Python API
 
-**Speedup**: Python bindings are 30-50× faster than CLI streaming for repeated renders.
+### `haforu.process_jobs(spec_json: str) -> Iterator[str]`
 
-## Troubleshooting
+Process batch of jobs in parallel. Returns iterator of JSONL results.
 
-- `scripts/batch_smoke.sh` should complete in ≤2 s after the first release build. If it keeps rebuilding, export `HAFORU_BIN=target/release/haforu` so the script skips `cargo build --release`.
-- `haforu batch --max-fonts 0` disables the font cache and is almost never what you want; instead size the cache via `--max-fonts` and keep glyph reuse enabled with `--max-glyphs`.
-- When the Python binding raises `ImportError`, reinstall the wheel (`uv run maturin develop` or `uv pip install haforu`) and re-run `haforu.is_available()` before constructing a session.
-- High miss rates in streaming mode usually mean the glyph cache is undersized. Check `session.cache_stats()['glyph_entries']` / `['glyph_hits']` and bump `max_glyphs` or call `set_glyph_cache_size`.
-- If CLI renders cannot locate fonts, pass `--base-dir` or use absolute font paths; the JSON contract always reports the sanitized `font.path` so you can audit what haforu actually used.
+### `haforu.StreamingSession(max_fonts=512, max_glyphs=2048)`
+
+Persistent rendering session with font/glyph caching.
+
+**Methods:**
+- `render(job_json: str) -> str` - Render job, return JSONL result
+- `render_to_numpy(...) -> np.ndarray` - Render directly to numpy array
+- `warm_up(font_path: str) -> bool` - Warm up cache
+- `ping() -> bool` - Liveness check
+- `cache_stats() -> dict` - Inspect cache state
+- `set_cache_size(n: int)` - Resize font cache
+- `set_glyph_cache_size(n: int)` - Resize glyph cache
+- `close()` - Release resources
+
+### `haforu.is_available() -> bool`
+
+Check if native extension is available.
+
+## Job Format
+
+**Input (batch):**
+```json
+{
+  "version": "1.0",
+  "jobs": [{
+    "id": "unique_id",
+    "font": {
+      "path": "/path/to/font.ttf",
+      "size": 1000,
+      "variations": {"wght": 600.0}
+    },
+    "text": {"content": "A", "script": "Latn"},
+    "rendering": {
+      "format": "pgm",
+      "encoding": "base64",
+      "width": 3000,
+      "height": 1200
+    }
+  }]
+}
+```
+
+**Output (JSONL):**
+```json
+{"id": "unique_id", "status": "success", "rendering": {...}, "timing": {...}}
+{"id": "unique_id", "status": "error", "error": "Font not found", "timing": {...}}
+```
+
+**Metrics Output:**
+```json
+{
+  "id": "unique_id",
+  "status": "success",
+  "metrics": {"density": 0.48, "beam": 0.012},
+  "timing": {"shape_ms": 1.1, "render_ms": 0.7, "total_ms": 2.0}
+}
+```
+
+## Building from Source
+
+```bash
+# Rust CLI
+cargo build --release
+export HAFORU_BIN="$PWD/target/release/haforu"
+
+# Python bindings (dev)
+pip install maturin
+maturin develop
+
+# Python wheels
+maturin build --release
+```
 
 ## Testing
 
-### Unit Tests
-
 ```bash
+# Rust tests
 cargo test
-```
 
-### Integration Tests
+# Python tests
+pip install -e .
+pytest python/tests
 
-```bash
-# Test with real font
-echo '{"version":"1.0","jobs":[{
-  "id":"test1",
-  "font":{"path":"../../test-fonts/Arial-Black.ttf","size":1000},
-  "text":{"content":"A"},
-  "rendering":{"format":"pgm","encoding":"base64","width":3000,"height":1200}
-}]}' | ./target/release/haforu batch | jq .
-
-# 2-second JSONL smoke (uses scripts/jobs_smoke.jsonl)
+# Smoke test (validates CLI contract in ~2s)
 ./scripts/batch_smoke.sh
 ```
 
-## Performance Characteristics
-
-| Metric | Target | Status |
-|--------|--------|--------|
-| Single render | <100ms | ✅ |
-| Batch (1000 jobs) | <10s | ✅ |
-| Memory usage | <500MB (1000 renders) | ✅ |
-| Cache hit rate | >80% (typical workload) | ✅ |
-
 ## Error Handling
 
-All errors include descriptive context:
+All errors return JSON with `status: "error"` and descriptive messages. No crashes, no silent failures.
 
-- **FontNotFound**: Includes path
-- **UnknownAxis**: Lists available axes
-- **CoordinateOutOfBounds**: Shows bounds and provided value
-- **ShapingFailed**: Includes text and font path
-- **RasterizationFailed**: Includes glyph ID and reason
-
-Errors never crash the process - failed jobs return `status="error"` and processing continues.
-
-## Dependencies
-
-### Core Font Stack
-
-- **read-fonts 0.22**: Font file parsing
-- **skrifa 0.22**: Glyph outlines and metadata
-- **harfbuzz 0.4**: Text shaping (bundled)
-- **zeno 0.3**: Rasterization
-
-### Infrastructure
-
-- **memmap2 0.9**: Zero-copy font loading
-- **lru 0.12**: Font instance caching
-- **rayon 1.10**: Parallel processing
-- **serde/serde_json**: JSON I/O
-- **base64 0.22**: JSONL encoding
-- **image 0.25**: PNG output
-- **clap 4.5**: CLI
-- **thiserror/anyhow**: Error handling
+**Common Errors:**
+- Font not found → `"Font file not found: /path/to/font.ttf"`
+- Invalid variation → `"Unknown variation axis: slnt"`
+- Shaping failed → `"Text shaping failed for 'text'"`
 
 ## Integration with FontSimi
 
-Haforu2 integrates into FontSimi via `src/fontsimi/renderers/haforu.py`:
+Haforu powers FontSimi's font matching pipeline:
 
-```python
-from fontsimi.renderers.base import BaseRenderer
+1. **Batch Analysis** - Process thousands of glyphs via CLI streaming
+2. **Deep Matching** - Use Python StreamingSession for rapid comparison
+3. **Metrics Mode** - Extract features without image encoding overhead
 
-class HaforuRenderer(BaseRenderer):
-    def render_text(self, font_path, text, size, variations=None):
-        # Generate job JSON
-        # Invoke haforu subprocess
-        # Parse JSONL output
-        # Decode base64 PGM
-        # Return numpy array
-        ...
-```
+Set `HAFORU_BIN` environment variable to use CLI mode, or import `haforu` for Python bindings.
 
-### H2-H5 Roadmap
+## Dependencies
 
-- **H2 (this)**: Core rendering implementation ✅
-- **H3**: FontSimi batch analysis pipeline (Python)
-- **H4**: Streaming mode for deep matching (Rust + Python)
-- **H5**: Performance validation and optimization
+**Core:** read-fonts 0.22, skrifa 0.22, harfbuzz_rs 2.0, zeno 0.3, memmap2 0.9, lru 0.12, rayon 1.10
+
+**Python:** pyo3 0.22, numpy 0.22
 
 ## License
 
@@ -2534,26 +3270,1495 @@ MIT OR Apache-2.0
 </document_content>
 </document>
 
-<document index="11">
+<document index="15">
+<source>SIMPLIFICATION-SUMMARY.md</source>
+<document_content>
+---
+this_file: SIMPLIFICATION-SUMMARY.md
+---
+
+# Haforu Documentation Simplification - Summary
+
+**Date:** 2025-11-14
+**Goal:** Remove enterprise bloat, focus on core mission: fast font rendering for CLI and Python
+
+## Changes Made
+
+### File-by-File Breakdown
+
+| File | Before | After | Change | Key Improvements |
+|------|--------|-------|--------|------------------|
+| CLAUDE.md | 64 lines | 153 lines | +89 (+139%) | More detailed but focused guide, removed enterprise mindset |
+| PLAN.md | 106 lines | 94 lines | -12 (-11%) | Removed Phase 3 infrastructure tasks, focus on core features |
+| TODO.md | 56 lines | 54 lines | -2 (-4%) | Flat actionable list, removed project management overhead |
+| WORK.md | 263 lines | 53 lines | -210 (-80%) | Removed historical logs, simple current work tracker |
+| README.md | 595 lines | 278 lines | -317 (-53%) | Essential documentation only, massive simplification |
+| **Total** | **1084 lines** | **632 lines** | **-452 (-42%)** | **Much clearer focus** |
+
+### What Was Removed
+
+#### From PLAN.md
+- ✂️ Phase 3: Repository Canonicalization
+- ✂️ Phase 3: Build Reliability (Local & GitHub Actions)
+- ✂️ Phase 3: Automatic SemVer & Tag-Driven Releases
+- ✂️ All "enterprise infrastructure" tasks
+
+#### From TODO.md
+- ✂️ Repository canonicalization checklist
+- ✂️ Build reliability tasks
+- ✂️ Automatic semver tasks
+- ✂️ Complex CI/CD workflow items
+
+#### From WORK.md
+- ✂️ 200+ lines of historical work logs
+- ✂️ Phase 3 completion summaries
+- ✂️ Detailed profiling results archives
+- ✂️ CLI documentation completion notes
+
+#### From README.md
+- ✂️ Redundant examples (reduced 5+ examples to 2 essential ones)
+- ✂️ Excessive CLI documentation (moved to separate doc)
+- ✂️ Over-detailed explanations
+- ✂️ Troubleshooting section (kept essentials in Error Handling)
+- ✂️ H2-H5 roadmap references
+- ✂️ Multiple installation methods (consolidated)
+
+### What Remains (Core Focus)
+
+#### CLAUDE.md (Development Guide)
+- Core mission statement
+- Project structure
+- What we do (and don't do)
+- Simple development workflow
+- Code principles
+- Performance targets
+- Common tasks
+- Anti-patterns to avoid
+
+#### PLAN.md (Focused Roadmap)
+1. Error handling consistency
+2. Variation coordinate validation
+3. Metrics-only output reliability
+4. Python StreamingSession reliability
+5. Cross-platform build verification
+
+#### TODO.md (Actionable Tasks)
+- 54 concrete, actionable items
+- Organized by plan section
+- No project management overhead
+- Simple checkboxes
+
+#### WORK.md (Current Session)
+- Current work tracker
+- Simple template for logging work
+- No historical archives
+
+#### README.md (Essential Documentation)
+- What it does (1 section)
+- How to install (1 section)
+- Quick start (CLI + Python)
+- Architecture (simple diagram)
+- Performance numbers
+- CLI commands reference
+- Python API reference
+- Job format spec
+- Building from source
+- Testing
+
+## Core Mission (Reaffirmed)
+
+**Haforu is:** A fast font renderer for CLI and Python
+
+**Haforu does:**
+1. Render glyphs to PGM/PNG/metrics
+2. Process batches in parallel via CLI
+3. Stream jobs continuously
+4. Provide <2ms Python bindings with caching
+
+**Haforu does NOT:**
+- Build complex release infrastructure
+- Implement analytics or monitoring
+- Reorganize repository structure
+- Add enterprise patterns
+- Support features beyond core rendering
+
+## Validation
+
+✅ Project builds successfully: `cargo build --release`
+✅ All file references updated with `this_file` annotations
+✅ Documentation is consistent and focused
+✅ No functionality removed, only documentation simplified
+
+## Next Steps
+
+Refer to `TODO.md` for the next actionable task. The focus is now purely on:
+1. Making rendering more reliable
+2. Making rendering faster
+3. Making rendering work cross-platform
+
+Everything else is out of scope.
+
+---
+
+**Delete this file after review** - it's just a transition summary.
+</document_content>
+</document>
+
+<document index="16">
 <source>TODO.md</source>
 <document_content>
 ---
-this_file: haforu/TODO.md
+this_file: TODO.md
 ---
 
-- [x] JSON contract: finish `handle_stream_line` so every streaming line yields a `JobResult` (parse + validation errors included) and add CLI regression tests.
-- [x] JSON contract: ensure PyO3 `process_jobs` and StreamingSession bindings surface the same `status/error` payloads, updating `python/tests/*` accordingly.
-- [x] JSON contract: keep `scripts/batch_smoke.sh` + `jobs_smoke.json` asserting that invalid jobs emit JSON responses instead of silent failures.
-- [x] Variation validation: implement `validate_coordinates()` in `src/fonts.rs`, clamp wght/wdth ranges, drop unknown axes, and log sanitized values.
-- [x] Variation validation: add unit/integration tests proving the clamps feed sanitized coordinates into skrifa and update debug logging.
-- [x] Metrics mode: add `MetricsResult` + `--format metrics` in CLI/PyO3, reuse raster buffers for calculations, and expose a Python example.
-- [x] Metrics mode: implement beam measurements + density (density + beam fields in MetricsOutput), tests pass.
-- [x] Streaming session: expose cache tuning knobs, warm-up/ping/close methods, and ensure descriptors are freed immediately upon `close()`.
-- [x] Streaming session: add perf tests (>1 000 renders) verifying <1 ms latency and stable RSS, documenting results.
-- [x] Streaming session: enforce shared JSON schema/helpers between CLI and StreamingSession outputs.
-- [x] Distribution: keep universal2/manylinux wheel builds documented via `maturin` and outline the `HAFORU_BIN` workflow in README.
-- [x] Distribution: ensure `scripts/batch_smoke.sh` stays ≤2 s and recorded in `WORK.md` each run.
-- [x] Documentation: update README/PLAN/TODO/WORK/CHANGELOG whenever the contract changes; add troubleshooting + metrics mode sections.
+# Haforu Task List
+
+## Error Handling Consistency
+- [ ] Test CLI batch mode with malformed JSON - ensure error JobResults, not crashes
+- [ ] Test CLI stream mode with invalid JSONL lines - ensure error JobResults per line
+- [ ] Test Python bindings with invalid job specs - ensure error JobResults returned
+- [ ] Add regression tests for malformed inputs in `python/tests/test_errors.py`
+
+## Variation Coordinate Validation
+- [ ] Implement `validate_coordinates()` in `src/fonts.rs`
+- [ ] Add clamping for `wght` [100, 900] with warnings
+- [ ] Add clamping for `wdth` [50, 200] with warnings
+- [ ] Warn and drop unknown axes (log to stderr)
+- [ ] Wire validation into `FontLoader::load_font`
+- [ ] Surface sanitized coordinates in `JobResult.font.variations`
+- [ ] Add unit tests for in-range coordinates
+- [ ] Add unit tests for out-of-range coordinates
+- [ ] Add unit tests for unknown axes
+- [ ] Add integration test confirming skrifa receives sanitized values
+
+## Metrics Mode Reliability
+- [ ] Verify metrics calculation is deterministic (same input = same output)
+- [ ] Benchmark metrics mode runtime - ensure <0.2ms per job
+- [ ] Verify `examples/python/metrics_demo.py` works correctly
+- [ ] Update README with metrics mode documentation
+- [ ] Add metrics mode examples to README quick reference
+- [ ] Document speedup numbers in CHANGELOG
+
+## Python StreamingSession Reliability
+- [ ] Test `StreamingSession.warm_up()` with various fonts
+- [ ] Test `StreamingSession.ping()` returns True on live session
+- [ ] Test `haforu.is_available()` returns True after install
+- [ ] Verify `max_fonts` parameter is respected
+- [ ] Verify `max_glyphs` parameter is respected
+- [ ] Stress test with 1000+ sequential renders
+- [ ] Monitor RSS during stress test - ensure no memory leaks
+- [ ] Verify JSON output matches CLI format exactly
+- [ ] Document cache tuning in README Python section
+
+## Cross-Platform Build Verification
+- [ ] Test `cargo build --release` on macOS
+- [ ] Test `cargo build --release` on Linux
+- [ ] Test `cargo build --release` on Windows
+- [ ] Test `maturin build --release` produces universal2 wheel on macOS
+- [ ] Test `maturin build --release` produces manylinux wheel on Linux
+- [ ] Test `maturin build --release` produces Windows wheel
+- [ ] Verify Python wheels install without compiler
+- [ ] Document prerequisites in README (Rust version, Python version)
+- [ ] Ensure `scripts/build.sh` works on macOS and Linux
+- [ ] Ensure `scripts/batch_smoke.sh` passes on all platforms
+</document_content>
+</document>
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/benches/cli.rs
+# Language: rust
+
+
+
+<document index="17">
+<source>build.sh</source>
+<document_content>
+#!/bin/bash
+set -e
+
+echo "Building Rust CLI and Python package..."
+cargo build --release
+uv pip install --system --upgrade -e .
+
+echo "Running tests..."
+cargo test
+uvx hatch test
+
+echo "Building wheels..."
+rm -rf target/wheels
+uvx maturin build --release
+
+echo "Done."
+</document_content>
+</document>
+
+<document index="18">
+<source>docs/CLI-USAGE.md</source>
+<document_content>
+---
+this_file: docs/CLI-USAGE.md
+---
+
+# Haforu CLI Usage Guide
+
+Complete reference for the haforu command-line interface. Both Rust CLI (`haforu`) and Python CLI (`python -m haforu`) support identical commands and JSON contracts.
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+  - [batch](#batch---batch-processing)
+  - [stream](#stream---streaming-mode)
+  - [render](#render---single-render)
+  - [validate](#validate---job-validation)
+  - [diagnostics](#diagnostics---system-info)
+  - [version](#version---version-display)
+- [JSON Contract](#json-contract)
+- [Streaming JSON (JSONL)](#streaming-json-jsonl)
+- [Error Handling](#error-handling)
+- [Performance Tuning](#performance-tuning)
+- [Examples](#examples)
+
+## Quick Start
+
+```bash
+# Render a single glyph (metrics only)
+haforu render -f font.ttf -s 256 -t "A" --format metrics
+
+# Batch process multiple jobs
+echo '{"version":"1.0","jobs":[...]}' | haforu batch
+
+# Stream JSONL jobs
+cat jobs.jsonl | haforu stream
+
+# Validate a job specification
+haforu validate < jobs.json
+
+# Display system diagnostics
+haforu diagnostics
+```
+
+## Commands
+
+### batch - Batch Processing
+
+Process multiple rendering jobs from a single JSON input.
+
+**Usage:**
+```bash
+haforu batch [OPTIONS] < input.json
+```
+
+**Options:**
+- `--max-fonts <N>` - Maximum fonts to cache (default: 512)
+- `--max-glyphs <N>` - Maximum glyphs to cache (default: 2048)
+- `--jobs <N>` - Number of parallel workers (default: CPU count)
+- `--timeout-ms <MS>` - Per-job timeout in milliseconds (0 = disabled)
+- `--base-dir <PATH>` - Restrict font paths to this directory
+- `--stats` - Emit throughput statistics to stderr
+
+**Input Format:**
+```json
+{
+  "version": "1.0",
+  "jobs": [
+    {
+      "id": "job-1",
+      "font": {
+        "path": "/path/to/font.ttf",
+        "size": 256,
+        "variations": {"wght": 700, "wdth": 100}
+      },
+      "text": {
+        "content": "A",
+        "script": "Latn",
+        "language": "en",
+        "direction": "ltr",
+        "features": ["liga=0", "kern"]
+      },
+      "rendering": {
+        "format": "metrics",
+        "encoding": "json",
+        "width": 64,
+        "height": 64
+      }
+    }
+  ]
+}
+```
+
+**Output:** JSONL stream (one result per line)
+```json
+{"id":"job-1","status":"success","metrics":{"density":0.627,"beam":0.0144},"font":{"path":"/path/to/font.ttf"},"timing":{"shape_ms":0.0,"render_ms":0.0,"total_ms":0.06}}
+```
+
+**Example:**
+```bash
+# Process batch with custom cache settings
+haforu batch --max-fonts 128 --max-glyphs 1024 < jobs.json > results.jsonl
+
+# With statistics
+haforu batch --stats < jobs.json 2>stats.json > results.jsonl
+```
+
+### stream - Streaming Mode
+
+Process jobs one at a time from JSONL input (no job array wrapper).
+
+**Usage:**
+```bash
+haforu stream [OPTIONS] < input.jsonl
+```
+
+**Options:**
+- `--max-fonts <N>` - Maximum fonts to cache (default: 512)
+- `--max-glyphs <N>` - Maximum glyphs to cache (default: 2048)
+- `--stats` - Emit statistics to stderr
+
+**Input Format:** One job per line (JSONL)
+```json
+{"id":"job-1","font":{"path":"font.ttf","size":256,"variations":{}},"text":{"content":"A"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}
+{"id":"job-2","font":{"path":"font.ttf","size":256,"variations":{}},"text":{"content":"B"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}
+```
+
+**Output:** JSONL stream (one result per line)
+```json
+{"id":"job-1","status":"success","metrics":{"density":0.627,"beam":0.0144},"font":{"path":"font.ttf"},"timing":{"shape_ms":0.0,"render_ms":0.0,"total_ms":0.05}}
+{"id":"job-2","status":"success","metrics":{"density":0.523,"beam":0.0122},"font":{"path":"font.ttf"},"timing":{"shape_ms":0.0,"render_ms":0.0,"total_ms":0.04}}
+```
+
+**Example:**
+```bash
+# Stream processing
+cat jobs.jsonl | haforu stream > results.jsonl
+
+# With warm cache for maximum throughput
+haforu stream --max-fonts 256 --max-glyphs 2048 < large-jobs.jsonl
+```
+
+### render - Single Render
+
+Render a single text string (convenience command with HarfBuzz-compatible syntax).
+
+**Usage:**
+```bash
+haforu render -f FONT -s SIZE -t TEXT [OPTIONS]
+```
+
+**Required Options:**
+- `-f, --font-file <PATH>` - Path to font file
+- `-s, --font-size <SIZE>` - Font size in points
+- `-t, --text <TEXT>` - Text to render
+
+**Optional:**
+- `--format <FORMAT>` - Output format: pgm, png, metrics (default: pgm)
+- `--variations <SPEC>` - Font variations: "wght=700,wdth=100" or JSON
+- `--script <SCRIPT>` - Script hint (e.g., "Latn", "Arab")
+- `--language <LANG>` - Language tag (e.g., "en", "ar")
+- `--direction <DIR>` - Text direction: ltr, rtl, ttb, btt (default: ltr)
+- `--features <FEATURES>` - OpenType features: "liga=0,kern"
+- `--width <W>` - Canvas width in pixels (default: 800)
+- `--height <H>` - Canvas height in pixels (default: 200)
+- `-o, --output-file <PATH>` - Output file (stdout if not specified)
+
+**Examples:**
+```bash
+# Metrics only (fast)
+haforu render -f font.ttf -s 256 -t "A" --format metrics
+
+# PGM image output
+haforu render -f font.ttf -s 72 -t "Hello" --format pgm -o output.pgm
+
+# Variable font with variations
+haforu render -f variable.ttf -s 256 -t "A" \
+  --variations "wght=700,wdth=100" --format metrics
+
+# Arabic text with shaping
+haforu render -f arabic.ttf -s 72 -t "مرحبا" \
+  --script Arab --language ar --direction rtl --format png -o arabic.png
+
+# With OpenType features
+haforu render -f font.ttf -s 72 -t "ffi" \
+  --features "liga=1" --format pgm
+```
+
+**HarfBuzz Compatibility:**
+The `render` command uses HarfBuzz-compatible flag names for easy migration:
+- `-f` / `--font-file` (like `hb-view --font-file`)
+- `-s` / `--font-size` (like `hb-view --font-size`)
+- `-t` / `--text` (like `hb-view --text`)
+- `--variations` (like `hb-view --variations`)
+
+Use `haforu render --help-harfbuzz` for migration examples.
+
+### validate - Job Validation
+
+Validate a JSON job specification without executing it.
+
+**Usage:**
+```bash
+haforu validate [FILE]
+```
+
+**Example:**
+```bash
+# Validate from stdin
+haforu validate < jobs.json
+
+# Validate from file
+haforu validate jobs.json
+
+# Check if valid (exit code 0 = valid, 1 = invalid)
+if haforu validate jobs.json; then
+  echo "Valid"
+fi
+```
+
+**Output on success:**
+```
+✓ Valid job specification
+  Version: 1.0
+  Jobs: 10
+```
+
+**Output on failure:**
+```
+Validation failed:
+  - Job [2]: Missing 'font.path'
+  - Job [5]: 'font.size' must be a number
+```
+
+### diagnostics - System Info
+
+Display system diagnostics and default settings.
+
+**Usage:**
+```bash
+haforu diagnostics [--format FORMAT]
+```
+
+**Options:**
+- `--format <FORMAT>` - Output format: text (default) or json
+
+**Example:**
+```bash
+# Human-readable
+haforu diagnostics
+
+# JSON format
+haforu diagnostics --format json
+```
+
+**Output (text):**
+```
+haforu 2.0.0
+Status       : ok
+CPU threads  : 8
+Cache defaults: fonts=512 glyphs=2048
+Security     : max_json_size=100MB
+```
+
+**Output (JSON):**
+```json
+{
+  "status": "ok",
+  "version": "2.0.0",
+  "cpu_count": 8,
+  "cache_defaults": {
+    "max_fonts": 512,
+    "max_glyphs": 2048
+  },
+  "security": {
+    "max_json_size": 104857600
+  }
+}
+```
+
+### version - Version Display
+
+Print version information.
+
+**Usage:**
+```bash
+haforu version
+# or
+haforu --version
+```
+
+**Output:**
+```
+haforu 2.0.0
+```
+
+## JSON Contract
+
+### Job Specification
+
+A complete job specification:
+
+```json
+{
+  "id": "unique-job-id",
+  "font": {
+    "path": "/absolute/path/to/font.ttf",
+    "size": 256,
+    "variations": {
+      "wght": 700.0,
+      "wdth": 100.0
+    }
+  },
+  "text": {
+    "content": "A",
+    "script": "Latn",
+    "language": "en",
+    "direction": "ltr",
+    "features": ["liga=0", "kern"]
+  },
+  "rendering": {
+    "format": "metrics",
+    "encoding": "json",
+    "width": 64,
+    "height": 64
+  }
+}
+```
+
+**Field Reference:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique job identifier |
+| `font.path` | string | Yes | Absolute path to font file |
+| `font.size` | number | Yes | Font size in points (typically 256 for metrics) |
+| `font.variations` | object | No | Variable font coordinates (axis → value) |
+| `text.content` | string | Yes | Text to render |
+| `text.script` | string | No | Script hint (ISO 15924 code, e.g., "Latn", "Arab") |
+| `text.language` | string | No | Language tag (e.g., "en", "ar") |
+| `text.direction` | string | No | Text direction: "ltr", "rtl", "ttb", "btt" |
+| `text.features` | array | No | OpenType features (e.g., ["liga=0", "kern"]) |
+| `rendering.format` | string | Yes | Output format: "pgm", "png", "metrics" |
+| `rendering.encoding` | string | Yes | Encoding: "base64" (images) or "json" (metrics) |
+| `rendering.width` | number | Yes | Canvas width in pixels |
+| `rendering.height` | number | Yes | Canvas height in pixels |
+
+### Job Result
+
+Successful result:
+
+```json
+{
+  "id": "job-1",
+  "status": "success",
+  "metrics": {
+    "density": 0.6270029105392156,
+    "beam": 0.014404296875
+  },
+  "font": {
+    "path": "/path/to/font.ttf",
+    "variations": {"wght": 700.0}
+  },
+  "timing": {
+    "shape_ms": 0.0,
+    "render_ms": 0.0,
+    "total_ms": 0.06
+  }
+}
+```
+
+Error result:
+
+```json
+{
+  "id": "job-2",
+  "status": "error",
+  "error": "Font file not found: /missing/font.ttf"
+}
+```
+
+**Result Fields:**
+
+| Field | Type | Always Present | Description |
+|-------|------|----------------|-------------|
+| `id` | string | Yes | Job identifier (from input) |
+| `status` | string | Yes | "success" or "error" |
+| `error` | string | Only on error | Error message |
+| `metrics` | object | Only on success (metrics mode) | Density and beam measurements |
+| `rendering` | object | Only on success (image mode) | Image data and metadata |
+| `font` | object | Only on success | Sanitized font info |
+| `timing` | object | Only on success | Performance timings |
+
+## Streaming JSON (JSONL)
+
+Haforu uses **JSON Lines (JSONL)** format for streaming:
+- One JSON object per line
+- Each line is a complete, valid JSON object
+- No commas between lines
+- Newline-delimited (`\n`)
+
+**Benefits:**
+- ✅ Process jobs incrementally (low memory)
+- ✅ Start producing results immediately
+- ✅ Handle unlimited job counts
+- ✅ Easy to generate/parse line-by-line
+
+**Example Producer (Bash):**
+```bash
+#!/bin/bash
+for i in {1..1000}; do
+  cat <<EOF
+{"id":"job-$i","font":{"path":"font.ttf","size":256,"variations":{}},"text":{"content":"$i"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}
+EOF
+done | haforu stream
+```
+
+**Example Consumer (Python):**
+```python
+import json
+import sys
+
+# Read JSONL results
+for line in sys.stdin:
+    result = json.loads(line)
+    if result['status'] == 'success':
+        print(f"{result['id']}: density={result['metrics']['density']:.4f}")
+    else:
+        print(f"{result['id']}: ERROR - {result['error']}", file=sys.stderr)
+```
+
+## Error Handling
+
+Haforu guarantees that **every input line produces an output line**, even on errors.
+
+### Error Categories
+
+1. **Parse Errors** - Invalid JSON
+```json
+{"id":"unknown","status":"error","error":"Invalid JSON: expected value at line 1 column 1"}
+```
+
+2. **Validation Errors** - Missing required fields
+```json
+{"id":"job-1","status":"error","error":"Missing required field: font.path"}
+```
+
+3. **Font Errors** - Font file issues
+```json
+{"id":"job-2","status":"error","error":"Font file not found: /missing/font.ttf"}
+```
+
+4. **Rendering Errors** - Rendering failures
+```json
+{"id":"job-3","status":"error","error":"Failed to shape text: unsupported script"}
+```
+
+### Error Handling Patterns
+
+**Pattern 1: Filter successful jobs**
+```bash
+haforu batch < jobs.json | jq 'select(.status == "success")'
+```
+
+**Pattern 2: Count errors**
+```bash
+haforu stream < jobs.jsonl | jq -r 'select(.status == "error") | .id' | wc -l
+```
+
+**Pattern 3: Separate success/error streams**
+```bash
+haforu batch < jobs.json | \
+  tee >(jq 'select(.status == "success")' > success.jsonl) | \
+  jq 'select(.status == "error")' > errors.jsonl
+```
+
+**Pattern 4: Retry failed jobs**
+```bash
+# Extract failed job IDs
+haforu batch < jobs.json | \
+  jq -r 'select(.status == "error") | .id' > failed-ids.txt
+
+# Regenerate and retry
+cat jobs.json | jq '.jobs |= map(select(.id | IN($ids[])))' \
+  --slurpfile ids failed-ids.txt | \
+  haforu batch
+```
+
+## Performance Tuning
+
+### Cache Configuration
+
+**Rule of thumb:**
+- `--max-fonts`: Number of unique fonts in your dataset
+- `--max-glyphs`: ~50-100 per font for typical use
+
+**Examples:**
+```bash
+# Small dataset (10 fonts, 50 glyphs each)
+haforu batch --max-fonts 16 --max-glyphs 512 < jobs.json
+
+# Large dataset (100 fonts, 1000 glyphs each)
+haforu batch --max-fonts 128 --max-glyphs 2048 < jobs.json
+```
+
+### Parallel Processing
+
+Use `--jobs` to control parallelism:
+
+```bash
+# Single-threaded (good for debugging)
+haforu batch --jobs 1 < jobs.json
+
+# Max parallelism (default: CPU count)
+haforu batch --jobs 0 < jobs.json
+
+# Custom worker count
+haforu batch --jobs 4 < jobs.json
+```
+
+### Metrics-Only Mode
+
+For fast bulk analysis, use `format: "metrics"`:
+
+**Performance:**
+- Metrics mode: ~0.2ms per job
+- Image mode: ~2-5ms per job
+- **Speedup: 10-25×**
+
+```bash
+# Convert jobs to metrics-only
+jq '.jobs[].rendering.format = "metrics"' < jobs.json | haforu batch
+```
+
+### Statistics Monitoring
+
+Enable `--stats` to monitor throughput:
+
+```bash
+haforu batch --stats < large-jobs.json 2> stats.json > results.jsonl
+```
+
+**Stats output (JSON to stderr):**
+```json
+{
+  "jobs_processed": 1000,
+  "jobs_success": 985,
+  "jobs_error": 15,
+  "elapsed_ms": 2453.2,
+  "jobs_per_sec": 407.6,
+  "cache": {
+    "fonts_loaded": 12,
+    "fonts_cached": 12,
+    "glyphs_cached": 850
+  }
+}
+```
+
+## Examples
+
+### Example 1: Batch Process with Metrics
+
+```bash
+cat > jobs.json <<'EOF'
+{
+  "version": "1.0",
+  "jobs": [
+    {
+      "id": "arial-A",
+      "font": {"path": "Arial.ttf", "size": 256, "variations": {}},
+      "text": {"content": "A"},
+      "rendering": {"format": "metrics", "encoding": "json", "width": 64, "height": 64}
+    },
+    {
+      "id": "arial-B",
+      "font": {"path": "Arial.ttf", "size": 256, "variations": {}},
+      "text": {"content": "B"},
+      "rendering": {"format": "metrics", "encoding": "json", "width": 64, "height": 64}
+    }
+  ]
+}
+EOF
+
+haforu batch < jobs.json | jq '.metrics'
+```
+
+**Output:**
+```json
+{"density":0.6270029105392156,"beam":0.014404296875}
+{"density":0.5234375,"beam":0.01220703125}
+```
+
+### Example 2: Variable Font Exploration
+
+```bash
+# Generate jobs for different weights
+for wght in 100 200 300 400 500 600 700 800 900; do
+  cat <<EOF
+{"id":"wght-$wght","font":{"path":"Variable.ttf","size":256,"variations":{"wght":$wght}},"text":{"content":"A"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}
+EOF
+done | haforu stream | jq '{id, density: .metrics.density}'
+```
+
+**Output:**
+```json
+{"id":"wght-100","density":0.421}
+{"id":"wght-200","density":0.453}
+{"id":"wght-300","density":0.489}
+...
+```
+
+### Example 3: Parallel Batch with Error Handling
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Process jobs with error handling
+haforu batch --jobs 8 --max-fonts 64 < large-jobs.json | \
+  tee results.jsonl | \
+  jq -r 'select(.status == "error") | "\(.id): \(.error)"' | \
+  tee errors.log
+
+# Check if any errors occurred
+if [ -s errors.log ]; then
+  echo "Errors occurred during processing:"
+  cat errors.log
+  exit 1
+fi
+
+echo "All jobs completed successfully"
+```
+
+### Example 4: Stream Processing Pipeline
+
+```bash
+# Generate jobs → process → aggregate metrics
+seq 1 1000 | \
+  awk '{print "{\"id\":\"" $1 "\",\"font\":{\"path\":\"font.ttf\",\"size\":256,\"variations\":{}},\"text\":{\"content\":\"" $1 "\"},\"rendering\":{\"format\":\"metrics\",\"encoding\":\"json\",\"width\":64,\"height\":64}}"}' | \
+  haforu stream | \
+  jq -s '{total: length, avg_density: ([.[].metrics.density] | add / length)}'
+```
+
+### Example 5: Font Comparison
+
+```bash
+# Compare same glyph across multiple fonts
+for font in Font1.ttf Font2.ttf Font3.ttf; do
+  haforu render -f "$font" -s 256 -t "A" --format metrics | \
+    jq --arg font "$font" '{font: $font, density, beam}'
+done
+```
+
+**Output:**
+```json
+{"font":"Font1.ttf","density":0.627,"beam":0.0144}
+{"font":"Font2.ttf","density":0.543,"beam":0.0122}
+{"font":"Font3.ttf","density":0.689,"beam":0.0156}
+```
+
+## See Also
+
+- [Python API Documentation](./PYTHON-API.md)
+- [Architecture Overview](../README.md#architecture)
+- [Installation Guide](../INSTALL.md)
+- [Performance Benchmarks](../WORK.md)
+
+## Support
+
+- **Issues**: https://github.com/fontlaborg/haforu/issues
+- **Examples**: See `examples/` directory in the repository
+- **Tests**: See `scripts/test-cli-parity.sh` for comprehensive CLI tests
+</document_content>
+</document>
+
+<document index="19">
+<source>docs/REPOSITORY.md</source>
+<document_content>
+---
+this_file: docs/REPOSITORY.md
+---
+
+# Repository Structure & Best Practices
+
+This document describes haforu's repository layout, build configuration, and adherence to Rust + PyO3 + Hatch best practices.
+
+## Overview
+
+Haforu is a **hybrid Rust + Python project** using:
+- **Rust** - Core rendering engine (`src/`)
+- **PyO3** - Python bindings (`src/python/`)
+- **Maturin** - Build backend for Python wheels
+- **Hatch** - Python testing and tooling
+- **Fire** - Python CLI framework
+
+## Directory Structure
+
+```
+haforu/
+├── .cargo/
+│   └── config.toml          # Cargo configuration, build profiles, aliases
+├── .github/                  # GitHub Actions workflows (to be added)
+├── benches/
+│   └── cli.rs               # Criterion benchmarks for CLI hot paths
+├── docs/
+│   ├── CLI-USAGE.md         # Comprehensive CLI documentation
+│   └── REPOSITORY.md        # This file
+├── examples/
+│   └── python/              # Python usage examples
+├── python/
+│   ├── haforu/
+│   │   ├── __init__.py      # Python package entry point
+│   │   ├── __main__.py      # Fire CLI implementation
+│   │   └── _version.py      # Auto-generated version (hatch-vcs)
+│   └── tests/               # Python test suite (pytest)
+├── scripts/
+│   ├── build.sh             # Comprehensive build script
+│   ├── run.sh               # Multi-mode test runner
+│   ├── profile-cli.sh       # Performance profiling
+│   ├── regression-test.sh   # Performance regression gates
+│   └── test-cli-parity.sh   # Python/Rust CLI parity tests
+├── src/
+│   ├── batch.rs             # Job specification structs
+│   ├── error.rs             # Error types
+│   ├── fonts.rs             # Font loader with caching
+│   ├── lib.rs               # Public API
+│   ├── main.rs              # Rust CLI
+│   ├── output.rs            # Image output (PGM/PNG)
+│   ├── python/              # PyO3 bindings
+│   ├── render.rs            # Rasterization
+│   ├── security.rs          # Security validation
+│   └── shaping.rs           # HarfBuzz shaping
+├── testdata/
+│   └── fonts/               # Test fonts
+├── Cargo.toml               # Rust package manifest
+├── pyproject.toml           # Python package manifest
+├── CHANGELOG.md             # Release notes
+├── PLAN.md                  # Project planning
+├── TODO.md                  # Task tracking
+└── WORK.md                  # Work session notes
+```
+
+## Configuration Files
+
+### Cargo.toml
+
+**Purpose:** Rust package manifest and build configuration
+
+**Key Sections:**
+- `[package]` - Metadata (name, version, description, license)
+- `[lib]` - Library configuration (`cdylib` for Python, `rlib` for Rust)
+- `[[bin]]` - Binary target (haforu CLI)
+- `[[bench]]` - Benchmark configuration
+- `[dependencies]` - Production dependencies
+- `[dev-dependencies]` - Test/benchmark dependencies
+- `[features]` - Feature flags (default, python)
+- `[profile.*]` - Build profiles (dev, release)
+
+**Best Practices Applied:**
+- ✅ Separate `cdylib` and `rlib` targets
+- ✅ Explicit feature flags for Python bindings
+- ✅ Optimized release profile (LTO, strip, single codegen-unit)
+- ✅ Rust edition 2021
+- ✅ MSRV documented (1.70)
+
+### pyproject.toml
+
+**Purpose:** Python package manifest and tool configuration
+
+**Key Sections:**
+- `[build-system]` - Maturin backend with hatch-vcs
+- `[project]` - Package metadata
+- `[project.scripts]` - Console entry points (`haforu-py`)
+- `[tool.maturin]` - Maturin configuration
+- `[tool.pytest.ini_options]` - Pytest configuration
+- `[tool.hatch.version]` - VCS-based versioning
+- `[tool.ruff]` - Linting configuration
+- `[tool.mypy]` - Type checking configuration
+
+**Best Practices Applied:**
+- ✅ Dynamic versioning from git tags (hatch-vcs)
+- ✅ Separate Python source directory (`python/`)
+- ✅ Console entry point for CLI (`haforu-py`)
+- ✅ Platform-specific optional dependencies
+- ✅ Modern Python 3.8+ support
+- ✅ Comprehensive metadata (classifiers, keywords)
+
+### .cargo/config.toml
+
+**Purpose:** Cargo build configuration and platform-specific settings
+
+**Key Features:**
+- Build profiles (dev, release, release-with-debug, bench, dist)
+- Platform-specific rustflags
+- Linker optimizations (LLD on Linux)
+- Profiling support (frame pointers, debug symbols)
+- Command aliases for convenience
+- Network configuration (retries, git CLI)
+
+**Best Practices Applied:**
+- ✅ Frame pointers enabled for profiling
+- ✅ Platform-specific optimizations
+- ✅ Multiple build profiles for different use cases
+- ✅ LTO and size optimizations for distribution
+- ✅ Split debug info on macOS for faster builds
+- ✅ Sparse registry protocol for faster downloads
+
+## Build System
+
+### Rust Build
+
+```bash
+# Development build
+cargo build
+
+# Release build (optimized)
+cargo build --release
+
+# With Python bindings
+cargo build --release --features python
+
+# Run tests
+cargo test
+
+# Run benchmarks
+cargo bench
+```
+
+### Python Build
+
+```bash
+# Development install (editable)
+pip install -e .
+
+# Build wheels
+maturin build --release
+
+# Build and install
+maturin develop --release
+
+# Run tests
+pytest python/tests/
+
+# Or using hatch
+hatch test
+```
+
+### Unified Build Script
+
+```bash
+# Comprehensive build + test + package
+./scripts/build.sh
+
+# Quick development build
+./build.sh
+```
+
+## Version Management
+
+### Current Approach
+
+**Rust:** Manual versioning in `Cargo.toml`
+- Version: `2.0.0`
+- Updated manually for releases
+
+**Python:** Dynamic versioning via hatch-vcs
+- Reads from git tags
+- Auto-generates `python/haforu/_version.py`
+- Configured in `pyproject.toml`
+
+### Recommended Approach (TODO)
+
+Use **tag-driven versioning** for both:
+
+1. Create git tag: `git tag -a v2.1.0 -m "Release 2.1.0"`
+2. Push tag: `git push origin v2.1.0`
+3. GitHub Actions:
+   - Builds Rust binary
+   - Builds Python wheels
+   - Creates GitHub Release
+   - Publishes to crates.io and PyPI
+
+**Benefits:**
+- Single source of truth (git tags)
+- Automated releases
+- No manual version bumps
+- Consistent Rust + Python versions
+
+## Testing Strategy
+
+### Rust Tests
+
+**Location:** Inline in `src/` modules
+**Run:** `cargo test`
+
+**Coverage:**
+- 36 library tests (unit + integration)
+- 13 main tests (CLI commands)
+- Tests for: batch, fonts, render, streaming, output
+
+### Python Tests
+
+**Location:** `python/tests/`
+**Run:** `pytest` or `hatch test`
+
+**Coverage:**
+- 65 tests total
+- Tests for: batch, errors, numpy, streaming
+- Includes bindings tests and CLI tests
+
+### Integration Tests
+
+**Scripts in `scripts/`:**
+- `batch_smoke.sh` - Smoke tests for CLI contract
+- `profile-cli.sh` - Performance profiling
+- `regression-test.sh` - Performance regression detection
+- `test-cli-parity.sh` - Python/Rust CLI parity (20 tests)
+
+### Performance Tests
+
+**Benchmarks:**
+- `benches/cli.rs` - Criterion benchmarks (note: has serde version conflicts)
+- `scripts/profile-cli.sh` - Hyperfine-based profiling
+- `scripts/regression-test.sh` - Threshold-based gates
+
+**Metrics:**
+- Startup time: ~6.5ms
+- Batch (100 jobs): ~7-8ms
+- Streaming (1000 lines): ~10ms
+- Metrics render: ~6ms
+- PGM render: ~7.5ms
+
+## Code Organization
+
+### Rust Modules
+
+**Principle:** Small, focused modules with clear responsibilities
+
+- `batch.rs` - Data structures only (Job, JobSpec, JobResult)
+- `fonts.rs` - Font loading and caching (FontLoader, FontInstance)
+- `shaping.rs` - Text shaping (TextShaper, ShapedText)
+- `render.rs` - Rasterization (GlyphRasterizer, Image)
+- `output.rs` - Image encoding (ImageOutput, PGM/PNG)
+- `error.rs` - Error types (Error, Result)
+- `security.rs` - Security validation
+- `lib.rs` - Public API and orchestration
+- `main.rs` - CLI implementation
+
+**Best Practices:**
+- ✅ Separation of concerns
+- ✅ Clear module boundaries
+- ✅ Public API in `lib.rs`
+- ✅ Minimal inter-module dependencies
+- ✅ Comprehensive documentation
+
+### Python Package
+
+**Structure:**
+- `python/haforu/__init__.py` - Public API (process_jobs, StreamingSession)
+- `python/haforu/__main__.py` - Fire CLI (HaforuCLI class)
+- `python/haforu/_version.py` - Auto-generated version
+- `python/tests/` - Test suite
+
+**Best Practices:**
+- ✅ Clear public API
+- ✅ Separate CLI implementation
+- ✅ Type stubs for bindings
+- ✅ Comprehensive tests
+
+### PyO3 Bindings
+
+**Location:** `src/python/`
+
+**Pattern:**
+- Thin wrappers around Rust API
+- Python-friendly types (str, dict, list)
+- Error conversion to Python exceptions (where appropriate)
+- Iterator protocol for streaming
+
+**Best Practices:**
+- ✅ Minimal business logic in bindings
+- ✅ Delegate to Rust core
+- ✅ Pythonic API surface
+- ✅ GIL release for CPU-intensive operations
+
+## File Annotations
+
+### `this_file` Convention
+
+Every source file includes a header comment with its path relative to repository root:
+
+**Rust:**
+```rust
+// this_file: src/main.rs
+```
+
+**Python:**
+```python
+# this_file: python/haforu/__init__.py
+```
+
+**Markdown:**
+```markdown
+---
+this_file: docs/REPOSITORY.md
+---
+```
+
+**Purpose:**
+- Clear file identity
+- Easy navigation
+- Copy-paste context preservation
+- LLM-friendly codebase exploration
+
+## Development Workflow
+
+### Local Development
+
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/fontsimi/haforu.git
+   cd haforu
+   ```
+
+2. **Build and test:**
+   ```bash
+   # Build everything
+   ./scripts/build.sh
+
+   # Run tests
+   cargo test
+   pytest python/tests/
+
+   # Run smoke tests
+   ./scripts/run.sh smoke
+   ```
+
+3. **Make changes:**
+   - Edit Rust code in `src/`
+   - Edit Python code in `python/haforu/`
+   - Update tests
+   - Update documentation
+
+4. **Verify changes:**
+   ```bash
+   # Rust tests
+   cargo test
+
+   # Python tests
+   hatch test
+
+   # CLI parity
+   ./scripts/test-cli-parity.sh
+
+   # Performance
+   ./scripts/regression-test.sh
+   ```
+
+5. **Update documentation:**
+   - Update `CHANGELOG.md`
+   - Update `WORK.md` with notes
+   - Update `TODO.md` if applicable
+
+### Release Workflow (Manual)
+
+1. **Update versions:**
+   - Bump version in `Cargo.toml`
+   - Create git tag: `git tag -a v2.1.0 -m "Release 2.1.0"`
+
+2. **Build and test:**
+   ```bash
+   ./scripts/build.sh
+   cargo test
+   hatch test
+   ```
+
+3. **Build artifacts:**
+   ```bash
+   # Rust binary
+   cargo build --release
+
+   # Python wheels
+   maturin build --release
+   ```
+
+4. **Publish:**
+   ```bash
+   # Rust crate
+   cargo publish
+
+   # Python wheels
+   maturin publish
+   ```
+
+5. **Tag and push:**
+   ```bash
+   git push origin v2.1.0
+   ```
+
+### Release Workflow (Automated - TODO)
+
+GitHub Actions workflow triggered by `v*` tags:
+1. Checkout code
+2. Build Rust binary (multi-platform)
+3. Build Python wheels (manylinux, macOS, Windows)
+4. Run full test suite
+5. Create GitHub Release
+6. Publish to crates.io
+7. Publish to PyPI
+
+## Best Practices Compliance
+
+### Rust Workspace Best Practices
+
+✅ **Applied:**
+- Clear module structure
+- Comprehensive Cargo.toml
+- Feature flags for optional dependencies
+- Optimized release profile
+- Platform-specific configuration
+- Benchmark configuration
+
+❌ **Not Applied (by design):**
+- Workspace structure (single crate is appropriate for this project)
+- Multiple binary targets (only one CLI needed)
+
+### PyO3 Best Practices
+
+✅ **Applied:**
+- Feature flag for Python bindings
+- Separate source directory for Python code
+- Type conversions at binding boundary
+- GIL management
+- Python-friendly API
+
+✅ **Excellent:**
+- Streaming API with proper iterator protocol
+- Error handling with custom exceptions
+- Cache management from Python
+
+### Hatch Best Practices
+
+✅ **Applied:**
+- VCS-based versioning
+- pytest configuration
+- ruff configuration
+- mypy configuration
+- Development dependencies
+
+❌ **Not Applied (low priority):**
+- Multiple test environments
+- Matrix testing across Python versions
+
+### Maturin Best Practices
+
+✅ **Applied:**
+- Correct build backend configuration
+- Python source directory specified
+- Module name configured
+- Feature selection
+
+✅ **Excellent:**
+- Universal2 wheels for macOS
+- Manylinux wheels for Linux
+- Windows wheel support
+
+## Deviations from Canonical Structure
+
+### 1. Single Crate vs Workspace
+
+**Current:** Single Rust crate at repository root
+**Canonical:** Workspace with multiple crates
+
+**Justification:**
+- Project is cohesive single unit
+- No need for sub-crates
+- Simpler build and dependency management
+- Appropriate for project size
+
+### 2. PyO3 Bindings Location
+
+**Current:** `src/python/` (within Rust crate)
+**Alternative:** Separate `bindings/` directory
+
+**Justification:**
+- Keeps bindings close to Rust code
+- Clear feature flag boundary
+- Works well with Maturin
+- Standard pattern for PyO3 projects
+
+### 3. Python Package Location
+
+**Current:** `python/` directory at root
+**Alternative:** `py-haforu/` or separate repository
+
+**Justification:**
+- Maturin convention
+- Clear separation from Rust source
+- Supports independent Python development
+- Recommended by Maturin documentation
+
+## Performance Characteristics
+
+### Build Times
+
+**Rust (Release):**
+- Clean build: ~2-3 minutes
+- Incremental: ~10-30 seconds
+
+**Python (Wheel):**
+- Clean build: ~2-3 minutes (includes Rust)
+- Maturin develop: ~30 seconds
+
+**Full CI Build:**
+- Estimated: ~10-15 minutes (multi-platform)
+
+### Binary Sizes
+
+**Rust Binary:**
+- Release (stripped): ~2.4MB
+- Release (with debug): ~15MB
+
+**Python Wheel:**
+- macOS (universal2): ~5-6MB
+- Linux (manylinux): ~4-5MB
+- Windows: ~3-4MB
+
+### Runtime Performance
+
+**CLI Startup:** ~6.5ms
+**Throughput:** ~100k jobs/sec (streaming, metrics-only)
+**Memory:** <100MB for typical workloads
+
+## Known Issues
+
+1. **Criterion Benchmarks:** serde_core version conflicts (low priority)
+2. **Windows Testing:** Limited Windows CI coverage
+3. **Documentation:** Some internal APIs undocumented
+
+## Future Improvements
+
+### High Priority
+1. ✅ CLI documentation (DONE)
+2. ✅ Performance profiling scripts (DONE)
+3. ✅ CLI parity testing (DONE)
+4. GitHub Actions CI/CD
+5. Automated releases
+
+### Medium Priority
+1. Windows build testing
+2. Cross-compilation support
+3. Additional benchmarks
+4. Coverage reporting
+
+### Low Priority
+1. Workspace structure (if project grows)
+2. Separate PyO3 bindings crate
+3. Cargo-vcs for Rust versioning
+4. Pre-commit hooks
+
+## See Also
+
+- [CLI Usage Guide](./CLI-USAGE.md)
+- [Installation Guide](../INSTALL.md)
+- [Project Plan](../PLAN.md)
+- [TODO List](../TODO.md)
 </document_content>
 </document>
 
@@ -2625,7 +4830,7 @@ def main(()):
 
 
 
-<document index="12">
+<document index="20">
 <source>llms.sh</source>
 <document_content>
 #!/usr/bin/env bash
@@ -2636,18 +4841,18 @@ llms . "*.txt,AGENTS.md,CLAUDE.md,GEMINI.md,LLXPRT.md,QWEN.md,WORK.md,issues,tar
 </document_content>
 </document>
 
-<document index="13">
+<document index="21">
 <source>pyproject.toml</source>
 <document_content>
 # this_file: pyproject.toml
 
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.0,<2.0", "hatch-vcs>=0.4.0"]
 build-backend = "maturin"
 
 [project]
 name = "haforu"
-version = "2.0.0"
+dynamic = ["version"]
 description = "High-performance batch font renderer for FontSimi"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -2674,6 +4879,7 @@ keywords = ["font", "rendering", "batch", "typography"]
 
 dependencies = [
     "numpy>=1.20",
+    "fire>=0.5.0",
 ]
 
 [project.optional-dependencies]
@@ -2681,11 +4887,20 @@ dev = [
     "pytest>=7.0",
     "pytest-benchmark>=4.0",
     "pillow>=10.0",
+    "hatch>=1.9.0",
 ]
+# Platform-specific extras
+mac = []  # macOS-specific dependencies (universal2 wheel)
+windows = []  # Windows-specific dependencies
+linux = []  # Linux-specific dependencies (manylinux wheel)
+all = ["pillow>=10.0"]  # All optional dependencies
 
 [project.urls]
 Homepage = "https://github.com/fontsimi/haforu"
 Repository = "https://github.com/fontsimi/haforu"
+
+[project.scripts]
+haforu-py = "haforu.__main__:main"
 
 [tool.maturin]
 features = ["python"]
@@ -2711,6 +4926,15 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.hatch]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { root = "../.." }
+
+[tool.hatch.build.hooks.vcs]
+version-file = "python/haforu/_version.py"
 </document_content>
 </document>
 
@@ -2930,6 +5154,7 @@ import haforu
 import haforu
 import haforu
 import haforu
+from pathlib import Path
 import haforu
 import haforu
 import haforu
@@ -2970,7 +5195,22 @@ def test_streaming_session_metrics_format_returns_metrics_payload(()):
 def test_haforu_module_is_available_probe(()):
 
 
-<document index="14">
+<document index="22">
+<source>run.sh</source>
+<document_content>
+#!/bin/bash
+# this_file: run.sh
+
+set -e
+
+MODE="${1:-smoke}"
+
+echo "Running haforu in '$MODE' mode..."
+exec ./scripts/run.sh "$MODE"
+</document_content>
+</document>
+
+<document index="23">
 <source>scripts/batch_smoke.sh</source>
 <document_content>
 #!/usr/bin/env bash
@@ -3071,7 +5311,259 @@ PY
 </document_content>
 </document>
 
-<document index="15">
+<document index="24">
+<source>scripts/build.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/build.sh
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROFILE="${HAFORU_PROFILE:-release}"
+RUN_TESTS=1
+RUN_SMOKE=1
+SKIP_WHEELS=0
+TARGETS="auto"
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/build.sh [options]
+
+Options:
+  --profile <name>     Cargo profile to build/test (default: release)
+  --skip-tests         Skip cargo/uvx test suites
+  --skip-smoke         Skip scripts/batch_smoke.sh
+  --skip-wheels        Skip Python wheel builds
+  --targets "<list>"   Wheel targets (auto|universal2|manylinux|windows|all)
+  -h, --help           Show this help
+
+Environment:
+  ARTIFACT_DIR     Override target/artifacts output root
+  HAFORU_PROFILE   Alias for --profile
+EOF
+}
+
+while (($#)); do
+    case "$1" in
+        --profile) PROFILE="$2"; shift ;;
+        --skip-tests) RUN_TESTS=0 ;;
+        --skip-smoke) RUN_SMOKE=0 ;;
+        --skip-wheels) SKIP_WHEELS=1 ;;
+        --targets) TARGETS="$2"; shift ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'Unknown option: %s\n\n' "$1" >&2
+            usage
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+cd "$ROOT_DIR"
+
+if [[ -z "${CARGO_BUILD_JOBS:-}" ]]; then
+    if command -v getconf >/dev/null 2>&1; then
+        CARGO_BUILD_JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+    else
+        CARGO_BUILD_JOBS="${NUMBER_OF_PROCESSORS:-1}"
+    fi
+    [[ "$CARGO_BUILD_JOBS" -ge 1 ]] 2>/dev/null || CARGO_BUILD_JOBS=1
+    export CARGO_BUILD_JOBS
+fi
+
+if [[ -z "${CARGO_SOURCE_CRATES_IO_REPLACE_WITH:-}" ]]; then
+    export CARGO_SOURCE_CRATES_IO_REPLACE_WITH="crates-io"
+fi
+
+if [[ -z "${CARGO_SOURCE_VENDORED_SOURCES_DIRECTORY:-}" ]]; then
+    export CARGO_SOURCE_VENDORED_SOURCES_DIRECTORY="$ROOT_DIR/target/vendor-empty"
+    mkdir -p "$CARGO_SOURCE_VENDORED_SOURCES_DIRECTORY"
+fi
+
+ARTIFACT_ROOT="${ARTIFACT_DIR:-$ROOT_DIR/target/artifacts}"
+RUN_STAMP="$(date +%Y%m%d-%H%M%S)"
+RUN_DIR="$ARTIFACT_ROOT/$RUN_STAMP"
+BIN_DIR="$RUN_DIR/bin"
+WHEEL_DIR="$RUN_DIR/wheels"
+LOG_DIR="$RUN_DIR/logs"
+TIMINGS_FILE="$LOG_DIR/timings.txt"
+mkdir -p "$BIN_DIR" "$WHEEL_DIR" "$LOG_DIR"
+ln -sfn "$RUN_DIR" "$ARTIFACT_ROOT/latest"
+
+log() {
+    printf '\n[%s] %s\n' "$(date +%H:%M:%S)" "$*"
+}
+
+require_cmd() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        printf 'Missing required tool: %s\n' "$1" >&2
+        exit 1
+    fi
+}
+
+run_step() {
+    local label="$1"
+    shift
+    log "$label"
+    local start end
+    start=$(date +%s)
+    "$@"
+    end=$(date +%s)
+    printf '%s\t%ss\n' "$label" "$((end - start))" >> "$TIMINGS_FILE"
+}
+
+detect_platform() {
+    local uname_out
+    uname_out="$(uname -s)"
+    case "$uname_out" in
+        Darwin) PLATFORM="mac" ;;
+        Linux) PLATFORM="linux" ;;
+        MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
+        *) PLATFORM="unknown" ;;
+    esac
+    ARCH="$(uname -m)"
+    BIN_NAME="haforu"
+    [[ "$PLATFORM" == "windows" ]] && BIN_NAME="haforu.exe"
+    BUILD_DIR_NAME=$([[ "$PROFILE" == "release" ]] && echo "release" || echo "$PROFILE")
+    SOURCE_BIN="$ROOT_DIR/target/$BUILD_DIR_NAME/$BIN_NAME"
+    HAFORU_BIN="$BIN_DIR/$BIN_NAME"
+    export HAFORU_BIN
+}
+
+resolve_targets() {
+    TARGET_SET=()
+    if [[ "$TARGETS" == "auto" ]]; then
+        case "$PLATFORM" in
+            mac) TARGET_SET=("universal2") ;;
+            linux) TARGET_SET=("manylinux") ;;
+            windows) TARGET_SET=("windows") ;;
+        esac
+    elif [[ "$TARGETS" == "all" ]]; then
+        TARGET_SET=("universal2" "manylinux" "windows")
+    else
+        read -r -a TARGET_SET <<<"$TARGETS"
+    fi
+}
+
+build_cli() {
+    local args=(build --locked --bin haforu)
+    if [[ "$PROFILE" == "release" ]]; then
+        args+=(--release)
+    else
+        args+=(--profile "$PROFILE")
+    fi
+    run_step "cargo ${args[*]}" cargo "${args[@]}"
+    if [[ ! -f "$SOURCE_BIN" ]]; then
+        printf 'Unable to locate built binary at %s\n' "$SOURCE_BIN" >&2
+        exit 1
+    fi
+    cp "$SOURCE_BIN" "$HAFORU_BIN"
+    chmod +x "$HAFORU_BIN"
+    log "CLI ready at $HAFORU_BIN"
+}
+
+build_wheels() {
+    [[ "$SKIP_WHEELS" -eq 1 ]] && return
+    if [[ "${#TARGET_SET[@]}" -eq 0 ]]; then
+        log "No wheel targets selected for $PLATFORM; skipping wheel build."
+        return
+    fi
+    mkdir -p "$WHEEL_DIR"
+    local rel_out="/io${WHEEL_DIR#$ROOT_DIR}"
+    for target in "${TARGET_SET[@]}"; do
+        case "$target" in
+            universal2)
+                run_step "maturin universal2" \
+                    uvx maturin build --release --target universal2-apple-darwin \
+                    --features python --out "$WHEEL_DIR"
+                ;;
+            manylinux)
+                if command -v docker >/dev/null 2>&1; then
+                    run_step "maturin manylinux (docker)" \
+                        docker run --rm -v "$ROOT_DIR":/io ghcr.io/pyo3/maturin \
+                        build --release --features python --compatibility manylinux_2_28 \
+                        --out "$rel_out"
+                else
+                    run_step "maturin manylinux host" \
+                        uvx maturin build --release --features python \
+                        --compatibility manylinux_2_28 --out "$WHEEL_DIR"
+                fi
+                ;;
+            windows)
+                run_step "maturin windows" \
+                    uvx maturin build --release --features python --out "$WHEEL_DIR"
+                ;;
+            *)
+                printf 'Unknown wheel target: %s\n' "$target" >&2
+                exit 1
+                ;;
+        esac
+    done
+    log "Wheels stored in $WHEEL_DIR"
+}
+
+run_rust_tests() {
+    [[ "$RUN_TESTS" -eq 0 ]] && return
+    local args=(test --locked --workspace)
+    if [[ "$PROFILE" == "release" ]]; then
+        args+=(--release)
+    else
+        args+=(--profile "$PROFILE")
+    fi
+    run_step "cargo ${args[*]}" cargo "${args[@]}"
+}
+
+run_python_tests() {
+    [[ "$RUN_TESTS" -eq 0 ]] && return
+    run_step "uvx hatch test" uvx hatch test
+}
+
+run_smoke() {
+    [[ "$RUN_SMOKE" -eq 0 ]] && return
+    export HAFORU_BIN
+    run_step "scripts/batch_smoke.sh" bash "$ROOT_DIR/scripts/batch_smoke.sh"
+}
+
+write_summary() {
+    local summary="$LOG_DIR/summary.txt"
+    {
+        printf "timestamp=%s\n" "$RUN_STAMP"
+        printf "profile=%s\n" "$PROFILE"
+        printf "platform=%s\n" "$PLATFORM"
+        printf "arch=%s\n" "$ARCH"
+        printf "cli=%s\n" "$HAFORU_BIN"
+        printf "wheels=%s\n" "$WHEEL_DIR"
+        printf "tests=%s\n" "$([[ "$RUN_TESTS" -eq 1 ]] && echo on || echo off)"
+        printf "smoke=%s\n" "$([[ "$RUN_SMOKE" -eq 1 ]] && echo on || echo off)"
+    } >"$summary"
+    log "Summary written to $summary"
+    log "Timings recorded in $TIMINGS_FILE"
+}
+
+main() {
+    require_cmd cargo
+    require_cmd uvx
+    detect_platform
+    resolve_targets
+    log "Haforu build start (profile=$PROFILE, platform=$PLATFORM, arch=$ARCH)"
+    build_cli
+    build_wheels
+    run_rust_tests
+    run_python_tests
+    run_smoke
+    write_summary
+}
+
+main "$@"
+</document_content>
+</document>
+
+<document index="25">
 <source>scripts/jobs_smoke.jsonl</source>
 <document_content>
 {"id":"smoke-1","font":{"path":"testdata/fonts/Arial-Black.ttf","size":1000,"variations":{}},"text":{"content":"Haforu"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
@@ -3080,6 +5572,888 @@ PY
 {"id":"smoke-invalid","font":{"path":"testdata/fonts/Arial-Black.ttf","size":0,"variations":{"wght":1400}},"text":{"content":"Invalid"},"rendering":{"format":"pgm","encoding":"base64","width":256,"height":128}}
 
 ... (Data file content truncated to first 5 lines)
+</document_content>
+</document>
+
+<document index="26">
+<source>scripts/profile-cli.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/profile-cli.sh
+#
+# Profile haforu CLI hot paths:
+# - Argument parsing overhead
+# - JSON batch parsing
+# - JSONL streaming throughput
+# - Job validation
+# - End-to-end rendering
+
+set -euo pipefail
+
+HAFORU_BIN="${HAFORU_BIN:-./target/release/haforu}"
+TESTDATA="./testdata/fonts/Arial-Black.ttf"
+
+echo "=== Profiling haforu CLI hot paths ==="
+echo "Binary: $HAFORU_BIN"
+echo "Test font: $TESTDATA"
+echo
+
+# Check for hyperfine
+if ! command -v hyperfine &> /dev/null; then
+    echo "Note: hyperfine not found, using basic timing instead"
+    echo "Install with: brew install hyperfine"
+    USE_HYPERFINE=0
+else
+    USE_HYPERFINE=1
+fi
+
+# 1. Argument parsing overhead
+echo "## 1. Argument Parsing Overhead"
+echo "Measuring help/version commands (startup + arg parsing only):"
+echo
+
+if [ $USE_HYPERFINE -eq 1 ]; then
+    hyperfine --warmup 3 \
+        "$HAFORU_BIN --help" \
+        "$HAFORU_BIN --version" \
+        "$HAFORU_BIN diagnostics --format json"
+else
+    for cmd in "--help" "--version" "diagnostics --format json"; do
+        echo "Timing: $HAFORU_BIN $cmd"
+        time $HAFORU_BIN $cmd > /dev/null
+    done
+fi
+
+echo
+
+# 2. JSON batch parsing
+echo "## 2. JSON Batch Parsing (hot path: serde_json parse)"
+echo "Measuring batch mode with varying input sizes:"
+echo
+
+# Create test jobs with different sizes
+create_batch_jobs() {
+    local count=$1
+    echo '{"version":"1.0","jobs":['
+    for i in $(seq 1 $count); do
+        cat <<EOF
+{"id":"job-$i","font":{"path":"$TESTDATA","size":256,"variations":{}},"text":{"content":"A","script":"Latn"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}$([ $i -lt $count ] && echo ",")
+EOF
+    done
+    echo ']}'
+}
+
+for count in 1 10 100; do
+    echo "Batch with $count jobs:"
+    create_batch_jobs $count > /tmp/batch_$count.json
+
+    if [ $USE_HYPERFINE -eq 1 ]; then
+        hyperfine --warmup 2 --runs 10 \
+            "$HAFORU_BIN batch < /tmp/batch_$count.json"
+    else
+        echo "Timing: $HAFORU_BIN batch < /tmp/batch_$count.json"
+        time $HAFORU_BIN batch < /tmp/batch_$count.json > /dev/null
+    fi
+    echo
+done
+
+# 3. JSONL streaming parsing
+echo "## 3. JSONL Streaming (hot path: line-by-line JSON parse + dispatch)"
+echo "Measuring stream mode with varying line counts:"
+echo
+
+# Create JSONL test data
+create_jsonl_jobs() {
+    local count=$1
+    for i in $(seq 1 $count); do
+        echo '{"id":"job-'$i'","font":{"path":"'$TESTDATA'","size":256,"variations":{}},"text":{"content":"A","script":"Latn"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}'
+    done
+}
+
+for count in 10 100 1000; do
+    echo "JSONL stream with $count lines:"
+    create_jsonl_jobs $count > /tmp/stream_$count.jsonl
+
+    if [ $USE_HYPERFINE -eq 1 ]; then
+        hyperfine --warmup 2 --runs 10 \
+            "$HAFORU_BIN stream < /tmp/stream_$count.jsonl"
+    else
+        echo "Timing: $HAFORU_BIN stream < /tmp/stream_$count.jsonl"
+        time $HAFORU_BIN stream < /tmp/stream_$count.jsonl > /dev/null
+    fi
+    echo
+done
+
+# 4. End-to-end rendering (with vs without image encoding)
+echo "## 4. End-to-End Rendering Performance"
+echo "Comparing metrics-only vs full PGM rendering:"
+echo
+
+# Metrics only (fast path)
+echo "Metrics-only format:"
+if [ $USE_HYPERFINE -eq 1 ]; then
+    hyperfine --warmup 5 --runs 50 \
+        "$HAFORU_BIN render -f $TESTDATA -s 256 -t A --format metrics"
+else
+    echo "Timing: $HAFORU_BIN render -f $TESTDATA -s 256 -t A --format metrics"
+    time for i in {1..50}; do $HAFORU_BIN render -f $TESTDATA -s 256 -t A --format metrics > /dev/null; done
+fi
+
+echo
+
+# PGM rendering (full path)
+echo "PGM rendering format:"
+if [ $USE_HYPERFINE -eq 1 ]; then
+    hyperfine --warmup 5 --runs 50 \
+        "$HAFORU_BIN render -f $TESTDATA -s 256 -t A --format pgm -o /tmp/test.pgm"
+else
+    echo "Timing: $HAFORU_BIN render -f $TESTDATA -s 256 -t A --format pgm -o /tmp/test.pgm"
+    time for i in {1..50}; do $HAFORU_BIN render -f $TESTDATA -s 256 -t A --format pgm -o /tmp/test.pgm; done
+fi
+
+echo
+
+# Summary
+echo "=== Profile Complete ==="
+echo
+echo "Hot paths profiled:"
+echo "1. Argument parsing - baseline CLI startup overhead"
+echo "2. JSON batch parsing - serde_json deserialize throughput"
+echo "3. JSONL streaming - line-by-line parse + job dispatch"
+echo "4. End-to-end rendering - metrics vs PGM output comparison"
+echo
+echo "Next steps:"
+echo "- Review results above for any outliers"
+echo "- Use flamegraph/perf for deeper profiling if needed"
+echo "- Add regression tests for critical paths"
+</document_content>
+</document>
+
+<document index="27">
+<source>scripts/regression-test.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/regression-test.sh
+#
+# Performance regression tests for haforu CLI
+# Runs key performance benchmarks and compares against baseline thresholds
+# Exit code 0 = pass, 1 = regression detected
+
+set -euo pipefail
+
+HAFORU_BIN="${HAFORU_BIN:-./target/release/haforu}"
+TESTDATA="./testdata/fonts/Arial-Black.ttf"
+BASELINE_FILE="${BASELINE_FILE:-.baseline-perf.json}"
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+echo "=== Performance Regression Tests ==="
+echo "Binary: $HAFORU_BIN"
+echo "Baseline: $BASELINE_FILE"
+echo
+
+# Check if binary exists
+if [ ! -f "$HAFORU_BIN" ]; then
+    echo -e "${RED}ERROR: Binary not found at $HAFORU_BIN${NC}"
+    echo "Run: cargo build --release"
+    exit 1
+fi
+
+# Check for hyperfine
+if ! command -v hyperfine &> /dev/null; then
+    echo -e "${YELLOW}WARNING: hyperfine not found${NC}"
+    echo "Install with: brew install hyperfine"
+    echo "Skipping regression tests"
+    exit 0
+fi
+
+# Performance thresholds (in milliseconds)
+# Based on profiling results from 2025-11-14
+# Note: bash -c wrapper adds ~5-7ms overhead
+THRESHOLD_HELP=10          # --help should be <10ms
+THRESHOLD_BATCH_1=15       # 1 job batch should be <15ms (includes bash -c overhead)
+THRESHOLD_STREAM_100=15    # 100 line stream should be <15ms (includes bash -c overhead)
+THRESHOLD_METRICS=10       # Single metrics render should be <10ms
+
+FAILED=0
+
+# Helper function to run benchmark and check threshold
+check_perf() {
+    local name=$1
+    local threshold=$2
+    shift 2
+    local cmd="$@"
+
+    echo "Testing: $name"
+    echo "  Command: $cmd"
+    echo "  Threshold: ${threshold}ms"
+
+    # Run hyperfine and extract mean time
+    result=$(hyperfine --warmup 3 --runs 10 --export-json /tmp/bench.json "$cmd" 2>&1)
+    mean_ms=$(jq '.results[0].mean * 1000' /tmp/bench.json)
+
+    # Compare (bash doesn't have floating point, so use bc)
+    passed=$(echo "$mean_ms < $threshold" | bc -l)
+
+    if [ "$passed" -eq 1 ]; then
+        echo -e "  ${GREEN}✓ PASS${NC} (${mean_ms}ms < ${threshold}ms)"
+    else
+        echo -e "  ${RED}✗ FAIL${NC} (${mean_ms}ms >= ${threshold}ms)"
+        FAILED=1
+    fi
+    echo
+}
+
+# Test 1: Argument parsing (--help)
+check_perf "Argument parsing (--help)" $THRESHOLD_HELP \
+    "$HAFORU_BIN --help"
+
+# Test 2: Batch processing (1 job)
+echo '{"version":"1.0","jobs":[{"id":"test","font":{"path":"'$TESTDATA'","size":256,"variations":{}},"text":{"content":"A","script":"Latn"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}]}' > /tmp/batch_1.json
+check_perf "Batch processing (1 job)" $THRESHOLD_BATCH_1 \
+    "bash -c '$HAFORU_BIN batch < /tmp/batch_1.json'"
+
+# Test 3: JSONL streaming (100 lines)
+for i in $(seq 1 100); do
+    echo '{"id":"job-'$i'","font":{"path":"'$TESTDATA'","size":256,"variations":{}},"text":{"content":"A","script":"Latn"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}'
+done > /tmp/stream_100.jsonl
+check_perf "JSONL streaming (100 lines)" $THRESHOLD_STREAM_100 \
+    "bash -c '$HAFORU_BIN stream < /tmp/stream_100.jsonl'"
+
+# Test 4: Single metrics render
+check_perf "Metrics rendering (single glyph)" $THRESHOLD_METRICS \
+    "$HAFORU_BIN render -f $TESTDATA -s 256 -t A --format metrics"
+
+# Summary
+echo "=== Regression Test Summary ==="
+if [ $FAILED -eq 0 ]; then
+    echo -e "${GREEN}✓ All tests passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}✗ Performance regression detected!${NC}"
+    echo
+    echo "Some benchmarks exceeded their thresholds."
+    echo "This may indicate a performance regression."
+    echo
+    echo "Next steps:"
+    echo "1. Review recent changes for performance impact"
+    echo "2. Run 'scripts/profile-cli.sh' for detailed profiling"
+    echo "3. Use flamegraph/perf for deep analysis if needed"
+    exit 1
+fi
+</document_content>
+</document>
+
+<document index="28">
+<source>scripts/run.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/run.sh
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+JOBS_FILE="${JOBS_FILE:-$ROOT_DIR/scripts/jobs_smoke.jsonl}"
+HAFORU_BIN="${HAFORU_BIN:-$ROOT_DIR/target/release/haforu}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+CONVERTER_PY="${CONVERTER_PY:-python3}"
+MODE="${1:-smoke}"
+
+RUN_LOG_DIR="$ROOT_DIR/target/run-log"
+RUN_STAMP="$(date +%Y%m%d-%H%M%S)"
+RUN_LOG="$RUN_LOG_DIR/$MODE-$RUN_STAMP.log"
+TIMINGS_FILE="$RUN_LOG_DIR/$MODE-$RUN_STAMP.timings"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+mkdir -p "$RUN_LOG_DIR"
+touch "$RUN_LOG" "$TIMINGS_FILE"
+
+log() {
+    local line="[$(date +%H:%M:%S)] $*"
+    printf '\n%s\n' "$line"
+    printf '%s\n' "$line" >> "$RUN_LOG"
+}
+
+require_file() {
+    if [[ ! -f "$1" ]]; then
+        printf 'Missing file: %s\n' "$1" >&2
+        exit 1
+    fi
+}
+
+ensure_cli() {
+    if [[ -x "$HAFORU_BIN" ]]; then
+        return
+    fi
+    log "haforu binary not found at $HAFORU_BIN, building release binary"
+    (cd "$ROOT_DIR" && cargo build --release >/dev/null)
+    HAFORU_BIN="$ROOT_DIR/target/release/haforu"
+    export HAFORU_BIN
+}
+
+convert_jobs() {
+    local mode="$1"
+    local dest="$2"
+    "$CONVERTER_PY" - "$JOBS_FILE" "$mode" "$dest" <<'PY'
+import json, sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+mode = sys.argv[2]
+dest = Path(sys.argv[3])
+jobs = []
+for line in src.read_text().splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    job = json.loads(line)
+    fmt = job.get("rendering", {}).get("format")
+    if mode == "metrics" and fmt != "metrics":
+        continue
+    if mode == "nonmetrics" and fmt == "metrics":
+        continue
+    jobs.append(job)
+dest.write_text(json.dumps({"version": "1.0", "jobs": jobs}))
+PY
+}
+
+summarize_jobs() {
+    local label="$1"
+    local file="$2"
+    "$CONVERTER_PY" - "$file" "$label" <<'PY'
+import json, sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+label = sys.argv[2]
+print(f"{label} summaries:")
+for line in path.read_text().splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    job = json.loads(line)
+    status = job.get("status")
+    job_id = job.get("id")
+    metrics = job.get("metrics")
+    err = job.get("error")
+    if metrics:
+        metrics_text = f"density={metrics.get('density'):.3f}, beam={metrics.get('beam'):.3f}"
+        print(f"  {job_id}: {status} ({metrics_text})")
+    elif err:
+        print(f"  {job_id}: {status} -> {err}")
+    else:
+        fmt = job.get("rendering", {}).get("format")
+        print(f"  {job_id}: {status} ({fmt})")
+PY
+}
+
+summarize_stream() {
+    local file="$1"
+    "$CONVERTER_PY" - "$file" <<'PY'
+import json, sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+print("Streaming summaries:")
+for line in path.read_text().splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    job = json.loads(line)
+    job_id = job.get("id")
+    status = job.get("status")
+    err = job.get("error")
+    if err:
+        print(f"  {job_id}: {status} -> {err}")
+    else:
+        print(f"  {job_id}: {status}")
+PY
+}
+
+run_cli() {
+    local label="$1"
+    local input="$2"
+    local output="$3"
+    shift 3
+    log "$label"
+    local start end
+    start=$(date +%s)
+    if [[ -n "$input" ]]; then
+        "$HAFORU_BIN" "$@" < "$input" > "$output"
+    else
+        "$HAFORU_BIN" "$@" > "$output"
+    fi
+    end=$(date +%s)
+    printf '%s\t%ss\n' "$label" "$((end - start))" >> "$TIMINGS_FILE"
+}
+
+batch_demo() {
+    local batch_json="$TMP_DIR/batch.json"
+    local output="$TMP_DIR/batch.out"
+    convert_jobs all "$batch_json"
+    run_cli "haforu batch (jobs_smoke)" "$batch_json" "$output" batch
+    summarize_jobs "Batch" "$output" | tee -a "$RUN_LOG"
+}
+
+metrics_demo() {
+    local metrics_json="$TMP_DIR/metrics.json"
+    local output="$TMP_DIR/metrics.out"
+    convert_jobs metrics "$metrics_json"
+    run_cli "haforu batch (metrics only)" "$metrics_json" "$output" batch
+    summarize_jobs "Metrics" "$output" | tee -a "$RUN_LOG"
+}
+
+stream_demo() {
+    local output="$TMP_DIR/stream.out"
+    run_cli "haforu stream (jobs_smoke)" "$JOBS_FILE" "$output" stream
+    summarize_stream "$output" | tee -a "$RUN_LOG"
+}
+
+python_demo() {
+    log "Python StreamingSession demo"
+    if ! "$PYTHON_BIN" -c "import haforu" >/dev/null 2>&1; then
+        log "haforu Python module not found for $PYTHON_BIN; skip demo (install the wheel first)."
+        return
+    fi
+    local status
+    "$PYTHON_BIN" - "$JOBS_FILE" <<'PY' | tee -a "$RUN_LOG"
+import json, sys, haforu, pathlib
+
+jobs = [json.loads(line) for line in pathlib.Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+first = jobs[0]
+print(f"haforu {haforu.__version__}, available={haforu.is_available()}")
+session = haforu.StreamingSession(max_fonts=8, max_glyphs=128)
+session.warm_up()
+result = json.loads(session.render(json.dumps(first)))
+print(f"session render -> {result['id']} {result['status']}")
+session.close()
+PY
+    status=${PIPESTATUS[0]}
+    if [[ $status -ne 0 ]]; then
+        exit $status
+    fi
+}
+
+smoke_suite() {
+    ensure_cli
+    batch_demo
+    metrics_demo
+    stream_demo
+}
+
+main() {
+    require_file "$JOBS_FILE"
+    case "$MODE" in
+        smoke)
+            smoke_suite
+            ;;
+        batch)
+            ensure_cli
+            batch_demo
+            ;;
+        metrics)
+            ensure_cli
+            metrics_demo
+            ;;
+        stream)
+            ensure_cli
+            stream_demo
+            ;;
+        python)
+            python_demo
+            ;;
+        all)
+            smoke_suite
+            python_demo
+            ;;
+        *)
+            printf 'Usage: %s [smoke|batch|metrics|stream|python|all]\n' "$0"
+            exit 1
+            ;;
+    esac
+    log "Run artifacts: $RUN_LOG (timings: $TIMINGS_FILE)"
+}
+
+main
+</document_content>
+</document>
+
+<document index="29">
+<source>scripts/sync-version.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/sync-version.sh
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}===== Version Sync Script =====${NC}"
+echo ""
+
+# Get version from git tag or provide default
+if git describe --tags --exact-match 2>/dev/null; then
+    VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+    echo -e "${GREEN}Found git tag: v$VERSION${NC}"
+else
+    # Try to get from most recent tag
+    if git describe --tags --abbrev=0 2>/dev/null; then
+        LAST_TAG=$(git describe --tags --abbrev=0 | sed 's/^v//')
+        # Count commits since last tag
+        COMMITS_SINCE=$(git rev-list $(git describe --tags --abbrev=0)..HEAD --count)
+
+        if [ "$COMMITS_SINCE" -gt 0 ]; then
+            # Development version
+            VERSION="${LAST_TAG}.dev${COMMITS_SINCE}"
+            echo -e "${YELLOW}No exact tag, using development version: $VERSION${NC}"
+        else
+            VERSION="$LAST_TAG"
+            echo -e "${GREEN}Using most recent tag: v$VERSION${NC}"
+        fi
+    else
+        VERSION="0.0.0.dev"
+        echo -e "${YELLOW}No tags found, using default: $VERSION${NC}"
+    fi
+fi
+
+echo ""
+echo "Syncing version: $VERSION"
+echo ""
+
+# Update Cargo.toml
+if [ -f "Cargo.toml" ]; then
+    echo "Updating Cargo.toml..."
+
+    # Create backup
+    cp Cargo.toml Cargo.toml.bak
+
+    # Update version line
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+    else
+        # Linux
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+    fi
+
+    echo -e "${GREEN}✓ Updated Cargo.toml${NC}"
+else
+    echo -e "${RED}✗ Cargo.toml not found${NC}"
+fi
+
+# Check if pyproject.toml uses dynamic versioning
+if [ -f "pyproject.toml" ]; then
+    if grep -q "dynamic.*version" pyproject.toml; then
+        echo "Python version is managed by hatch-vcs (dynamic)"
+        echo -e "${GREEN}✓ pyproject.toml uses git-based versioning${NC}"
+    else
+        echo -e "${YELLOW}Warning: pyproject.toml doesn't use dynamic versioning${NC}"
+        echo "Consider adding: dynamic = [\"version\"]"
+    fi
+fi
+
+echo ""
+echo "Version sync complete!"
+echo ""
+echo "Current versions:"
+echo "  Git tag:     $(git describe --tags --abbrev=0 2>/dev/null || echo 'none')"
+echo "  Cargo.toml:  $(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
+
+if [ -f "python/haforu/__init__.py" ]; then
+    if grep -q "__version__" python/haforu/__init__.py 2>/dev/null; then
+        echo "  Python:      $(grep '__version__' python/haforu/__init__.py | cut -d'"' -f2 || echo 'dynamic')"
+    else
+        echo "  Python:      dynamic (from git tags via hatch-vcs)"
+    fi
+fi
+
+echo ""
+echo "To create a new release:"
+echo "  1. git tag v$VERSION"
+echo "  2. git push --tags"
+echo "  3. GitHub Actions will build and publish automatically"
+echo ""
+
+# Cleanup backup
+if [ -f "Cargo.toml.bak" ]; then
+    rm Cargo.toml.bak
+fi
+</document_content>
+</document>
+
+<document index="30">
+<source>scripts/test-cli-parity.sh</source>
+<document_content>
+#!/usr/bin/env bash
+# this_file: scripts/test-cli-parity.sh
+#
+# Test Python Fire CLI parity with Rust CLI
+# Verifies that both CLIs expose the same functionality
+
+set -uo pipefail
+
+RUST_CLI="${HAFORU_BIN:-./target/release/haforu}"
+PYTHON_CLI="python -m haforu"
+TESTDATA="./testdata/fonts/Arial-Black.ttf"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo "=== Testing CLI Parity: Rust vs Python Fire ==="
+echo "Rust CLI: $RUST_CLI"
+echo "Python CLI: $PYTHON_CLI"
+echo
+
+PASSED=0
+FAILED=0
+
+# Helper function to test command availability
+test_command() {
+    local cli=$1
+    local cmd=$2
+    local description=$3
+
+    echo -n "Testing $description... "
+
+    set +e
+    if [[ "$cli" == *"python"* ]]; then
+        $cli $cmd --help >/dev/null 2>&1
+    else
+        $cli $cmd --help >/dev/null 2>&1
+    fi
+    local exit_code=$?
+    set -e
+
+    if [[ $exit_code -eq 0 ]]; then
+        echo -e "${GREEN}✓${NC}"
+        PASSED=$((PASSED + 1))
+        return 0
+    else
+        echo -e "${RED}✗${NC}"
+        FAILED=$((FAILED + 1))
+        return 1
+    fi
+}
+
+# Test command availability
+echo "## 1. Command Availability"
+echo
+
+# Rust CLI commands
+rust_commands=(
+    "batch:Batch processing"
+    "stream:Streaming mode"
+    "validate:Job validation"
+    "version:Version display"
+    "diagnostics:System diagnostics"
+    "render:Single render"
+)
+
+# Python CLI commands (should match Rust)
+python_commands=(
+    "batch:Batch processing"
+    "stream:Streaming mode"
+    "validate:Job validation"
+    "version:Version display"
+    "diagnostics:System diagnostics"
+    "render:Single render"
+    "metrics:Metrics computation"
+)
+
+for cmd_desc in "${rust_commands[@]}"; do
+    IFS=':' read -r cmd desc <<< "$cmd_desc"
+    test_command "$RUST_CLI" "$cmd" "Rust: $desc"
+done
+
+echo
+
+for cmd_desc in "${python_commands[@]}"; do
+    IFS=':' read -r cmd desc <<< "$cmd_desc"
+    test_command "$PYTHON_CLI" "$cmd" "Python: $desc"
+done
+
+echo
+
+# Test functional equivalence
+echo "## 2. Functional Equivalence Tests"
+echo
+
+# Test 2.1: Version command
+echo -n "Testing version command output... "
+rust_version=$($RUST_CLI version 2>&1 | head -1 || true)
+python_version=$($PYTHON_CLI version 2>&1 | grep -v "INFO:" | head -1 || true)
+
+if [[ -n "$rust_version" ]] && [[ -n "$python_version" ]]; then
+    echo -e "${GREEN}✓${NC}"
+    echo "  Rust:   $rust_version"
+    echo "  Python: $python_version"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.2: Diagnostics JSON output
+echo -n "Testing diagnostics JSON output... "
+rust_diag=$($RUST_CLI diagnostics --format json 2>&1 | grep -v "^$" || true)
+python_diag=$($PYTHON_CLI diagnostics --format json 2>&1 | grep -v "INFO:" | grep -v "^$" || true)
+
+if echo "$rust_diag" | jq . >/dev/null 2>&1 && echo "$python_diag" | jq . >/dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.3: Validate command
+echo -n "Testing validate command... "
+cat > /tmp/test_job.json <<EOF
+{
+  "version": "1.0",
+  "jobs": [{
+    "id": "test",
+    "font": {"path": "$TESTDATA", "size": 256, "variations": {}},
+    "text": {"content": "A"},
+    "rendering": {"format": "metrics", "encoding": "json", "width": 64, "height": 64}
+  }]
+}
+EOF
+
+rust_validate_exit=0
+$RUST_CLI validate < /tmp/test_job.json >/dev/null 2>&1 || rust_validate_exit=$?
+
+python_validate_exit=0
+$PYTHON_CLI validate < /tmp/test_job.json 2>&1 | grep -v "INFO:" >/dev/null || python_validate_exit=$?
+
+if [[ $rust_validate_exit -eq 0 ]] && [[ $python_validate_exit -eq 0 ]]; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    echo "  Rust exit: $rust_validate_exit"
+    echo "  Python exit: $python_validate_exit"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.4: Batch processing
+echo -n "Testing batch command... "
+rust_batch_output=$($RUST_CLI batch < /tmp/test_job.json 2>/dev/null | grep -v "^$" || true)
+python_batch_output=$($PYTHON_CLI batch < /tmp/test_job.json 2>&1 | grep -v "INFO:" | grep -v "^$" || true)
+
+rust_batch_valid=0
+python_batch_valid=0
+
+if echo "$rust_batch_output" | jq . >/dev/null 2>&1; then
+    rust_batch_valid=1
+fi
+
+if echo "$python_batch_output" | jq . >/dev/null 2>&1; then
+    python_batch_valid=1
+fi
+
+if [[ $rust_batch_valid -eq 1 ]] && [[ $python_batch_valid -eq 1 ]]; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    echo "  Rust valid: $rust_batch_valid"
+    echo "  Python valid: $python_batch_valid"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.5: Stream mode
+echo -n "Testing stream command... "
+echo '{"id":"test","font":{"path":"'$TESTDATA'","size":256,"variations":{}},"text":{"content":"A"},"rendering":{"format":"metrics","encoding":"json","width":64,"height":64}}' > /tmp/test_stream.jsonl
+
+rust_stream_output=$($RUST_CLI stream < /tmp/test_stream.jsonl 2>/dev/null | grep -v "^$" || true)
+python_stream_output=$($PYTHON_CLI stream < /tmp/test_stream.jsonl 2>&1 | grep -v "INFO:" | grep -v "^$" || true)
+
+rust_stream_valid=0
+python_stream_valid=0
+
+if echo "$rust_stream_output" | jq . >/dev/null 2>&1; then
+    rust_stream_valid=1
+fi
+
+if echo "$python_stream_output" | jq . >/dev/null 2>&1; then
+    python_stream_valid=1
+fi
+
+if [[ $rust_stream_valid -eq 1 ]] && [[ $python_stream_valid -eq 1 ]]; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    echo "  Rust valid: $rust_stream_valid"
+    echo "  Python valid: $python_stream_valid"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.6: Render command (metrics mode)
+echo -n "Testing render command (metrics mode)... "
+rust_render=$($RUST_CLI render -f $TESTDATA -s 256 -t A --format metrics 2>&1 | grep -v "^$" || true)
+python_render=$($PYTHON_CLI render --font $TESTDATA --size 256 --text A --format metrics 2>&1 | grep -v "INFO:" | grep -v "^$" || true)
+
+# Both should output density/beam metrics
+if echo "$rust_render" | grep -q "density" && echo "$python_render" | grep -q "Density"; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Test 2.7: Cache knobs (batch mode)
+echo -n "Testing cache knobs (--max-fonts, --max-glyphs)... "
+rust_cache=$($RUST_CLI batch --max-fonts 128 --max-glyphs 1024 < /tmp/test_job.json 2>/dev/null || true)
+python_cache=$($PYTHON_CLI batch --max_fonts 128 --max_glyphs 1024 < /tmp/test_job.json 2>&1 | grep -v "INFO:" || true)
+
+# Both should succeed
+if echo "$rust_cache" | jq . >/dev/null 2>&1 && echo "$python_cache" | jq . >/dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}✗${NC}"
+    FAILED=$((FAILED + 1))
+fi
+echo
+
+# Summary
+echo "=== CLI Parity Test Summary ==="
+echo -e "Passed: ${GREEN}$PASSED${NC}"
+echo -e "Failed: ${RED}$FAILED${NC}"
+echo
+
+if [[ $FAILED -eq 0 ]]; then
+    echo -e "${GREEN}✓ All parity tests passed!${NC}"
+    echo
+    echo "Python Fire CLI successfully mirrors Rust CLI functionality."
+    echo "Both CLIs can be used interchangeably."
+    exit 0
+else
+    echo -e "${RED}✗ Some parity tests failed!${NC}"
+    echo
+    echo "Review the failures above and update the Python CLI to match Rust CLI."
+    exit 1
+fi
 </document_content>
 </document>
 
@@ -3209,6 +6583,21 @@ mod tests;
 struct Cli {
 }
 
+struct DiagnosticsReport {
+}
+
+struct BatchStatsReport {
+}
+
+struct StreamStatsReport {
+}
+
+struct StreamCounters {
+}
+
+struct BatchRunSummary {
+}
+
 
 # File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/src/output.rs
 # Language: rust
@@ -3298,12 +6687,20 @@ struct ShapedText {
 struct ShapedGlyph {
 }
 
+struct ShapeRequest {
+}
+
 struct TextShaper {
 }
 
 
 # File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/tests/__init__.py
 # Language: python
+
+
+
+# File: /Users/adam/Developer/vcs/github.fontlaborg/haforu/tests/cli_stats.rs
+# Language: rust
 
 
 
